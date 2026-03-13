@@ -1,0 +1,56 @@
+# --- Python ---
+# --- Credenciales Cloud (NUNCA subir al repo) ---
+cloud_credentials/
+*.json.key
+
+__pycache__/
+*.py[cod]
+*$py.class
+.venv
+venv/
+ENV/
+.env
+
+# --- Jupyter Notebooks ---
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+*-checkpoint.ipynb
+
+# --- Databases & Data Files ---
+*.db
+*.db-journal
+*.sqlite
+*.duckdb
+*.wal
+*.csv
+*.xlsx
+*.parquet
+
+# --- Data & Landing (Ignore local large files) ---
+# Allow keeping the directories but ignore the content
+data/landing/*
+data/playground/*
+data/bronze/*
+data/silver/*
+data/gold/*
+!**/README.md
+!**/.gitkeep
+
+# --- IDEs ---
+.vscode/
+.idea/
+.project
+.pydevproject
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Uso Interno del Profe (no subir a GitHub) ---
+MANTENIMIENTO.md
+
+# --- Logs & Performance ---
+*.log
+.airflow/
+logs/
+plugins/
