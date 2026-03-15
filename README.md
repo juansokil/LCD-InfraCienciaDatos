@@ -6,74 +6,6 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 
 ---
 
-## 📚 Contenido Clase por Clase
-
-
-
-#### Clase 07: Arquitectura y Modelado de Datos
-- **Fundamentos de Data Warehousing**: Conceptos de Kimball vs Inmon
-- **Medallion Architecture**: Introducción a las capas Bronze, Silver y Gold
-- **Modelado Dimensional**: Star Schema, dimensiones y tablas de hechos
-- **Slowly Changing Dimensions (SCD)**: Tipos 0, 1, 2, 3, 4, 6
-- **Ejercicios prácticos**: Diseño de esquemas dimensionales con drawio
-
-#### Clase 08: Docker e Infraestructura de Datos
-- **Contenerización con Docker**: Conceptos de imágenes y contenedores
-- **Docker Compose**: Orquestación de servicios múltiples
-- **PostgreSQL en contenedores**: Setup de base de datos productiva
-- **Apache Airflow**: Introducción a la orquestación de pipelines
-- **Ejercicios prácticos**: Levantar stack completo de infraestructura
-
-### 🥉 **Capa Bronze: Ingesta y Fundamentos**
-
-#### Clase 09: Ingesta a Bronze Layer
-- **ELT vs ETL**: Paradigmas modernos de procesamiento
-- **Ingesta de archivos**: CSV, JSON, Parquet
-- **Control de duplicados**: Hashing con SHA256
-- **Ingesta desde APIs REST**: Consumo de datos externos
-- **Optimización**: Comparativa Parquet vs CSV
-- **Ejercicios prácticos**: Pipeline de ingesta con detección de duplicados
-
-### 🥈 **Capa Silver: Limpieza y Normalización**
-
-#### Clase 10: Transformaciones a Silver Layer
-- **Data Quality Engineering**: Contratos de datos y validaciones
-- **Great Expectations**: Framework de calidad de datos
-- **Limpieza de datos**: Manejo de nulos, duplicados, outliers
-- **Normalización (3NF)**: Diseño de esquema normalizado
-- **SCD Tipo 2 en práctica**: Implementación con SQL y Python
-- **Ejercicios prácticos**: Pipeline Bronze → Silver con validaciones
-
-### 🥇 **Capa Gold: Analytics y Machine Learning**
-
-#### Clase 11: Modelado Dimensional y ABTs
-- **Star Schema en producción**: Creación de fact tables y dimensions
-- **Slowly Changing Dimensions avanzado**: SCD Tipo 2 completo
-- **Analytical Base Table (ABT)**: Tablas wide para ML
-- **RFM Analysis**: Segmentación de clientes (Recency, Frequency, Monetary)
-- **Feature Engineering básico**: Preparación de features para modelos
-- **Ejercicios prácticos**: Construcción de ABT para modelo de churn
-
-#### Clase 12: MLOps y Arquitecturas para IA
-- **Feature Stores**: Feast, componentes (Offline/Online Store, Registry)
-- **Training-Serving Skew**: Detección y prevención
-- **API Ingestion con SCD**: Ingesta de features externas con historia
-- **Data Drift**: Tipos de drift y métodos de detección (KS Test, PSI)
-- **Batch vs Online Serving**: Arquitecturas de inferencia
-- **Model Registry**: Versionado de modelos con MLflow
-- **Best Practices MLOps**: Testing, CI/CD, monitoring, alertas
-- **Ejercicios prácticos**: Mini Feature Store y detección de drift
-
-### 🏁 **Integración Final**
-
-#### Clase 13: Workshop End-to-End
-- **Pipeline completo**: Integración Bronze → Silver → Gold
-- **Orquestación con Airflow**: DAGs de producción
-- **Documentación**: Metadatos y data catalogs
-- **Visualización**: Dashboards de KPIs
-- **Portafolio profesional**: Preparación para el mundo laboral
-
----
 
 ## 🛠️ Stack Tecnológico
 
@@ -87,37 +19,42 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 
 ## 🚀 Cómo empezar
 
-### 1. Clonar el repositorio
+### 1. Registrarse como colaborador
 
-Obtén una copia local del material ejecutando:
+1. Ir a la URL de onboarding (la comparte el profe en clase).
+2. Completar con tu **Nombre**, **Email** y **Usuario de GitHub** (sin @).
+3. Ingresar el **codigo de clase**.
+4. Revisar tu email y **aceptar la invitacion** de GitHub.
+
+### 2. Clonar el repositorio
 
 ```bash
 git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
 cd LCD-InfraCienciaDatos
 ```
 
-### 2. Crear tu rama de trabajo
+### 3. Crear tu rama de trabajo
 
-Para realizar los laboratorios y guardar tus progresos, crea tu propia rama:
-
-```bash
-git checkout -b nombre-del-alumno
-```
-
-### 3. Levantar el entorno
-
-Navega a la carpeta de infraestructura y levanta los servicios (Postgres + Airflow):
+Nunca trabajamos directo sobre `main`. Crea tu propia rama:
 
 ```bash
-cd docker-stack-de-full
-docker-compose up -d
+git checkout -b registro-apellido-nombre
 ```
 
-Accede a Airflow en `localhost:8080` (User/Pass: `airflow`).
+### 4. Hacer cambios, commit y push
 
-### 4. Laboratorios
+```bash
+git add .
+git commit -m "Agrega registro de tu-usuario"
+git push origin registro-apellido-nombre
+```
 
-Cada carpeta `claseXX` contiene notebooks autoejecutables con soporte híbrido para DuckDB si prefieres trabajar sin Docker.
+### 5. Abrir un Pull Request
+
+1. Ir a [github.com/juansokil/LCD-InfraCienciaDatos](https://github.com/juansokil/LCD-InfraCienciaDatos).
+2. Click en **"Compare & pull request"**.
+3. Crear el PR con titulo: `Registro de Alumno - Tu Nombre`.
+4. Luego se revisa y se aprueba el merge a `main`.
 
 ---
 
@@ -173,4 +110,3 @@ El curso culmina con un proyecto integrador donde los alumnos aplican todas las 
 Los estudiantes construyen su propia infraestructura de datos escalable aplicando las mejores prácticas de la industria.
 
 ---
-*Diseñado con ❤️ para la comunidad de Ciencia de Datos de UNSAM.*
