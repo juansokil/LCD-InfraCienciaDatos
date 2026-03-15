@@ -51,6 +51,10 @@ git commit -m "registro-garcia-juan"
 git push origin registro-garcia-juan
 ```
 
+> **Nota**: Si es la primera vez que pusheas esta rama, Git te va a pedir que ejecutes:
+> `git push --set-upstream origin registro-garcia-juan`
+> Esto es normal, solo pasa la primera vez.
+
 **Paso 5 — Abrir el Pull Request**
 1. Ir a [github.com/juansokil/LCD-InfraCienciaDatos](https://github.com/juansokil/LCD-InfraCienciaDatos).
 2. Click en el boton **"Compare & pull request"**.
