@@ -21,7 +21,7 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 
 ### 1. Registrarse como colaborador
 
-1. Ir a la URL de onboarding (la comparte el profe en clase).
+1. Ir a la URL de onboarding: [https://asistencia-api-unsam-production.up.railway.app/unirse](https://asistencia-api-unsam-production.up.railway.app/unirse).
 2. Completar con tu **Nombre**, **Email** y **Usuario de GitHub** (sin @).
 3. Ingresar el **codigo de clase**.
 4. Revisar tu email y **aceptar la invitacion** de GitHub.
@@ -40,21 +40,6 @@ Nunca trabajamos directo sobre `main`. Crea tu propia rama:
 ```bash
 git checkout -b registro-apellido-nombre
 ```
-
-### 4. Hacer cambios, commit y push
-
-```bash
-git add .
-git commit -m "Agrega registro de tu-usuario"
-git push origin registro-apellido-nombre
-```
-
-### 5. Abrir un Pull Request
-
-1. Ir a [github.com/juansokil/LCD-InfraCienciaDatos](https://github.com/juansokil/LCD-InfraCienciaDatos).
-2. Click en **"Compare & pull request"**.
-3. Crear el PR con titulo: `Registro de Alumno - Tu Nombre`.
-4. Luego se revisa y se aprueba el merge a `main`.
 
 ---
 

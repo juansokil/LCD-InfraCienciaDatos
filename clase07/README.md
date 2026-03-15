@@ -45,8 +45,11 @@ Por ejemplo: `git checkout -b registro-garcia-juan`
 Abrir `clase07/ejercicio/ejercicio.ipynb`, completar tus datos en la celda indicada y ejecutarla. Esto genera tu archivo en la carpeta `alumnos/`.
 
 **Paso 4 — Commit y Push**
+
+Volvé a la terminal (que debería estar en la carpeta `LCD-InfraCienciaDatos/`) y ejecutá:
+
 ```bash
-git add alumnos/
+git add clase07/ejercicio/alumnos/
 git commit -m "registro-garcia-juan"
 git push origin registro-garcia-juan
 ```
