@@ -54,3 +54,6 @@ MANTENIMIENTO.md
 .airflow/
 logs/
 plugins/
+
+# --- Office / Binarios pesados ---
+*.pptx
