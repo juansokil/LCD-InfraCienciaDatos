@@ -21,7 +21,7 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 
 Cada clase tiene su propio README con guía paso a paso. Para tu primera entrega:
 
-👉 [`clase01/README.md`](clase01/README.md) — onboarding, clone, rama personal, primer commit, push y Pull Request.
+👉 [`clase01/README.md`](clase01/README.md) — registro al onboarding, clone, rama personal, primer commit, push y Pull Request.
 
 > **Importante**: la rama personal (`apellido-nombre`) la creás **una sola vez** y la usás para **todas** las entregas del curso. No crees una rama nueva cada semana.
 
