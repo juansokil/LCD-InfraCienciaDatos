@@ -19,56 +19,36 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 
 ## 🚀 Cómo empezar
 
-### 1. Registrarse como colaborador
+Para tu **primera entrega** seguí la guía paso a paso de la Clase 01:
 
-1. Ir a la URL de onboarding: [https://asistencia-api-unsam-production.up.railway.app/unirse](https://asistencia-api-unsam-production.up.railway.app/unirse).
-2. Completar con tu **Nombre**, **Email** y **Usuario de GitHub** (sin @).
-3. Ingresar el **codigo de clase**.
-4. Revisar tu email y **aceptar la invitacion** de GitHub.
+👉 [`clase01/clase01.md`](clase01/clase01.md) — registro al onboarding, clone, rama personal, primer commit, push y Pull Request.
 
-### 2. Clonar el repositorio
-
-```bash
-git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
-cd LCD-InfraCienciaDatos
-```
-
-### 3. Crear tu rama de trabajo
-
-Nunca trabajamos directo sobre `main`. Crea tu propia rama:
-
-```bash
-git checkout -b registro-apellido-nombre
-```
+> **Importante**: la rama personal (`apellido-nombre`) la creás **una sola vez** y la usás para **todas** las entregas del curso. No crees una rama nueva cada semana.
 
 ---
 
 ## 📅 Cómo Consumir el Repo Semana a Semana
 
-Cada clase sigue el mismo workflow. Ejecutá esto al comienzo de cada semana:
+A partir de la Clase 02, cada semana seguís este workflow sobre tu rama personal:
 
 ```bash
-# 1. Sincronizá la nueva clase
+# 1. Traer el material nuevo desde main
 git checkout main
 git pull origin main
 
-# 2. Creá tu branch personal para esa clase
-git checkout -b claseXX-tuapellido
+# 2. Volver a tu rama personal y mergear lo nuevo de main
+git checkout apellido-nombre
+git merge main
 
-# 3. Abrí el README de la clase para entender los objetivos
-#    → claseXX/README.md
+# 3. Trabajar la clase
+#    → leer claseXX/README.md para entender los objetivos
+#    → ejecutar claseXX/claseXX.ipynb (Kernel → Restart & Run All)
+#    → completar los ejercicios
 
-# 4. Ejecutá el notebook de arriba a abajo (Kernel → Restart & Run All)
-#    → claseXX/claseXX.ipynb
-
-# 5. Completá los ejercicios en la carpeta ejercicios/
-
-# 6. Commiteá y subí tu trabajo
+# 4. Commitear y pushear (el PR ya existe, se actualiza solo)
 git add .
-git commit -m "clase XX: ejercicios resueltos"
-git push origin claseXX-tuapellido
-
-# 7. Abrí un Pull Request en GitHub hacia main para revisión
+git commit -m "claseXX: ejercicios resueltos"
+git push origin apellido-nombre
 ```
 
 ### 💡 Tips
