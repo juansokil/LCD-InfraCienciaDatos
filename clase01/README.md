@@ -25,6 +25,8 @@ Realizar tu primer **push con Git** al repositorio de la materia.
 
 **Paso 1 — Cloná el repositorio**
 
+> **Qué es "clonar"**: descargar a tu máquina toda la historia del repo (archivos + branches + tags). Es como "bajarse el repo entero". Solo lo hacés **una vez**.
+
 Ubicate primero en una carpeta donde quieras tener el repo y ejecutá:
 ```bash
 git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
@@ -38,6 +40,8 @@ cd LCD-InfraCienciaDatos
 ---
 
 **Paso 2 — Creá tu rama personal** (nunca trabajamos directo en `main`)
+
+> **Qué es una rama (branch)**: pensá a `main` como la versión oficial del curso. Tu rama personal (`apellido-nombre`) es una copia paralela donde **vos** hacés tus entregas, sin afectar la oficial. Cada alumno tiene su propia rama.
 
 Antes de crear la rama, listá las ramas disponibles para ver en qué estado estás:
 ```bash
@@ -88,6 +92,11 @@ git commit -m "clase01:registro"
 # Y por ultimo el push
 git push origin apellido-nombre
 ```
+
+**Qué hizo cada comando**:
+- `git add ...` → seleccionaste **qué** archivos querés subir (en este caso, todo lo que tenés en `clase01/ejercicio/alumnos/`).
+- `git commit -m "..."` → guardaste ese cambio **localmente** con un mensaje que lo describe (todavía no llegó a GitHub).
+- `git push origin apellido-nombre` → subiste tu commit a GitHub, a tu rama personal.
 
 > **Nota 1**: si es la primera vez que hacés `git commit`, puede aparecer un mensaje avisando que tu nombre y email fueron configurados automáticamente a partir de tu usuario y hostname. Conviene setearlos a mano para que tus commits queden identificados correctamente:
 >
