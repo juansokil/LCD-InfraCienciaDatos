@@ -94,9 +94,14 @@ git push origin apellido-nombre
 > **Nota 2**: si es la primera vez que pusheás esta rama, Git puede pedir `git push --set-upstream origin apellido-nombre`. Es normal, solo pasa la primera vez.
 
 > **Nota 3**: la primera vez te va a pedir tu password. En realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
-> - GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic).
+> - GitHub → Settings → **Developer settings** (está abajo de todo, a la izquierda) → Personal access tokens → Tokens (classic).
+>
+>   ![Sidebar de GitHub Settings mostrando "Developer settings" al final del menú lateral](img/github-pat-sidebar.png)
+>
 > - Generate new token → seleccioná al menos el scope `repo`.
 > - Copiá el token (solo se muestra una vez).
+>
+>   ![Pantalla "New personal access token (classic)" de GitHub con el scope `repo` seleccionado](img/github-pat-scope.png)
 
 ---
 

@@ -21,7 +21,7 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 
 Para tu **primera entrega** seguí la guía paso a paso de la Clase 01:
 
-👉 [`clase01/clase01.md`](clase01/clase01.md) — registro al onboarding, clone, rama personal, primer commit, push y Pull Request.
+👉 [`clase01/README.md`](clase01/README.md) — registro al onboarding, clone, rama personal, primer commit, push y Pull Request.
 
 > **Importante**: la rama personal (`apellido-nombre`) la creás **una sola vez** y la usás para **todas** las entregas del curso. No crees una rama nueva cada semana.
 
