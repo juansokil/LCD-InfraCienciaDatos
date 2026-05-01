@@ -1,51 +1,31 @@
-# 🚀 Orquestación de Datos: Serie Progresiva de DAGs
+# 🚀 Orquestación de Datos: DAGs
 
-Bienvenido al "motor" de nuestra plataforma. Esta carpeta contiene los **DAGs (Directed Acyclic Graphs)** organizados por capas arquitectónicas.
-
----
-
-## 📂 Estructura de Carpetas
-
-Hemos organizado los procesos siguiendo el ciclo de vida real del dato:
-
-### 1️⃣ `01-bronze/` (Ingesta)
-
-Procesos de extracción desde fuentes externas (CSV, JSON, APIs) hacia nuestra base de datos **`InfraCienciaDatos`**.
-
-* **Misión**: Mover el dato crudo al esquema `bronze`.
-
-### 2️⃣ `02-silver/` (Refinería)
-
-Refinación y limpieza de datos.
-
-* **Misión**: Filtrar, limpiar y normalizar datos desde `bronze` hacia el esquema `silver`.
-
-### 3️⃣ `03-gold/` (Serving)
-
-Agregaciones, KPIs y modelado analítico.
-
-* **Misión**: Preparar "Datamarts" en el esquema `gold` para ser consumidos por herramientas de BI.
-
-### 4️⃣ `20-tpFinal/` (Proyecto Integrador)
-
-Contiene los DAGs maestros que orquestan el flujo completo Medallón de punta a punta.
+Esta carpeta contiene los **DAGs (Directed Acyclic Graphs)** que Airflow lee desde `/opt/airflow/dags/` (mount al folder local `./dags`).
 
 ---
 
-## 🛠️ Configuración de Conexiones
+## 📂 Estructura actual
 
-Todos los DAGs están configurados para usar conexiones centralizadas en Airflow:
+### `00-playground/`
 
-1. **`database`**: Conexión principal a nuestra base de datos de trabajo (`InfraCienciaDatos`).
-    * *Nota: No hardcodear contraseñas, usar el `PostgresHook`.*
-2. **`mssql`**: Conexión opcional para el sistema origen externo Microsoft.
+DAGs de aprendizaje y demos. Los alumnos generan los suyos en la **Clase 02** mediante celdas `%%writefile` del notebook `clase02.ipynb`:
+
+- `demo_01_hola_mundo.py` — primer DAG con TaskFlow API
+- `demo_02_secuencia.py` — pasaje de datos entre tareas (XComs implícitos)
+- `demo_03_branching.py` — decisiones con `@task.branch`
+- `demo_04_dynamic_mapping.py` — `.expand()` para tareas dinámicas
+
+> A medida que avancemos en el cuatrimestre van a aparecer más carpetas con DAGs reales:
+> - `01-bronze/` (Clase 03 — Ingesta)
+> - `02-silver/` (Clase 04 — Refinería)
+> - `03-gold/` (Clase 05 — Serving / Star Schema)
 
 ---
 
-## 💡 Mejores Prácticas Incluidas
+## 💡 Conceptos clave
 
-* **Uso de Esquemas**: Implementación física de la arquitectura Medallón (`bronze`, `silver`, `gold`).
-* **TaskFlow API**: Uso intensivo de decoradores `@dag` y `@task`.
-* **Configuración desde .env**: Uso de variables de entorno para una gestión limpia.
+- **TaskFlow API**: Airflow 3 usa decoradores `@dag` y `@task` para definir flujos de manera limpia.
+- **Configuración desde `.env`**: las credenciales vienen de variables de entorno, no se hardcodean.
+- **Conexiones**: los DAGs reales (de clase 03 en adelante) usan `PostgresHook` con la conexión `database` configurada en Airflow UI.
 
 **¡A orquestar se ha dicho! 🚀🫡**
