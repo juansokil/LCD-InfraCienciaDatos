@@ -14,7 +14,7 @@ Realizar tu primer **push con Git** al repositorio de la materia.
 ## 🚀 Mi primer push con Git
 
 **Paso 0 — Registro en el Onboarding**
-1. Andá a [https://asistencia-api-unsam-production.up.railway.app/unirse](https://asistencia-api-unsam-production.up.railway.app/unirse)
+1. Andá a [https://github-api-unsam-631093702231.southamerica-east1.run.app/unirse](https://github-api-unsam-631093702231.southamerica-east1.run.app/unirse)
 2. Completá con tu Nombre, Email y **Usuario de GitHub**.
 3. Código de clase: se les da durante la clase.
 4. Revisá tu email y aceptá la invitación de GitHub.
