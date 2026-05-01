@@ -70,3 +70,39 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 * **Orquestación**: Apache Airflow 3.x.
 * **Contenerización**: Docker & Docker Compose.
 * **IA/ML Support**: Scikit-Learn (conceptos de features) y Feature Store Architecture.
+
+---
+
+## 🚀 Cómo empezar
+
+Para tu **primera entrega** seguí la guía paso a paso de la Clase 01:
+
+👉 [`clase01/README.md`](clase01/README.md) — registro al onboarding, clone, rama personal, primer commit, push y Pull Request.
+
+> **Importante**: la rama personal (`apellido-nombre`) la creás **una sola vez** y la usás para **todas** las entregas del curso. No crees una rama nueva cada semana.
+
+---
+
+## 📅 Cómo Consumir el Repo Semana a Semana
+
+A partir de la Clase 02, cada semana seguís este workflow sobre tu rama personal:
+
+```bash
+# 1. Traer el material nuevo desde main
+git checkout main
+git pull origin main
+
+# 2. Volver a tu rama personal y mergear lo nuevo de main
+git checkout apellido-nombre
+git merge main
+
+# 3. Trabajar la clase
+#    → leer claseXX/README.md para entender los objetivos
+#    → ejecutar claseXX/claseXX.ipynb (Kernel → Restart & Run All)
+#    → completar los ejercicios
+
+# 4. Commitear y pushear (el PR ya existe, se actualiza solo)
+git add .
+git commit -m "claseXX: ejercicios resueltos"
+git push origin apellido-nombre
+```
