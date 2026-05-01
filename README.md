@@ -2,7 +2,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-LCD--InfraCienciaDatos-181717?logo=github)](https://github.com/juansokil/LCD-InfraCienciaDatos)
 
-Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Licenciatura en Ciencia de Datos — Universidad Nacional de San Martín. El curso transforma el caos de datos crudos en activos estratégicos listos para Analytics y Machine Learning.
+Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Ciencia de Datos, Universidad Nacional de San Martín.
 
 ---
 
@@ -17,11 +17,11 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 
 ---
 
-## 🚀 Cómo empezar
+## 🚀 Empezá por la Clase 01
 
-Para tu **primera entrega** seguí la guía paso a paso de la Clase 01:
+Cada clase tiene su propio README con guía paso a paso. Para tu primera entrega:
 
-👉 [`clase01/clase01.md`](clase01/clase01.md) — registro al onboarding, clone, rama personal, primer commit, push y Pull Request.
+👉 [`clase01/README.md`](clase01/README.md) — onboarding, clone, rama personal, primer commit, push y Pull Request.
 
 > **Importante**: la rama personal (`apellido-nombre`) la creás **una sola vez** y la usás para **todas** las entregas del curso. No crees una rama nueva cada semana.
 
@@ -50,16 +50,6 @@ git add .
 git commit -m "claseXX: ejercicios resueltos"
 git push origin apellido-nombre
 ```
-
-### 💡 Tips
-
-| Situación | Acción |
-|-----------|--------|
-| Quiero ver la teoría sin ejecutar código | Leer el `README.md` de la clase |
-| El notebook da error | `Kernel → Restart & Run All` desde el principio |
-| Quiero trabajar sin Docker | Usá DuckDB (soportado en todos los notebooks) |
-| Tengo conflictos en git | Nunca trabajés en `main`, siempre en tu branch |
-| ¿Qué sigue la próxima clase? | Al final de cada `README.md` hay una sección "➡️ Próxima Clase" |
 
 ---
 
