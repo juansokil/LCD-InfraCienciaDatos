@@ -79,12 +79,17 @@ Contenido sugerido (puede ser tan corto como esto):
 Desde la terminal, en la carpeta `LCD-InfraCienciaDatos/`:
 
 ```bash
-git add clase01/ejercicio/alumnos/apellido-nombre.md
-git commit -m "clase01:registro-apellido-nombre"
+# Con esto voy a agregar todos los archivos de esa carpeta
+git add clase01/ejercicio/alumnos/*
+
+# Ahora hacemos el commit
+git commit -m "clase01:registro"
+
+# Y por ultimo el push
 git push origin apellido-nombre
 ```
 
-> **Nota 1**: la primera vez que hagas `git commit`, puede aparecer un mensaje avisando que tu nombre y email fueron configurados automáticamente a partir de tu usuario y hostname. Conviene setearlos a mano para que tus commits queden identificados correctamente:
+> **Nota 1**: si es la primera vez que hacés `git commit`, puede aparecer un mensaje avisando que tu nombre y email fueron configurados automáticamente a partir de tu usuario y hostname. Conviene setearlos a mano para que tus commits queden identificados correctamente:
 >
 > ```bash
 > git config --global user.name "Tu Nombre"
@@ -93,7 +98,7 @@ git push origin apellido-nombre
 
 > **Nota 2**: si es la primera vez que pusheás esta rama, Git puede pedir `git push --set-upstream origin apellido-nombre`. Es normal, solo pasa la primera vez.
 
-> **Nota 3**: la primera vez te va a pedir tu password. En realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
+> **Nota 3**: si es la primera vez que pusheás, te va a pedir tu password. En realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
 > - GitHub → Settings → **Developer settings** (está abajo de todo, a la izquierda) → Personal access tokens → Tokens (classic).
 >
 >   ![Sidebar de GitHub Settings mostrando "Developer settings" al final del menú lateral](img/github-pat-sidebar.png)
