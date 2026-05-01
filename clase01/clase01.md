@@ -28,15 +28,35 @@ Realizar tu primer **push con Git** al repositorio de la materia.
 Ubicate primero en una carpeta donde quieras tener el repo y ejecutá:
 ```bash
 git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
+```
+
+Esto descarga el repo en una carpeta nueva llamada `LCD-InfraCienciaDatos`. Entrá a esa carpeta para empezar a trabajar adentro:
+```bash
 cd LCD-InfraCienciaDatos
 ```
 
 ---
 
 **Paso 2 — Creá tu rama personal** (nunca trabajamos directo en `main`)
+
+Antes de crear la rama, listá las ramas disponibles para ver en qué estado estás:
+```bash
+git branch
+```
+
+Deberías ver solo `main` (con un `*` al lado, que indica la rama en la que estás parado).
+
+Ahora creá tu rama personal:
 ```bash
 git checkout -b apellido-nombre
 ```
+
+Volvé a listar las ramas para verificar:
+```bash
+git branch
+```
+
+Ahora deberías ver **dos** ramas (`main` y `apellido-nombre`), y el `*` tiene que estar al lado de la rama que acabás de crear, indicando que ya estás trabajando sobre ella.
 
 > **IMPORTANTE**: esta rama la vas a usar para **todas** las entregas del curso. No crees una rama nueva cada semana.
 
@@ -64,9 +84,16 @@ git commit -m "clase01:registro-apellido-nombre"
 git push origin apellido-nombre
 ```
 
-> **Nota 1**: si es la primera vez que pusheás esta rama, Git puede pedir `git push --set-upstream origin apellido-nombre`. Es normal, solo pasa la primera vez.
+> **Nota 1**: la primera vez que hagas `git commit`, puede aparecer un mensaje avisando que tu nombre y email fueron configurados automáticamente a partir de tu usuario y hostname. Conviene setearlos a mano para que tus commits queden identificados correctamente:
+>
+> ```bash
+> git config --global user.name "Tu Nombre"
+> git config --global user.email "tu@email.com"
+> ```
 
-> **Nota 2**: la primera vez te va a pedir tu password. En realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
+> **Nota 2**: si es la primera vez que pusheás esta rama, Git puede pedir `git push --set-upstream origin apellido-nombre`. Es normal, solo pasa la primera vez.
+
+> **Nota 3**: la primera vez te va a pedir tu password. En realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
 > - GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic).
 > - Generate new token → seleccioná al menos el scope `repo`.
 > - Copiá el token (solo se muestra una vez).
