@@ -85,24 +85,47 @@ Para tu **primera entrega** seguí la guía paso a paso de la Clase 01:
 
 ## 📅 Cómo Consumir el Repo Semana a Semana
 
-A partir de la Clase 02, cada semana seguís este workflow sobre tu rama personal:
+A partir de la Clase 02, cada semana repetís estos pasos sobre tu rama personal.
+
+### 1. Posicionate en `main` y bajá el material nuevo
 
 ```bash
-# 1. Traer el material nuevo desde main
 git checkout main
 git pull origin main
+```
 
-# 2. Volver a tu rama personal y mergear lo nuevo de main
+- `git checkout main` te mueve a la rama oficial del curso.
+- `git pull` baja desde GitHub lo que el docente subió esta semana (clase nueva, fixes, etc.).
+
+### 2. Volvé a tu rama personal y traete los cambios
+
+```bash
 git checkout apellido-nombre
-git merge main
+git merge main --no-edit
+```
 
-# 3. Trabajar la clase
-#    → leer claseXX/README.md para entender los objetivos
-#    → ejecutar claseXX/claseXX.ipynb (Kernel → Restart & Run All)
-#    → completar los ejercicios
+- `git checkout apellido-nombre` te devuelve a tu rama (donde hacés tus entregas).
+- `git merge main --no-edit` incorpora a tu rama todo lo nuevo que bajó `main`. El `--no-edit` evita que Git abra un editor pidiéndote mensaje del merge — acepta el default y listo.
 
-# 4. Commitear y pushear (el PR ya existe, se actualiza solo)
-git add .
-git commit -m "claseXX: ejercicios resueltos"
+> Si te olvidás del `--no-edit` y se abre Vim, salís con `:wq` (dos puntos + w + q + Enter).
+
+### 3. Trabajá la clase
+
+Abrí `claseXX/README.md` para entender el objetivo y leer las instrucciones del ejercicio. En general:
+- Leer el desarrollo teórico en `claseXX/claseXX.ipynb`
+- Resolver los ejercicios indicados
+- Generar tu archivo de entrega según pida cada clase (`.md`, `.txt`, notebook, etc.)
+
+### 4. Commiteá y subí tu trabajo
+
+```bash
+git add <ruta-de-tu-archivo-de-entrega>
+git commit -m "claseXX: <descripcion corta>"
 git push origin apellido-nombre
 ```
+
+- `git add ...` → selecciona **qué** archivo subir. Usá la ruta exacta (no `git add .`) para evitar subir cosas que no querés.
+- `git commit -m "..."` → guarda el cambio localmente con un mensaje descriptivo.
+- `git push origin apellido-nombre` → sube tu commit a GitHub, a tu rama.
+
+> **Recordatorio**: el Pull Request a `main` ya existe desde la Clase 01. Cada `push` lo actualiza automáticamente — no hace falta crear uno nuevo.
