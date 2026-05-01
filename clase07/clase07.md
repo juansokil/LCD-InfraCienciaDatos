@@ -50,9 +50,11 @@ Volvé a la terminal (que debería estar en la carpeta `LCD-InfraCienciaDatos/`)
 
 ```bash
 git add clase07/ejercicio/alumnos/
-git commit -m "registro-garcia-juan"
+git commit -m "registro: Garcia Juan"
 git push origin registro-garcia-juan
 ```
+
+> **Importante**: Reemplaza `Garcia Juan` y `garcia-juan` con **tu nombre real** en ambos comandos.
 
 > **Nota**: Si es la primera vez que pusheas esta rama, Git te va a pedir que ejecutes:
 > `git push --set-upstream origin registro-garcia-juan`
