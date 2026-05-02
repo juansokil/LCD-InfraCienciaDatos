@@ -64,6 +64,7 @@ Corre cada 5 minutos, acumulando snapshots con precios en tiempo real.
 from airflow.decorators import dag, task
 from datetime import datetime
 import math
+import os
 
 
 # =============================================================================
@@ -87,7 +88,13 @@ import math
 # de secretos (como AWS Secrets Manager o HashiCorp Vault). Aqui lo
 # simplificamos para fines educativos.
 # =============================================================================
-DB_URI = "postgresql+psycopg2://admin:admin@postgres:5432/InfraCienciaDatos"
+DB_URI = (
+    f"postgresql+psycopg2://"
+    f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
+    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@"
+    f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:5432/"
+    f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
+)
 
 
 # =============================================================================
