@@ -2,7 +2,7 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-LCD--InfraCienciaDatos-181717?logo=github)](https://github.com/juansokil/LCD-InfraCienciaDatos)
 
-Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Licenciatura en Ciencia de Datos — Universidad Nacional de San Martín. El curso transforma el caos de datos crudos en activos estratégicos listos para Analytics y Machine Learning.
+Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Ciencia de Datos, Universidad Nacional de San Martín.
 
 ---
 

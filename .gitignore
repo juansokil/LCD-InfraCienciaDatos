@@ -57,3 +57,9 @@ plugins/
 
 # --- Office / Binarios pesados ---
 *.pptx
+
+# --- Data runtime outputs (regenerados por DAGs, no committear) ---
+stack/data/processed/**
+stack/data/quarantine/**
+!stack/data/processed/.gitkeep
+!stack/data/quarantine/.gitkeep
