@@ -25,6 +25,7 @@ Flujo de tareas:
 from airflow.decorators import dag, task
 from datetime import datetime
 import math
+import os
 
 
 # ============================================================
@@ -32,7 +33,13 @@ import math
 # ============================================================
 # Misma connection string que el DAG Bronze.
 # Apunta al PostgreSQL dentro de Docker.
-DB_URI = "postgresql+psycopg2://admin:admin@postgres:5432/InfraCienciaDatos"
+DB_URI = (
+    f"postgresql+psycopg2://"
+    f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
+    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@"
+    f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:5432/"
+    f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
+)
 
 
 # ============================================================

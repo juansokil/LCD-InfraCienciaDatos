@@ -8,9 +8,9 @@ Stack completo de Data Engineering con un solo `docker compose up`. Ingesta dato
 CoinGecko API
       |  (cada 5 min)
       v
-  [ Airflow ]  ----->  [ PostgreSQL - database ]  ----->  [ Streamlit ]
-  orquestador          bronze / silver / gold              dashboard BI
-  puerto 8080          puerto 5432                         puerto 8501
+  [ Airflow ]  ----->  [ PostgreSQL - data_warehouse ]  ----->  [ Streamlit ]
+  orquestador          bronze / silver / gold                    dashboard BI
+  puerto 8080          puerto 5432                               puerto 8501
 ```
 
 ## Componentes
@@ -18,8 +18,8 @@ CoinGecko API
 | Servicio | Container | Descripcion |
 |----------|-----------|-------------|
 | **Airflow 3.1.5** | `airflow_standalone` | Orquestador de pipelines (LocalExecutor, Python 3.11) |
-| **Airflow Metadata DB** | `airflow_db` | PostgreSQL 17 Alpine para metadatos internos de Airflow |
-| **database** | `database` | PostgreSQL 17 Alpine con arquitectura Medallon (Bronze / Silver / Gold) |
+| **Airflow Metadata DB** | `airflow_db` | PostgreSQL 17 Alpine para metadatos internos de Airflow (no expuesto al host) |
+| **Data Warehouse** | `data_warehouse` | PostgreSQL 17 Alpine con arquitectura Medallon (Bronze / Silver / Gold). Expuesto en `localhost:5432` |
 | **Streamlit** | `dashboard` | Dashboard BI automatico (lee de gold schema, sin configuracion manual) |
 
 Todos los servicios se comunican a traves de la red `de_stack_network` (bridge).
@@ -73,10 +73,54 @@ docker compose up --build
 | Servicio | URL / Host | Usuario | Password |
 |----------|------------|---------|----------|
 | Airflow UI | http://localhost:8080 | (sin login) | (sin login) |
-| Data Lake (PostgreSQL) | localhost:5432 | admin | admin |
+| Data Warehouse (PostgreSQL) | localhost:5432 | admin | admin |
 | Dashboard (Streamlit) | http://localhost:8501 | (sin login) | (sin login) |
 
 El dashboard de Streamlit se conecta automaticamente al schema `gold` y muestra los datos sin configuracion manual.
+
+## Conectarse con DBeaver
+
+[DBeaver](https://dbeaver.io/download/) es un cliente SQL gratuito que permite explorar la base de datos visualmente, ejecutar queries, ver tablas y schemas. Es la herramienta recomendada para inspeccionar los datos de Bronze, Silver y Gold mientras desarrollas DAGs.
+
+### Pasos
+
+1. **Database** -> **New Database Connection** -> **PostgreSQL**
+
+2. Completar los campos con estos valores:
+
+| Campo | Valor |
+|-------|-------|
+| Host | `localhost` |
+| Port | `5432` |
+| Database | `InfraCienciaDatos` |
+| Username | `admin` |
+| Password | `admin` |
+
+3. (Opcional) Click en **Test Connection** para verificar.
+   - Si pide bajar el driver de PostgreSQL, aceptar.
+4. Click en **Finish**.
+
+### Que vas a ver
+
+Una vez conectado, en el panel izquierdo expandi:
+
+```
+InfraCienciaDatos
+└── Schemas
+    ├── bronze              <-- datos crudos de la API
+    ├── silver              <-- datos limpios y validados
+    ├── gold                <-- star schema y ABT
+    └── public              <-- (vacio por defecto)
+```
+
+Para ver las tablas, click derecho sobre el schema -> **View Diagram** o expandi `Tables`.
+
+### Tips
+
+- **Los datos cambian cada 5 minutos** (cuando corre el DAG `crypto_bronze`). Refrescá las queries para ver datos nuevos.
+- Si **no ves los schemas bronze/silver/gold**: probablemente todavia no corrio ningun DAG. Andá a Airflow UI (http://localhost:8080) y disparalos manualmente.
+- **Atajo de query**: `SELECT * FROM bronze.crypto_markets ORDER BY ingested_at DESC LIMIT 10;` para ver los ultimos snapshots de cripto.
+- Si **el host no responde**: verificar que el container este levantado con `docker compose ps`. Solo `data_warehouse` expone el puerto 5432 al host (el `airflow_db` queda en la red interna).
 
 ## Estructura del Proyecto
 
@@ -100,8 +144,9 @@ stack/
 ├── .env                        # Variables de entorno
 ├── docker-compose.yml          # Orquestacion de servicios
 ├── Dockerfile                  # Imagen custom de Airflow
+├── Dockerfile.postgres         # Imagen custom de Postgres (bakea init.sql, evita bind mount en Windows)
 ├── init-airflow.sh             # Script de arranque de Airflow
-├── init.sql                    # Creacion de schemas en PostgreSQL
+├── init.sql                    # Creacion de schemas en PostgreSQL (copiado a la imagen via Dockerfile.postgres)
 └── requirements.txt            # Dependencias Python
 ```
 
@@ -138,6 +183,7 @@ Para usar BigQuery / GCS, colocar el archivo JSON de Service Account en `./crede
 
 - **DAGs**: Se leen de `./dags`. Los cambios se reflejan automaticamente (refresco cada 10s).
 - **Data**: Los archivos de entrada van en `./data/landing/`.
-- **Red Interna**: Airflow y Streamlit se conectan a PostgreSQL usando el host `database`.
-- **Init SQL**: Los esquemas se crean automaticamente via `init.sql`.
+- **Red Interna**: Airflow y Streamlit se conectan a PostgreSQL usando el host `data_warehouse` (el nombre del servicio en `docker-compose.yml`).
+- **Conexion configurable**: Los DAGs leen el host desde la variable de entorno `SOURCE_DB_HOST` (default `data_warehouse`). Los notebooks de verificacion usan `localhost` porque corren en tu maquina y se conectan al puerto expuesto.
+- **Init SQL**: Los esquemas se crean automaticamente via `init.sql`, que se copia adentro de la imagen Postgres mediante `Dockerfile.postgres` (asi evitamos bind mounts problematicos en Windows).
 - **Reset completo**: `docker compose down -v && docker compose up --build`
