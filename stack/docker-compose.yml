@@ -14,11 +14,18 @@ services:
       - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=10
       - SOURCE_DB_HOST=data_warehouse
     volumes:
-      - ./dags:/opt/airflow/dags:cached
+      # long-form syntax — cross-platform (Windows/Linux/Mac)
+      - type: bind
+        source: ./dags
+        target: /opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
-      - ./data:/opt/airflow/data:cached
-      - ./credentials:/opt/airflow/credentials
+      - type: bind
+        source: ./data
+        target: /opt/airflow/data
+      - type: bind
+        source: ./credentials
+        target: /opt/airflow/credentials
     ports:
       - "8080:8080"
     depends_on:
@@ -67,7 +74,10 @@ services:
       - POSTGRES_DB=${SOURCE_DB_NAME}
     volumes:
       - data_warehouse_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      # long-form syntax — evita problemas de parsing en Windows con paths C:\...
+      - type: bind
+        source: ./init.sql
+        target: /docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
