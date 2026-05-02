@@ -87,6 +87,37 @@ Airflow detecta el archivo automáticamente (volumen montado). Activalo en la UI
 
 ---
 
+## 🎨 Dashboard incluido en el stack
+
+El stack levanta automáticamente un **dashboard de Streamlit** (`http://localhost:8501`) desde la **Clase 02**. Hasta ahora estaba esperando que tuvieras tablas Gold para mostrar — ahora que las tenés, este es su momento.
+
+El dashboard ya tiene **6 páginas pre-construidas** que leen tus tablas automáticamente:
+
+| Página | Qué muestra | Lee de |
+|--------|-------------|--------|
+| **Bronze** | Datos crudos por cada tabla ingestada | `bronze.*` |
+| **Silver** | Datos limpios + tabla de cuarentena | `silver.*` |
+| **📊 Gold — Resumen Mercado** | KPIs globales del mercado crypto | `gold.fact_global_market` |
+| **🏆 Gold — Ranking Precios** | Top criptos por valor / volumen / market cap | `gold.dim_crypto` + `gold.fact_crypto_markets` |
+| **📉 Gold — Volatilidad / Riesgo** | Métricas de volatilidad histórica | `gold.fact_crypto_markets` |
+| **🥧 Gold — Dominancia** | Share de mercado de las top criptos | `gold.fact_global_market` |
+
+### ¿Querés agregar tu propia visualización?
+
+Streamlit detecta automáticamente cualquier archivo `.py` que pongas en `stack/dashboard/pages/`:
+
+```bash
+# 1. Crear tu página (siguiendo el patrón de las existentes)
+nano stack/dashboard/pages/7_Mi_Custom.py
+
+# 2. Rebuildear el dashboard
+docker compose up -d --build dashboard
+```
+
+> **Preview de Clase 06 (Workshop End-to-End)**: vas a extender este dashboard agregando tu propia página custom y refactor de queries existentes. El dashboard pasa de "caja negra" a "código que vos modificás".
+
+---
+
 ## 🏆 Desafío Senior: Integrity Guard
 
 Tu entregable no está listo hasta que pase la auditoría. Implementá un **Integrity Guard** que verifique automáticamente que no haya registros huérfanos entre tus fact tables y dimensiones, garantizando una base sólida para cualquier reporte de BI.
@@ -100,4 +131,3 @@ Tu entregable no está listo hasta que pase la auditoría. Implementá un **Inte
 | El DAG no aparece en Airflow UI | Verificar que el archivo esté en `stack/dags/03-gold/`. Esperar 10-30s para que Airflow lo detecte. |
 | El DAG corre pero las tablas Gold están vacías | Verificá que `crypto_silver` (clase04) haya corrido antes y poblado `silver.crypto_markets`. |
 | `IntegrityError: foreign key violation` | El DAG verifica integridad. Mirá la tabla `dim_crypto` — todos los `crypto_id` de `fact_crypto_markets` tienen que existir en `dim_crypto`. |
-| Quiero ver el resultado en un dashboard | Andá a Streamlit (`localhost:8501`) — las páginas Gold leen automáticamente desde estas tablas. |
