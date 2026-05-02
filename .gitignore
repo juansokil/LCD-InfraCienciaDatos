@@ -63,3 +63,11 @@ stack/data/processed/**
 stack/data/quarantine/**
 !stack/data/processed/.gitkeep
 !stack/data/quarantine/.gitkeep
+
+# --- Credenciales Cloud (defensa adicional - .json/.key reales nunca subir) ---
+stack/credentials/*.json
+stack/credentials/*.key
+
+# --- Excepcion: el .env del stack del laboratorio si se versiona ---
+# Son credenciales locales-only (admin/admin) sin info sensible real.
+!stack/.env
