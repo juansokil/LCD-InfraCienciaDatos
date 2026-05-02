@@ -2,7 +2,7 @@
 
 > **Material de la clase**:
 > - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico: Star Schema, Capa Semántica, Wide Tables (ABT), Best Practices Gold.
-> - [`ejercicios/clase05_ejercicios.ipynb`](ejercicios/clase05_ejercicios.ipynb) — ejercicio **opcional**: construcción manual de Hechos y Dimensiones.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: construcción manual de Hechos y Dimensiones.
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo de transformación Silver → Gold (con comentarios educativos).
 
 ---
@@ -73,7 +73,7 @@ Abrí `clase05.ipynb` para entender Star Schema vs Wide Tables, la Capa Semánti
 
 ### Paso 2 — (Opcional) Hacer el ejercicio práctico
 
-Abrí `ejercicios/clase05_ejercicios.ipynb` para construir manualmente Hechos y Dimensiones a partir de Silver. Es práctica personal sin entrega comprometida.
+Abrí `ejercicios/ejercicio.ipynb` para construir manualmente Hechos y Dimensiones a partir de Silver. Es práctica personal sin entrega comprometida.
 
 ### Paso 3 — Correr el DAG productivo en Airflow
 
