@@ -66,18 +66,19 @@ services:
 
   # PostgreSQL - Data Warehouse (Bronze, Silver, Gold)
   data_warehouse:
-    image: postgres:17-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: data_warehouse:custom
     container_name: data_warehouse
     environment:
       - POSTGRES_USER=${SOURCE_DB_USER}
       - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
       - POSTGRES_DB=${SOURCE_DB_NAME}
     volumes:
+      # init.sql se copia adentro de la imagen via Dockerfile.postgres
+      # (sin bind mount → sin problemas de path en Windows)
       - data_warehouse_data:/var/lib/postgresql/data
-      # long-form syntax — evita problemas de parsing en Windows con paths C:\...
-      - type: bind
-        source: ./init.sql
-        target: /docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
