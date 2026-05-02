@@ -15,14 +15,14 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 - Modelado dimensional: Star Schema, dimensions, fact tables
 - Slowly Changing Dimensions (SCD): Tipos 0, 1, 2, 3, 4, 6
 - Arquitectura Medallion: Bronze, Silver, Gold
-- **Entrega**: primer push con Git al repo de la materia
+- Primer push con Git al repo de la materia
 
 #### Clase 02: Instalación del Stack y Tutorial de Airflow
 - Stack Docker: Postgres + Airflow + Streamlit
 - Apache Airflow 3: TaskFlow API, decoradores `@dag` y `@task`
 - Branching, Dynamic Task Mapping, XComs
 - Buenas prácticas: idempotencia, atomicidad, determinismo
-- **Entrega**: stack instalado y verificado en local
+- Instalación + verificación local del stack
 
 ### 🥉 **Capa Bronze: Ingesta**
 
@@ -31,7 +31,7 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 - Idempotencia mediante hashing SHA256 de archivos
 - Hive Partitioning para organización del Data Lake
 - Row-level hashing para detección de cambios
-- **Entrega**: pipeline de ingesta con auditoría
+- DAGs de ingesta CSV/JSON/multi-formato
 
 ### 🥈 **Capa Silver: Limpieza**
 
@@ -41,7 +41,6 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 - Limpieza avanzada: tipado estricto, deduplicación idempotente
 - Patrón de Cuarentena para registros inválidos
 - SCD Tipo 2 con SQL
-- **Entrega**: pipeline Silver con validaciones
 
 ### 🥇 **Capa Gold: Analytics**
 
@@ -50,16 +49,16 @@ Bienvenido al repositorio de **Infraestructura para Ciencia de Datos** de la Lic
 - Analytical Base Tables (ABT) para Machine Learning
 - Capa Semántica y métricas gobernadas
 - Integridad referencial completa
-- **Entrega**: ABT y modelado dimensional
+- Dashboard Streamlit pre-construido (consume tablas Gold)
 
-### 🏁 **Integración Final**
+### 🏁 **Cierre**
 
-#### Clase 06: Workshop End-to-End
-- Pipeline completo Bronze → Silver → Gold
-- Orquestación profesional con Airflow
-- Documentación y data catalogs
-- Visualización con dashboards
-- **Entrega**: proyecto integrador
+#### Clase 06: Workshop End-to-End — ML sobre Gold
+- Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
+- Clustering con KMeans: features → elbow → PCA → interpretación
+- Clasificación con Random Forest + análisis de feature importance
+- Tracking con MLflow: experimentos + comparación de runs
+- 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
 
 ---
 

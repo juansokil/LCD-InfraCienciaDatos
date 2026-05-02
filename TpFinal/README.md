@@ -143,7 +143,7 @@ Para cada API se detalla como aplicar la arquitectura medallion. Solo se incluye
 | Containerizacion (docker compose up y funciona) |  
 | Documentacion y claridad del codigo |  
 
-## Estructura esperada del proyecto
+## Estructura sugerida del proyecto
 
 ```
 mi-proyecto/
