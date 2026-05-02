@@ -68,7 +68,7 @@ Ahora deberías ver **dos** ramas (`main` y `apellido-nombre`), y el `*` tiene q
 
 **Paso 3 — Creá tu archivo de registro**
 
-Con tu editor de preferencia (VSCode, Notepad, lo que uses), creá un archivo en `clase01/ejercicio/alumnos/apellido-nombre.md` reemplazando `apellido-nombre` por el tuyo (ej: `sokil-juan.md`).
+Con tu editor de preferencia (VSCode, Notepad, lo que uses), creá un archivo en `clase01/ejercicios/alumnos/apellido-nombre.md` reemplazando `apellido-nombre` por el tuyo (ej: `sokil-juan.md`).
 
 Contenido sugerido (puede ser tan corto como esto):
 ```markdown
@@ -84,7 +84,7 @@ Desde la terminal, en la carpeta `LCD-InfraCienciaDatos/`:
 
 ```bash
 # Con esto voy a agregar todos los archivos de esa carpeta
-git add clase01/ejercicio/alumnos/*
+git add clase01/ejercicios/alumnos/*
 
 # Ahora hacemos el commit
 git commit -m "clase01:registro"
@@ -94,7 +94,7 @@ git push origin apellido-nombre
 ```
 
 **Qué hizo cada comando**:
-- `git add ...` → seleccionaste **qué** archivos querés subir (en este caso, todo lo que tenés en `clase01/ejercicio/alumnos/`).
+- `git add ...` → seleccionaste **qué** archivos querés subir (en este caso, todo lo que tenés en `clase01/ejercicios/alumnos/`).
 - `git commit -m "..."` → guardaste ese cambio **localmente** con un mensaje que lo describe (todavía no llegó a GitHub).
 - `git push origin apellido-nombre` → subiste tu commit a GitHub, a tu rama personal.
 

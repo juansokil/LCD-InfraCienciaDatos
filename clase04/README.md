@@ -2,7 +2,7 @@
 
 > **Material de la clase**:
 > - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico: Pydantic, contratos de datos, SCD Tipo 2 con SQL, patrón de cuarentena.
-> - [`ejercicios/clase04_ejercicios.ipynb`](ejercicios/clase04_ejercicios.ipynb) — ejercicio **opcional**: refinería de datos crypto (Bronze → Silver).
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: refinería de datos crypto (Bronze → Silver).
 > - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo de transformación Bronze → Silver (con comentarios educativos).
 
 ---
@@ -82,7 +82,7 @@ Abrí `clase04.ipynb` para entender Contratos de Datos, normalización Pydantic,
 
 ### Paso 2 — (Opcional) Hacer el ejercicio práctico
 
-Abrí `ejercicios/clase04_ejercicios.ipynb` para refinar tus propios datos crypto (Bronze → Silver). Es práctica personal sin entrega comprometida.
+Abrí `ejercicios/ejercicio.ipynb` para refinar tus propios datos crypto (Bronze → Silver). Es práctica personal sin entrega comprometida.
 
 ### Paso 3 — Correr el DAG productivo en Airflow
 
