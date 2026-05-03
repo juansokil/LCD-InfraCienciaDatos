@@ -7,9 +7,24 @@
 
 ---
 
+## 🛠️ Stack: opción A o opción B
+
+Para esta materia necesitás un stack con **Airflow + Postgres + Streamlit** levantado. Tenés dos caminos — la decisión es tuya:
+
+| Opción | Para quién | Esfuerzo |
+|---|---|---|
+| **A. Stack del curso** (recomendada) | Querés arrancar rápido y enfocarte en el contenido | `docker compose up -d` y listo |
+| **B. Stack propio** | Querés armar tu propio `docker-compose.yml` y aprender el setup | Más control, más trabajo |
+
+> Si elegís la **opción B**, tu stack tiene que cumplir: Postgres expuesto en `localhost:5432`, db `InfraCienciaDatos`, credenciales `admin/admin`, schemas `bronze`/`silver`/`gold` creados, Airflow en `localhost:8080`. El script de verificación (Paso 4) valida estas piezas — si pasa, vas bien independientemente del stack que hayas armado.
+
+El resto de esta clase asume la **opción A** (más simple). Si vas con la B, saltá los pasos de instalación y andá directo al Paso 4.
+
+---
+
 ## 🎯 Objetivo de esta entrega
 
-Dejar instalado y funcionando el **stack de trabajo del curso** y subir el resultado de la verificación.
+Dejar instalado y funcionando un stack de trabajo (del curso o propio) y subir el resultado de la verificación.
 
 ## 🧱 ¿Qué vamos a instalar?
 
@@ -76,6 +91,8 @@ uv pip install -r requirements.txt
 ---
 
 **Paso 3 — Levantá el stack Docker**
+
+> Si elegiste la **opción B** (stack propio), saltá este paso y andá directo al Paso 4.
 
 Asegurate de tener **Docker Desktop abierto** y con al menos **4 GB de RAM** asignados (Settings → Resources → Memory).
 
