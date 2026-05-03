@@ -1,9 +1,9 @@
 # Clase 04: La Refinería (Capa Silver)
 
 > **Material de la clase**:
-> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico: Pydantic, contratos de datos, SCD Tipo 2 con SQL, patrón de cuarentena.
+> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`dag_silver_basico.py`, `dag_silver_quarantine.py`) que se generan vía `%%writefile` al ejecutar el notebook.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: refinería de datos crypto (Bronze → Silver).
-> - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo de transformación Bronze → Silver (con comentarios educativos).
+> - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo (con comentarios educativos), se copia al stack al final del ejercicio.
 
 ---
 
@@ -76,23 +76,30 @@ graph TD
 
 ## 📋 Cómo trabajar la clase
 
-### Paso 1 — Leer el notebook teórico
+### Paso 1 — Leer el notebook teórico y correr los DAGs pedagógicos
 
-Abrí `clase04.ipynb` para entender Contratos de Datos, normalización Pydantic, SCD Tipo 2 y el patrón de Cuarentena.
+Abrí `clase04.ipynb`. La primera parte explica conceptos (Contratos de Datos, Pydantic, SCD Tipo 2, Cuarentena). La parte final tiene **2 cells `%%writefile`** que generan DAGs progresivos sobre **datos sintéticos** — al ejecutarlos, los archivos `.py` aparecen automáticamente en `stack/dags/02-silver/`:
+
+| DAG generado | Path destino | Qué introduce |
+|--------------|--------------|---------------|
+| `dag_silver_basico.py` | `stack/dags/02-silver/` | Limpieza básica: strip + Title Case + fillna + parser flexible de fechas |
+| `dag_silver_quarantine.py` | `stack/dags/02-silver/` | Contrato Pydantic + Pattern Quarantine + Audit metadata |
+
+Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`). Activalos y verás los datos en `silver.ventas_demo` y `silver.quarantine_ventas_demo`.
 
 ### Paso 2 — (Opcional) Hacer el ejercicio práctico
 
 Abrí `ejercicios/ejercicio.ipynb` para refinar tus propios datos crypto (Bronze → Silver). Es práctica personal sin entrega comprometida.
 
-### Paso 3 — Correr el DAG productivo en Airflow
+### Paso 3 — Deploy del DAG productivo crypto
 
-`ejercicios/dag_crypto_silver.py` es el DAG productivo de transformación con comentarios educativos. Para verlo correr en Airflow:
+Al final del ejercicio.ipynb encontrás un cell con el comando para deployar el DAG productivo:
 
 ```bash
 cp clase04/ejercicios/dag_crypto_silver.py stack/dags/02-silver/
 ```
 
-Airflow detecta el archivo automáticamente (volumen montado). Activalo en la UI (`localhost:8080`) y mirá los datos llegar a `silver.crypto_markets` y `silver.quarantine_crypto_markets`.
+Airflow detecta el archivo automáticamente (refresh cada 10s). Activalo en la UI y mirá los datos en `silver.crypto_markets` y `silver.quarantine_crypto_markets`.
 
 ---
 

@@ -1,9 +1,9 @@
 # Clase 05: La Bóveda (Capa Gold)
 
 > **Material de la clase**:
-> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico: Star Schema, Capa Semántica, Wide Tables (ABT), Best Practices Gold.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: construcción manual de Hechos y Dimensiones.
-> - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo de transformación Silver → Gold (con comentarios educativos).
+> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`dag_gold_star_basico.py`, `dag_gold_abt.py`) + 1 página de dashboard demo (`7_Demo_Pedagogico.py`), todo generado vía `%%writefile` al ejecutar el notebook.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: construcción manual de Hechos y Dimensiones sobre datos crypto.
+> - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
 
 ---
 
@@ -67,23 +67,31 @@ graph LR
 
 ## 📋 Cómo trabajar la clase
 
-### Paso 1 — Leer el notebook teórico
+### Paso 1 — Leer el notebook teórico y correr los DAGs pedagógicos
 
-Abrí `clase05.ipynb` para entender Star Schema vs Wide Tables, la Capa Semántica y Best Practices Gold.
+Abrí `clase05.ipynb`. La primera parte explica conceptos (Star Schema, Capa Semántica, ABT, Best Practices). La parte final tiene **3 cells `%%writefile`** que generan dos DAGs pedagógicos y una página de dashboard sobre **datos sintéticos**:
+
+| Archivo generado | Path destino | Qué introduce |
+|---|---|---|
+| `dag_gold_star_basico.py` | `stack/dags/03-gold/` | Star Schema básico: `dim_producto` + `dim_tiempo` + `fact_ventas` con FKs |
+| `dag_gold_abt.py` | `stack/dags/03-gold/` | ABT (wide table) para ML: features derivadas + segmentación con `pd.cut` |
+| `7_Demo_Pedagogico.py` | `stack/dashboard/pages/` | Página Streamlit que visualiza el Star Schema + ABT generado |
+
+Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`) y la página nueva en Streamlit (`localhost:8501`).
 
 ### Paso 2 — (Opcional) Hacer el ejercicio práctico
 
-Abrí `ejercicios/ejercicio.ipynb` para construir manualmente Hechos y Dimensiones a partir de Silver. Es práctica personal sin entrega comprometida.
+Abrí `ejercicios/ejercicio.ipynb` para construir manualmente Hechos y Dimensiones sobre datos crypto reales. Es práctica personal sin entrega comprometida.
 
-### Paso 3 — Correr el DAG productivo en Airflow
+### Paso 3 — Deploy del DAG productivo crypto
 
-`ejercicios/dag_crypto_gold.py` es el DAG productivo de transformación con comentarios educativos. Para verlo correr en Airflow:
+Al final del ejercicio.ipynb encontrás el cell con el comando para deployar el DAG productivo:
 
 ```bash
 cp clase05/ejercicios/dag_crypto_gold.py stack/dags/03-gold/
 ```
 
-Airflow detecta el archivo automáticamente (volumen montado). Activalo en la UI (`localhost:8080`) y mirá los datos llegar a `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` en Postgres.
+Airflow lo detecta. Activalo en la UI y vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` poblándose con datos reales.
 
 ---
 
@@ -102,19 +110,21 @@ El dashboard ya tiene **6 páginas pre-construidas** que leen tus tablas automá
 | **📉 Gold — Volatilidad / Riesgo** | Métricas de volatilidad histórica | `gold.fact_crypto_markets` |
 | **🥧 Gold — Dominancia** | Share de mercado de las top criptos | `gold.fact_global_market` |
 
+### Página demo generada por el notebook
+
+El notebook teórico genera vía `%%writefile` una **séptima página** (`7_Demo_Pedagogico.py`) que conecta directo con las tablas que crean los DAGs pedagógicos (`gold.dim_producto`, `gold.dim_tiempo`, `gold.fact_ventas`, `gold.abt_clientes`). Streamlit la detecta automáticamente — refrescá `localhost:8501` y aparece en el menú lateral.
+
 ### ¿Querés agregar tu propia visualización?
 
-Streamlit detecta automáticamente cualquier archivo `.py` que pongas en `stack/dashboard/pages/`:
+Streamlit detecta automáticamente cualquier archivo `.py` que pongas en `stack/dashboard/pages/`. Usá la página demo como referencia y crea la tuya:
 
 ```bash
-# 1. Crear tu página (siguiendo el patrón de las existentes)
-nano stack/dashboard/pages/7_Mi_Custom.py
-
-# 2. Rebuildear el dashboard
-docker compose up -d --build dashboard
+# Copiá la demo como punto de partida
+cp stack/dashboard/pages/7_Demo_Pedagogico.py stack/dashboard/pages/8_Mi_Custom.py
+# Editala y refrescá Streamlit — sin rebuild necesario
 ```
 
-> **Preview de Clase 06 (Workshop End-to-End)**: vas a extender este dashboard agregando tu propia página custom y refactor de queries existentes. El dashboard pasa de "caja negra" a "código que vos modificás".
+> **Preview de Clase 06 (Workshop End-to-End)**: vas a extender este dashboard agregando tu propia página custom. El dashboard pasa de "caja negra" a "código que vos modificás".
 
 ---
 
