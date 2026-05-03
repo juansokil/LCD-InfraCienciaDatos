@@ -1,16 +1,13 @@
-# Stack de Ingenieria de Datos (UN-SAM)
+# Stack Infraestructura para Ciencia de Datos (UNSAM)
 
-Stack completo de Data Engineering con un solo `docker compose up`. Ingesta datos desde APIs, los procesa en capas (Bronze / Silver / Gold) y los visualiza en dashboards de BI.
+Stack reutilizable de Airflow + Postgres + Streamlit. Arranca con un solo `docker compose up`. Es la **herramienta** sobre la que se construyen pipelines durante la cursada — no incluye DAGs ni datos de ejemplo, eso se arma en cada clase.
 
 ## Arquitectura
 
 ```
-CoinGecko API
-      |  (cada 5 min)
-      v
-  [ Airflow ]  ----->  [ PostgreSQL - data_warehouse ]  ----->  [ Streamlit ]
-  orquestador          bronze / silver / gold                    dashboard BI
-  puerto 8080          puerto 5432                               puerto 8501
+  [ Tu fuente ]    [ Airflow ]    [ PostgreSQL ]    [ Streamlit ]
+  (API/CSV/...)  → orquestador  → bronze/silver  → dashboard BI
+                  puerto 8080      gold (5432)      puerto 8501
 ```
 
 ## Componentes
@@ -24,26 +21,14 @@ CoinGecko API
 
 Todos los servicios se comunican a traves de la red `de_stack_network` (bridge).
 
-## Pipeline de Datos (Crypto)
-
-El pipeline principal ingesta datos de criptomonedas desde la API de CoinGecko y los procesa en 3 capas:
-
-| Capa | DAG | Tablas | Que hace |
-|------|-----|--------|----------|
-| **Bronze** | `crypto_bronze` | `bronze.crypto_markets`, `bronze.global_market` | Ingesta cruda cada 5 min (top 50 cryptos + mercado global) |
-| **Silver** | `crypto_silver` | `silver.crypto_markets`, `silver.quarantine_crypto_markets` | Limpieza, dedup, validacion, columnas derivadas (spread, ATH distance, supply ratio) |
-| **Gold** | `crypto_gold` | `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market`, `gold.gold_abt_crypto` | Star schema + ABT para analytics/ML |
-
-Tambien existe `crypto_pipeline_completo` que ejecuta Bronze -> Silver -> Gold en un solo DAG.
-
-## DAGs incluidos
+## Carpetas de DAGs
 
 ```
 dags/
 ├── 00-playground/              # DAGs de aprendizaje (TaskFlow API, branching, ingesta multi-formato)
 ├── 01-bronze/                  # Ingesta: CSV/JSON/APIs -> bronze
 ├── 02-silver/                  # Refinamiento: limpieza, validacion, cuarentena
-└── 03-gold/                    # Analitica: star schema, ABT, pipeline completo
+└── 03-gold/                    # Analitica: star schema, ABT
 ```
 
 ## Base de Datos y Schemas
@@ -107,7 +92,7 @@ Una vez conectado, en el panel izquierdo expandi:
 ```
 InfraCienciaDatos
 └── Schemas
-    ├── bronze              <-- datos crudos de la API
+    ├── bronze              <-- datos crudos
     ├── silver              <-- datos limpios y validados
     ├── gold                <-- star schema y ABT
     └── public              <-- (vacio por defecto)
@@ -117,9 +102,9 @@ Para ver las tablas, click derecho sobre el schema -> **View Diagram** o expandi
 
 ### Tips
 
-- **Los datos cambian cada 5 minutos** (cuando corre el DAG `crypto_bronze`). Refrescá las queries para ver datos nuevos.
-- Si **no ves los schemas bronze/silver/gold**: probablemente todavia no corrio ningun DAG. Andá a Airflow UI (http://localhost:8080) y disparalos manualmente.
-- **Atajo de query**: `SELECT * FROM bronze.crypto_markets ORDER BY ingested_at DESC LIMIT 10;` para ver los ultimos snapshots de cripto.
+- Los **schemas existen vacios** desde el primer arranque (los crea `init.sql`). Las **tablas** aparecen cuando corres DAGs que escriben en ellas.
+- Si **no ves tablas en bronze/silver/gold**: todavia no corrio ningun DAG que las cree. Andá a Airflow UI (http://localhost:8080) y dispará los que tengas.
+- **Refrescá las queries** despues de cada corrida del DAG para ver los datos nuevos.
 - Si **el host no responde**: verificar que el container este levantado con `docker compose ps`. Solo `data_warehouse` expone el puerto 5432 al host (el `airflow_db` queda en la red interna).
 
 ## Estructura del Proyecto
