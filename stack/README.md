@@ -107,6 +107,40 @@ Para ver las tablas, click derecho sobre el schema -> **View Diagram** o expandi
 - **Refrescá las queries** despues de cada corrida del DAG para ver los datos nuevos.
 - Si **el host no responde**: verificar que el container este levantado con `docker compose ps`. Solo `data_warehouse` expone el puerto 5432 al host (el `airflow_db` queda en la red interna).
 
+## Conectarse a un archivo DuckDB con DBeaver
+
+A veces vas a trabajar con archivos `.duckdb` o `.db` que **no son Postgres** sino [DuckDB](https://duckdb.org/) — un motor analítico embebido en archivo (sin servidor). Por ejemplo, en clase01 se usa `clase01/database/clase01.db` como fallback cuando Postgres no está disponible.
+
+> ⚠️ **DuckDB y SQLite no son lo mismo** aunque ambos sean bases en archivo. Si intentás abrir un `.duckdb` con driver SQLite, vas a ver el error `file is not a database`. Hay que usar el driver de DuckDB.
+
+### Pasos
+
+> **Requisitos**: DBeaver 23.x o superior (versiones viejas no incluyen DuckDB).
+
+1. **Database** -> **New Database Connection** -> buscar **DuckDB** en la lista.
+
+2. Completar:
+
+| Campo | Valor |
+|-------|-------|
+| Path | Ruta absoluta al archivo `.db` o `.duckdb` (ej: `C:\...\clase01\database\clase01.db`) |
+| Read-only | ✅ Marcar (recomendado para inspeccionar sin riesgo de tocar el archivo) |
+
+3. Click en **Test Connection** — si DBeaver pide bajar el driver de DuckDB, aceptar.
+4. Click en **Finish**.
+
+### Tips
+
+- **Sin host ni credenciales**: DuckDB es un archivo, no un servidor. No tiene `localhost`, ni puerto, ni usuario.
+- **No abrir el archivo simultáneamente** desde dos lugares: si Jupyter ya lo tiene abierto, DBeaver puede fallar a menos que uses read-only.
+- **Atajo Python sin DBeaver**:
+  ```python
+  import duckdb
+  con = duckdb.connect("clase01/database/clase01.db", read_only=True)
+  print(con.sql("SHOW TABLES").df())
+  ```
+- **Si DBeaver no muestra DuckDB en la lista**: actualizá DBeaver — el soporte nativo se agregó en la versión 23.
+
 ## Estructura del Proyecto
 
 ```
