@@ -155,17 +155,18 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 ```
 mi-proyecto/
 ├── docker-compose.yml
-├── airflow/
-│   ├── Dockerfile
-│   └── dags/
-│       ├── 01-bronze/
-│       ├── 02-silver/
-│       └── 03-gold/
+├── Dockerfile               # imagen de Airflow (mismo patron que stack/)
+├── init.sql                 # schemas bronze/silver/gold
+├── requirements.txt
+├── dags/
+│   ├── 01-bronze/
+│   ├── 02-silver/
+│   └── 03-gold/
 └── dashboard/
     ├── Dockerfile
-    ├── requirements.txt
     ├── app.py
     ├── db.py
+    ├── requirements.txt
     └── pages/
 ```
 
