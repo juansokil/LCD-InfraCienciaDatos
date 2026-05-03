@@ -38,10 +38,14 @@ El docente recorre el notebook en vivo. Estructura:
 3. **Clasificación con Random Forest**: predecir Market Cap Tier → entrenar → evaluar → analizar feature importance.
 4. **Tracking con MLflow**: registrar ambos modelos → comparar runs en la UI → segundo experimento con otros hiperparámetros.
 
-### Bloque 3 — Cierre
+### Bloque 3 — Monitoring del Pipeline E2E
 
-5. **🎁 Bonus Track**: mapa de MLOps en producción (Feature Stores, Drift, Model Registry, etc.). No se enseña — es la próxima frontera.
-6. **🎓 Mensaje final**: qué construiste este cuatrimestre, próximos pasos sugeridos.
+5. **📊 Monitoring del pipeline E2E**: tres niveles de observabilidad (infra / datos / negocio), el dashboard Streamlit como cierre del ciclo, health check del pipeline completo via SQL.
+
+### Bloque 4 — Cierre
+
+6. **🎁 Bonus Track**: mapa de MLOps en producción (Feature Stores, Drift, Model Registry, etc.). No se enseña — es la próxima frontera.
+7. **🎓 Mensaje final**: qué construiste este cuatrimestre, próximos pasos sugeridos.
 
 ---
 
