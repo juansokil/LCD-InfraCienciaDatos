@@ -57,6 +57,7 @@ plugins/
 
 # --- Office / Binarios pesados ---
 *.pptx
+*.pdf
 
 # --- Data runtime outputs (regenerados por DAGs, no committear) ---
 stack/data/processed/**
