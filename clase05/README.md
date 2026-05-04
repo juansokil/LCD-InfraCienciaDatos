@@ -1,5 +1,11 @@
 # Clase 05: La Bóveda (Capa Gold)
 
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
+>
+> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAGs demo + página dashboard sobre datos sintéticos (`silver.ventas_demo`)
+> 2. **Ejercicio práctico** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — los mismos conceptos sobre CoinGecko (Silver → Gold)
+> 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
+
 > **Material de la clase**:
 > - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`dag_gold_star_basico.py`, `dag_gold_abt.py`) + 1 página de dashboard demo (`7_Demo_Pedagogico.py`), todo generado vía `%%writefile` al ejecutar el notebook.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: construcción manual de Hechos y Dimensiones sobre datos crypto.

@@ -1,5 +1,11 @@
 # Clase 04: La Refinería (Capa Silver)
 
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
+>
+> 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`bronze.ventas_demo`)
+> 2. **Ejercicio práctico** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — los mismos conceptos sobre CoinGecko (Bronze → Silver)
+> 3. **DAG productivo** ([`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py)) — para copy-paste a Airflow
+
 > **Material de la clase**:
 > - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`dag_silver_basico.py`, `dag_silver_quarantine.py`) que se generan vía `%%writefile` al ejecutar el notebook.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: refinería de datos crypto (Bronze → Silver).

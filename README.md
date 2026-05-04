@@ -62,6 +62,34 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 
 ---
 
+## 🎓 Patrón Pedagógico (Clases 03 a 05)
+
+Las clases del cuatrimestre que arman el pipeline (**Bronze → Silver → Gold**) siguen un patrón uniforme de **3 capas pedagógicas**:
+
+| Capa | Archivo | Datos | Para qué |
+|---|---|---|---|
+| **1. Teórica** | `claseNN.ipynb` | sintéticos hardcoded | Conceptos + DAGs demo (vía celdas `%%writefile` que generan archivos en `stack/dags/`) |
+| **2. Práctica** | `ejercicios/ejercicio.ipynb` | CoinGecko API real | Aplicar los mismos conceptos sobre datos vivos |
+| **3. Productiva** | `ejercicios/dag_crypto_*.py` | CoinGecko API real | DAG listo para copy-paste a Airflow (`cp` al stack) |
+
+**Detalle por clase:**
+
+| Clase | Notebook teórico genera | Ejercicio práctico (CoinGecko) | DAG productivo |
+|---|---|---|---|
+| **03 — Bronze** | 3 DAGs progresivos sobre CSV/JSON locales (simple → idempotente → multi-formato) | Top 50 cryptos → `bronze.crypto_markets` | `dag_crypto_bronze.py` |
+| **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | Bronze crypto → `silver.crypto_markets` | `dag_crypto_silver.py` |
+| **05 — Gold** | 2 DAGs sobre `silver.ventas_demo` sintético (Star Schema → ABT) + 1 página de dashboard | Silver crypto → `gold.dim_*`, `gold.fact_*`, `gold.gold_abt_crypto` | `dag_crypto_gold.py` |
+
+**Por qué este diseño:**
+
+- La **notebook teórica** usa datos sintéticos hardcoded → cero dependencias entre clases. Cualquiera puede correr el cell `%%writefile` y disparar el DAG demo sin necesidad de haber corrido la clase anterior.
+- El **ejercicio** usa datos reales (crypto) → el alumno aplica lo aprendido sobre algo "vivo" y observable.
+- El **DAG productivo** es el "código listo": un `cp` al stack y queda corriendo en Airflow.
+
+> **Clase 06 no sigue este patrón** — es un workshop magistral de cierre del cuatrimestre (recap + ML sobre Gold + monitoring), sin ejercicio práctico ni DAG productivo aparte.
+
+---
+
 ## 🛠️ Stack Tecnológico
 
 * **Lenguajes**: Python 3.10+ (Pandas, SQLAlchemy).
