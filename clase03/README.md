@@ -1,5 +1,11 @@
 # Clase 03: Ingesta Profesional (Capa Bronze)
 
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
+>
+> 1. **Notebook teórico** ([`clase03.ipynb`](clase03.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (CSV/JSON locales)
+> 2. **Ejercicio práctico** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — los mismos conceptos sobre CoinGecko
+> 3. **DAG productivo** ([`ejercicios/dag_crypto_bronze.py`](ejercicios/dag_crypto_bronze.py)) — para copy-paste a Airflow
+
 > **Material de la clase**:
 > - [`clase03.ipynb`](clase03.ipynb) — desarrollo teórico: ingesta multi-formato, idempotencia con SHA256, Hive Partitioning, Row-hashing.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: ingesta desde API real (CoinGecko).
