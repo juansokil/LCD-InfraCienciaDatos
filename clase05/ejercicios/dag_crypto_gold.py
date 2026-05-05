@@ -2,7 +2,7 @@
 DAG: crypto_gold
 Clase 05 - Transformacion Silver a Gold (Star Schema enriquecido + ABT)
 
-Pipeline: silver.crypto_markets + silver.global_market →
+Pipeline: silver.crypto_markets + bronze.global_market →
   - dim_crypto (9 cols: id, symbol, name, supply, ATH/ATL)
   - dim_tiempo (7 cols: fecha, anio, mes, trimestre, dia, fin_de_semana)
   - fact_crypto_markets (17 metricas por cripto por fecha)
@@ -73,7 +73,7 @@ Pipeline: silver.crypto_markets + silver.global_market →
 #                        /--> build_dim_crypto ------\
 #   read_silver() ------+--> build_dim_tiempo -------\
 #                        +--> build_fact -------------+--> verify_integrity()
-#   read_silver_global()-+--> build_fact_global ------/
+#   read_bronze_global()-+--> build_fact_global ------/
 #                        \--> build_abt ------------/
 #
 # Son 5 tareas de construccion ejecutandose EN PARALELO, todas convergiendo
@@ -181,28 +181,39 @@ def crypto_gold():
         return _clean_records(df.to_dict(orient="records"))
 
     # ============================================================
-    # TAREA 1b: LEER DATOS DE SILVER (global_market)
+    # TAREA 1b: LEER DATOS DE BRONZE (global_market)
     # ============================================================
     # Esta es una fuente de datos NUEVA respecto al DAG simplificado.
-    # silver.global_market contiene datos del mercado cripto en su totalidad:
+    # bronze.global_market contiene datos del mercado cripto en su totalidad:
     # market cap total, dominancia de BTC/ETH, cantidad de exchanges, etc.
     # Estos datos permiten CONTEXTUALIZAR cada criptomoneda individual
     # dentro del mercado global (ej: "Bitcoin representa el 52% del mercado total").
+    #
+    # POR QUE LEEMOS DE BRONZE Y NO DE SILVER (a diferencia de crypto_markets):
+    # ----------------------------------------------------------------------
+    # En el patron Medallion estricto, Gold lee de Silver. Aca rompemos esa
+    # regla a proposito: los datos macro de CoinGecko vienen pre-validados
+    # (no hay outliers, nulos ni duplicados que limpiar). No tiene sentido
+    # forzar un pasaje por Silver que no agregaria valor real (seria casi
+    # un copy-paste de Bronze a Silver). Saltarse Silver es valido cuando
+    # la fuente ya es "trustworthy". Para crypto_markets (50 monedas con
+    # potenciales nulos / outliers / duplicados) Silver SI agrega valor
+    # (Pydantic + cuarentena). Para datos macro agregados, no.
     @task
-    def read_silver_global():
-        """Leer silver.global_market."""
+    def read_bronze_global():
+        """Leer bronze.global_market directamente (sin pasar por Silver)."""
         import pandas as pd
         import sqlalchemy
 
         engine = sqlalchemy.create_engine(DB_URI)
         try:
-            df = pd.read_sql("SELECT * FROM silver.global_market", engine)
-            print(f"Leidos {len(df)} registros de silver.global_market")
+            df = pd.read_sql("SELECT * FROM bronze.global_market", engine)
+            print(f"Leidos {len(df)} registros de bronze.global_market")
             return _clean_records(df.to_dict(orient="records"))
         except Exception as e:
-            # Si la tabla no existe (porque el DAG de ingesta global no se corrio),
+            # Si la tabla no existe (porque crypto_bronze no se corrio aun),
             # retornamos lista vacia. Las tareas downstream manejan este caso.
-            print(f"silver.global_market no disponible: {e}")
+            print(f"bronze.global_market no disponible: {e}")
             return []
 
     # ============================================================
@@ -425,7 +436,7 @@ def crypto_gold():
         import pandas as pd
         import sqlalchemy
 
-        # Si no hay datos globales (la tabla silver.global_market no existe),
+        # Si no hay datos globales (la tabla bronze.global_market no existe),
         # simplemente saltamos esta tarea. El DAG sigue funcionando sin ella.
         if not global_records:
             print("Sin datos globales, saltando fact_global_market")
@@ -617,7 +628,7 @@ def crypto_gold():
         # =============================================================
         # INYECCION DE CONTEXTO GLOBAL
         # =============================================================
-        # Si tenemos datos del mercado global (de silver.global_market),
+        # Si tenemos datos del mercado global (de bronze.global_market),
         # los "inyectamos" en la ABT para contextualizar cada cripto.
         # Esto agrega columnas que relacionan cada moneda con el mercado total.
         # =============================================================
@@ -720,7 +731,7 @@ def crypto_gold():
     # El flujo tiene 3 fases:
     #
     # FASE 1: Lectura (2 tareas en paralelo)
-    #   read_silver() y read_silver_global() se ejecutan al mismo tiempo
+    #   read_silver() y read_bronze_global() se ejecutan al mismo tiempo
     #   porque son independientes (leen tablas diferentes).
     #
     # FASE 2: Construccion (5 tareas en paralelo)
@@ -742,7 +753,7 @@ def crypto_gold():
     #   finalicen antes de lanzar verify_integrity().
     # ============================================================
     silver_data = read_silver()
-    global_data = read_silver_global()
+    global_data = read_bronze_global()
 
     dim_c = build_dim_crypto(silver_data)
     dim_t = build_dim_tiempo(silver_data)
