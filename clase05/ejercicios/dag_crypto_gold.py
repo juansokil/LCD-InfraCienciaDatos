@@ -143,9 +143,9 @@ def _clean_records(records):
     # schedule=None: este DAG se ejecuta manualmente.
     # En produccion podria ser triggerado automaticamente por el DAG de Silver
     # usando TriggerDagRunOperator, o tener un schedule como "@daily".
-    schedule=None,
+    schedule="@daily",
     catchup=False,
-    tags=["gold", "crypto"],
+    tags=["prod", "gold", "crypto"],
     doc_md="""
     ## Crypto Gold - Star Schema enriquecido + ABT
     Lee datos limpios de Silver y reconstruye:

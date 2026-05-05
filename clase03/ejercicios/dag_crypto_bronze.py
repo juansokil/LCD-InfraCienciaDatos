@@ -186,7 +186,7 @@ def _clean_records(records):
     start_date=datetime(2024, 1, 1),
     schedule="*/5 * * * *",
     catchup=False,
-    tags=["bronze", "crypto"],
+    tags=["prod", "bronze", "crypto"],
     doc_md="""
     ## Crypto Bronze - Ingesta cada 5 minutos
     Consulta **dos endpoints** de CoinGecko en paralelo:
