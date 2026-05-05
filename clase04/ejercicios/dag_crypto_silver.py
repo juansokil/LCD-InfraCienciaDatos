@@ -83,10 +83,10 @@ def _clean_records(records):
     # Esto tiene sentido para Silver porque queremos control sobre
     # cuando se procesan los datos (a diferencia de Bronze que corre
     # cada 5 minutos automaticamente).
-    schedule=None,
+    schedule="@daily",
 
     catchup=False,
-    tags=["silver", "crypto"],
+    tags=["prod", "silver", "crypto"],
     doc_md="""
     ## Crypto Silver - Transformacion y Calidad
     Lee TODOS los datos acumulados de Bronze, aplica contrato de datos,
