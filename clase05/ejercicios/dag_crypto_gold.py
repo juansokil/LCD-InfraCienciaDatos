@@ -143,7 +143,7 @@ def _clean_records(records):
     # schedule=None: este DAG se ejecuta manualmente.
     # En produccion podria ser triggerado automaticamente por el DAG de Silver
     # usando TriggerDagRunOperator, o tener un schedule como "@daily".
-    schedule="@daily",
+    schedule="0 3 * * *",  # 3 AM UTC (= 00:00 ART) — corre despues de crypto_silver (que esta en @daily = 0 0 * * *)
     catchup=False,
     tags=["prod", "gold", "crypto"],
     doc_md="""
