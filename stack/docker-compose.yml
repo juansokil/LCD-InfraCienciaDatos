@@ -27,7 +27,18 @@ services:
         source: ./credentials
         target: /opt/airflow/credentials
     ports:
+      # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 8080 internamente.
+      # Solo cambia el puerto del HOST (la URL de la UI: http://localhost:PUERTO).
+      #
+      # OPCION A: host 8080 -> contenedor 8080
+      #   Si tenés Jenkins, Tomcat, otra app de dev o cualquier cosa usando 8080,
+      #   este mapeo va a fallar con "failed to set up container networking".
       - "8080:8080"
+      #
+      # OPCION B: host 8081 -> contenedor 8080
+      #   La UI de Airflow queda en http://localhost:8081 (cero cambios en notebooks
+      #   ni en DAGs — Airflow no se conecta a si mismo desde el host).
+      # - "8081:8080"
     depends_on:
       airflow_db:
         condition: service_healthy
@@ -80,7 +91,18 @@ services:
       # (sin bind mount → sin problemas de path en Windows)
       - data_warehouse_data:/var/lib/postgresql/data
     ports:
+      # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 5432 internamente.
+      # Solo cambia el puerto del HOST (lo que usás desde el notebook con localhost:PUERTO).
+      #
+      # OPCION A (default): host 5432 -> contenedor 5432
+      #   Si tenés un Postgres instalado en Windows o algun otro contenedor usando 5432,
+      #   este mapeo va a fallar con "failed to set up container networking".
       - "5432:5432"
+      #
+      # OPCION B: host 5433 -> contenedor 5432
+      #   Descomentá esta linea y comentá la de arriba si el puerto 5432 esta ocupado.
+      #   IMPORTANTE: si cambiás a 5433, también hay que actualizar las conexiones  que usen `localhost:5432`.
+      # - "5433:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}" ]
       interval: 10s

@@ -1,7 +1,7 @@
 # Clase 02: Instalación del Stack de Trabajo
 
 > **Material de la clase**:
-> - [`clase02.ipynb`](clase02.ipynb) — desarrollo en clase: instalación del stack + tutorial de Airflow (TaskFlow API, branching, dynamic mapping, XComs).
+> - [`clase02.ipynb`](clase02.ipynb) — desarrollo en clase: instalación del stack + tutorial de Airflow (TaskFlow API, branching, XComs).
 > - Este `README.md` — entrega práctica: dejar el laboratorio listo y verificarlo.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — script de verificación del stack.
 
