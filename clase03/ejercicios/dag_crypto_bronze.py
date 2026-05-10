@@ -129,6 +129,38 @@ DB_URI = (
 # de serializacion. Por eso mas adelante convertimos las fechas a strings con
 # .isoformat() y .strftime() ANTES de retornar datos desde las tareas.
 # =============================================================================
+
+# =============================================================================
+# DATA CONTRACT
+# =============================================================================
+# A partir de clase 03 introducimos Data Contracts declarativos en YAML.
+# El contrato `crypto_markets.yaml` define el schema y reglas que esperamos
+# del payload de CoinGecko. Antes de cargar a Bronze validamos que la API
+# nos devolvio las columnas CORE (id, symbol, name, current_price, ...).
+#
+# Si la API cambia o devuelve algo inesperado, abortamos ANTES de escribir
+# en bronze.crypto_markets corrupto. Mejor fallar rapido que corromper datos.
+# =============================================================================
+import os
+import sys
+
+# Hacemos visible el paquete `common` (esta dos niveles arriba en el stack)
+sys.path.append("/opt/airflow/dags")
+from common.contracts import load_contract  # noqa: E402
+
+CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
+
+
+def _required_contract_columns(contract: dict) -> list[str]:
+    """Devuelve los nombres de columna del contrato que NO son nullable.
+    Estas son las que MUST estar en el payload de la API para no abortar."""
+    return [
+        col["name"]
+        for col in contract.get("schema", [])
+        if not col.get("nullable", False)
+    ]
+
+
 def _clean_records(records):
     """Limpiar NaN/inf de records para que XCom (JSON) no explote."""
     for row in records:
@@ -366,12 +398,39 @@ def crypto_bronze():
     # ============================================================
     @task
     def transform_markets(data: list):
-        """Seleccionar columnas, tipar y agregar metadata."""
+        """Validar contrato + seleccionar columnas + tipar + agregar metadata."""
         import pandas as pd
 
         # Convertimos la lista de diccionarios a un DataFrame de Pandas.
         # Cada elemento de 'data' es un dict con ~30+ campos por moneda.
         df = pd.DataFrame(data)
+
+        # =============================================================
+        # VALIDACION CONTRA EL DATA CONTRACT (nuevo en clase 03)
+        # =============================================================
+        # Antes de procesar, verificamos que el payload de la API contenga
+        # las columnas CORE declaradas en `crypto_markets.yaml`.
+        # Si la API cambia y deja de devolver `current_price` (por ejemplo),
+        # mejor abortar aca que escribir bronze.crypto_markets corrupto.
+        #
+        # Por que solo columnas no-nullable?
+        #   - El contrato declara algunas como nullable (ej: market_cap).
+        #     Esas pueden faltar sin romper nada.
+        #   - Las required (id, symbol, name, current_price, last_updated)
+        #     SI tienen que estar, sino el dataset no tiene sentido.
+        # =============================================================
+        contract = load_contract(CONTRACT_PATH)
+        required_cols = _required_contract_columns(contract)
+        missing = [c for c in required_cols if c not in df.columns]
+        if missing:
+            raise ValueError(
+                f"[contract:{contract['dataset']} v{contract['version']}] "
+                f"La API no devolvio columnas requeridas: {missing}. "
+                f"Recibidas: {list(df.columns)[:10]}..."
+            )
+        print(f"[contract] Payload OK contra {contract['dataset']} v{contract['version']}: "
+              f"{len(required_cols)} columnas requeridas presentes")
+
 
         # =============================================================
         # SELECCION DE COLUMNAS: POR QUE ESTAS 22 COLUMNAS?
