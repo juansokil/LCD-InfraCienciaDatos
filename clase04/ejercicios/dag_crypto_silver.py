@@ -26,6 +26,12 @@ from airflow.decorators import dag, task
 from datetime import datetime
 import math
 import os
+import sys
+
+# Hacemos visible el paquete `common` (esta dos niveles arriba en stack/dags/)
+# para poder importar el modulo de contratos compartido entre Bronze y Silver.
+sys.path.append("/opt/airflow/dags")
+from common.contracts import build_pydantic_from_contract, load_contract  # noqa: E402
 
 
 # ============================================================
@@ -40,6 +46,18 @@ DB_URI = (
     f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:5432/"
     f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
 )
+
+# ============================================================
+# DATA CONTRACT
+# ============================================================
+# El contrato `crypto_markets.yaml` define el schema y reglas del dataset.
+# Ya lo aplicamos en clase 03 (Bronze) para validar la FORMA del payload
+# de la API. Aca en Silver lo aplicamos para validar la SEMANTICA fila por
+# fila con Pydantic generado dinamicamente desde el YAML.
+#
+# Si manana cambia el contrato (ej: agregar `description` como required),
+# este DAG NO necesita modificarse. Solo se actualiza el YAML.
+CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
 
 
 # ============================================================
@@ -209,85 +227,93 @@ def crypto_silver():
     @task
     def clean_and_split(records: list):
         """
-        Deduplicar, normalizar texto, validar contrato de datos,
+        Deduplicar, normalizar texto, validar contra Data Contract,
         y separar en Silver (validos) y Quarantine (invalidos).
 
-        Esta es la tarea mas importante del DAG Silver. Hace 4 cosas:
+        Hace 4 cosas:
 
         1. DEDUPLICAR: si hay 2 registros con mismo (id, snapshot_ts),
            se queda con el ultimo por ingested_at.
 
         2. NORMALIZAR: estandarizar strings (UPPER, Title case, strip).
 
-        3. VALIDAR: aplicar un "contrato de datos" - reglas que definen
-           que es un registro valido. Por ejemplo: precio >= 0, id no nulo.
+        3. VALIDAR contra el contrato YAML: Pydantic se construye en
+           runtime desde `crypto_markets.yaml` (no hay clase hardcodeada).
+           Cambiar el contrato = editar YAML. Sin tocar este DAG.
 
         4. SEPARAR: los que pasan el contrato van a Silver,
-           los que no van a Quarantine.
+           los que no van a Quarantine con el motivo del rechazo.
 
         Retorna: diccionario con 2 listas (silver y quarantine).
         """
         import pandas as pd
 
+        # --- 1. CARGAR CONTRATO + CONSTRUIR PYDANTIC EN RUNTIME ---
+        # Esta es la diferencia clave vs la version anterior:
+        # NO hay `class CryptoContract(BaseModel)` hardcodeado.
+        # El modelo se genera dinamicamente desde `crypto_markets.yaml`.
+        contract = load_contract(CONTRACT_PATH)
+        CryptoContract = build_pydantic_from_contract(contract)
+        print(f"Contrato cargado: {contract['dataset']} v{contract['version']}")
+        print(f"Modelo Pydantic generado con campos: "
+              f"{list(CryptoContract.model_fields.keys())}")
+
         df = pd.DataFrame(records)
 
-        # --- 1. DEDUPLICACION ---
+        # --- 2. DEDUPLICACION ---
         # sort_values por ingested_at: pone los mas recientes al final
-        # drop_duplicates con keep="last": si hay duplicados por (id, snapshot_ts),
-        # se queda con el ultimo (el mas reciente)
+        # drop_duplicates con keep="last": se queda con el mas reciente
         dedup_cols = ["id", "snapshot_ts"] if "snapshot_ts" in df.columns else ["id"]
         df = df.sort_values("ingested_at").drop_duplicates(subset=dedup_cols, keep="last")
 
-        # --- 2. NORMALIZACION DE STRINGS ---
-        # .str.strip(): elimina espacios al inicio y final ("  btc  " -> "btc")
-        # .str.upper(): convierte a mayusculas ("btc" -> "BTC")
-        # .str.title(): primera letra mayuscula ("bitcoin" -> "Bitcoin")
+        # --- 3. NORMALIZACION DE STRINGS ---
+        # .str.strip(): elimina espacios al inicio y final
+        # .str.upper(): convierte a mayusculas
+        # .str.title(): primera letra mayuscula
         df["symbol"] = df["symbol"].str.strip().str.upper()
         df["name"] = df["name"].str.strip().str.title()
 
-        # --- 3. VALIDACION (Contrato de Datos) ---
-        # Definimos reglas que DEBE cumplir un registro para ser valido.
-        # Cada condicion retorna True/False por fila.
-        # El & (AND) requiere que TODAS las condiciones sean True.
-        #
-        # Reglas:
-        #   - id no puede ser nulo (necesitamos identificar la cripto)
-        #   - symbol no puede ser nulo (necesitamos el ticker)
-        #   - name no puede ser nulo (necesitamos el nombre)
-        #   - current_price no puede ser nulo (dato fundamental)
-        #   - current_price >= 0 (un precio negativo no tiene sentido)
-        #   - market_cap_rank no puede ser nulo (necesitamos el ranking)
-        df["_is_valid"] = (
-            df["id"].notna()
-            & df["symbol"].notna()
-            & df["name"].notna()
-            & df["current_price"].notna()
-            & (df["current_price"] >= 0)
-            & df["market_cap_rank"].notna()
-        )
+        # --- 4. VALIDACION fila por fila con Pydantic dinamico ---
+        # Solo pasamos a Pydantic las columnas que el contrato declara
+        # (sino podriamos tener problemas con `extra fields`).
+        # Pero conservamos TODAS las columnas en la fila final (no
+        # perdemos info de las columnas extra como ath, atl, etc.).
+        contract_field_names = set(CryptoContract.model_fields.keys())
+        validos, invalidos = [], []
 
-        # --- 4. SEPARAR Silver vs Quarantine ---
-        # df[condicion] filtra las filas que cumplen la condicion
-        # .drop(columns=["_is_valid"]) elimina la columna auxiliar
-        # .copy() crea una copia independiente
-        df_silver = df[df["_is_valid"]].drop(columns=["_is_valid"]).copy()
-        df_quarantine = df[~df["_is_valid"]].drop(columns=["_is_valid"]).copy()
+        for _, row in df.iterrows():
+            row_dict = row.to_dict()
+            # Subset solo con las columnas declaradas en el contrato
+            row_for_validation = {
+                k: v for k, v in row_dict.items() if k in contract_field_names
+            }
+            try:
+                # Si Pydantic NO lanza, la fila pasa el contrato.
+                CryptoContract(**row_for_validation)
+                validos.append(row_dict)
+            except Exception as e:
+                # Capturamos el motivo del rechazo en la fila
+                # para poder analizarlo en quarantine.
+                row_dict["quarantine_reason"] = (
+                    f"{type(e).__name__}: {str(e)[:300]}"
+                )
+                invalidos.append(row_dict)
 
-        # Agregar metadata de procesamiento a ambas tablas:
-        # - _processed_at: cuando se proceso este registro
-        # - _source_table: de donde vino (trazabilidad/lineage)
+        # --- 5. CONVERTIR A DATAFRAMES + AGREGAR METADATA ---
+        df_silver = pd.DataFrame(validos)
+        df_quarantine = pd.DataFrame(invalidos)
+
         now = datetime.now().isoformat()
         for d in [df_silver, df_quarantine]:
-            d["_processed_at"] = now
-            d["_source_table"] = "bronze.crypto_markets"
+            if not d.empty:
+                d["_processed_at"] = now
+                d["_source_table"] = "bronze.crypto_markets"
+                d["_contract_version"] = str(contract.get("version"))
 
         s, q = len(df_silver), len(df_quarantine)
-        print(f"Silver: {s} | Quarantine: {q} | Tasa: {s / max(s + q, 1) * 100:.1f}%")
+        print(f"Silver: {s} | Quarantine: {q} | "
+              f"Tasa: {s / max(s + q, 1) * 100:.1f}%")
 
-        # Retornamos un diccionario con ambas listas.
-        # XCom puede transportar dicts, listas, strings, numeros, etc.
-        # Las tareas siguientes reciben este dict y acceden a
-        # split_data["silver"] o split_data["quarantine"].
         return {
             "silver": _clean_records(df_silver.to_dict(orient="records")),
             "quarantine": _clean_records(df_quarantine.to_dict(orient="records")),
