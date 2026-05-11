@@ -77,6 +77,53 @@ Airflow detecta el archivo automáticamente (volumen montado) y lo muestra en la
 
 ---
 
+## ✅ Verificación end-to-end
+
+Después de correr los DAGs sintéticos + el productivo crypto, deberías poder responder estas 3 queries:
+
+```sql
+-- 1. ¿Bronze tiene datos del DAG productivo crypto?
+SELECT COUNT(*) AS filas, MAX(ingested_at) AS ultimo_ingest
+FROM bronze.crypto_markets;
+-- Esperado: > 0 (ej: 50 filas por snapshot, varios snapshots)
+
+-- 2. ¿Cuántos archivos sintéticos procesados? (uno o más DAGs sintéticos corridos)
+SELECT source_file, COUNT(*) AS filas, file_hash
+FROM bronze.ventas_simple
+GROUP BY 1, 3
+ORDER BY 1;
+-- Esperado: 1 row por archivo procesado (ventas_legacy.csv, etc.)
+
+-- 3. ¿La idempotencia funciona? (mismo file_hash NO duplica filas)
+SELECT
+  COUNT(DISTINCT file_hash) AS hashes_distintos,
+  COUNT(*) AS filas_totales,
+  COUNT(DISTINCT source_file) AS archivos_distintos
+FROM bronze.ventas_simple;
+-- Esperado: si subiste 2 archivos con el mismo contenido (experimento `ventas_duplicado_a/b.csv`),
+-- hashes_distintos == archivos_distintos < total de archivos físicos. La tabla NO se duplica.
+```
+
+Si las 3 queries devuelven valores razonables, tu pipeline Bronze está **funcional + idempotente + auditable**.
+
+---
+
+## 🔮 Forward reference a Silver (clase 04)
+
+Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ventas.yaml` + idempotencia por SHA256 + audit metadata). En **clase 04** vamos a:
+
+| Concepto | Qué construimos |
+|---|---|
+| **Pydantic dinámico desde YAML** | `build_pydantic_from_contract(load_contract("ventas.yaml"))` genera el modelo en runtime — sin clase hardcodeada |
+| **Pattern Quarantine** | Filas que fallan el contrato NO se descartan — van a `silver.quarantine_*` con `quarantine_reason` (motivo Pydantic estructurado) |
+| **Audit metadata por capa** | `silver_at`, `quarantined_at`, `_processed_at`, `_source_table`, `_contract_version` para lineage completo |
+| **SCD Tipo 2** | Historizar cambios usando los campos del bloque `scd:` del YAML (`business_key`, `tracked_columns`, `effective_date`) |
+| **`MERGE` / `ON CONFLICT`** | Idempotencia con upsert — el DAG puede fallar a la mitad y reanudarse sin duplicar |
+
+> 🔁 **El círculo se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze ahora valida la **semántica** de cada fila en Silver. **Un contrato, dos capas, dos responsabilidades**.
+
+---
+
 ## 🛠️ Troubleshooting
 
 | Problema | Solución |
