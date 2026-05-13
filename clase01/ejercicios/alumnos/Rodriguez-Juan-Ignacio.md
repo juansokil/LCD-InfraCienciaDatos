@@ -1,4 +1,4 @@
 \# Juan Ignacio Rodriguez
 
-@Juanidriguez
+@RodJuani
 
