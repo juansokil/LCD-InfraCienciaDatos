@@ -8,7 +8,7 @@
 
 > **Material de la clase**:
 > - [`clase03.ipynb`](clase03.ipynb) — desarrollo teórico: ingesta multi-formato, idempotencia con SHA256, Hive Partitioning, Row-hashing.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: ingesta desde API real (CoinGecko).
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **con entrega**: ingesta desde API real (CoinGecko). Genera tu `.txt` en `ejercicios/alumnos/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_bronze.py`](ejercicios/dag_crypto_bronze.py) — DAG productivo de ingesta crypto a Bronze (con comentarios educativos).
 
 ---
@@ -59,9 +59,11 @@ Después de ejecutar las celdas, los DAGs aparecen automáticamente en Airflow U
 >
 > **Convención de tags**: sintéticos didácticos llevan `tags=["bronze"]`. El DAG productivo (crypto) lleva `tags=["prod", "bronze", "crypto"]` para distinguirlo en la UI con el filtro `prod`.
 
-### Paso 2 — (Opcional) Hacer el ejercicio práctico
+### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-Abrí `ejercicios/ejercicio.ipynb` para practicar con datos reales desde la **API CoinGecko**. Es práctica personal sin entrega comprometida.
+Abrí `ejercicios/ejercicio.ipynb` para practicar con datos reales desde la **API CoinGecko**. Al final, la sección **📦 Entrega** te genera automáticamente tu archivo `ejercicios/alumnos/<apellido>-<nombre>.txt` y te indica cómo subirlo (commit + push + abrir un **PR nuevo** de esta clase). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+
+> **Una rama para siempre, un PR por clase**: tu rama `apellido-nombre` es la misma desde clase01; el PR es nuevo cada clase (el anterior ya se mergeó). Detalle en el [README raíz](../README.md).
 
 ### Paso 3 — Correr el DAG productivo en Airflow
 

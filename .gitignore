@@ -48,6 +48,7 @@ Thumbs.db
 
 # --- Uso Interno del Profe (no subir a GitHub) ---
 MANTENIMIENTO.md
+**/_docente_soluciones/
 
 # --- Logs & Performance ---
 *.log
@@ -59,9 +60,11 @@ plugins/
 *.pptx
 *.pdf
 
-# --- Data runtime outputs (regenerados por DAGs, no committear) ---
+# --- Data runtime outputs (regenerados por DAGs/seed, no committear) ---
+stack/data/landing/**
 stack/data/processed/**
 stack/data/quarantine/**
+!stack/data/landing/.gitkeep
 !stack/data/processed/.gitkeep
 !stack/data/quarantine/.gitkeep
 
