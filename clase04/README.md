@@ -3,14 +3,13 @@
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
 >
 > 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`bronze.ventas_demo`)
-> 2. **Ejercicio práctico** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — los mismos conceptos sobre CoinGecko (Bronze → Silver)
+> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 8 ejercicios de SQL básico sobre **Northwind** (los fundamentos que Silver usa)
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`silver_01_basico.py`, `silver_02_quarantine.py`) que se generan vía `%%writefile` al ejecutar el notebook.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **opcional**: refinería de datos crypto (Bronze → Silver).
-> - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo (con comentarios educativos), se copia al stack al final del ejercicio.
-> - [`anexo_sql/`](anexo_sql/) — anexo **opcional** con 11 ejercicios de SQL graduados (SELECT → JOIN → GROUP BY → subqueries → window functions) sobre la base **Northwind**, conectando cada técnica con un patrón real de Silver.
+> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`silver_01_basico.py`, `silver_02_contrato.py`) que se generan vía `%%writefile` al ejecutar el notebook.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (setup dual-engine Postgres/DuckDB) y **Parte 2** son **8 ejercicios de SQL básico** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, un INNER JOIN simple), conectando cada técnica con un patrón real de Silver. La sección **📦 Entrega** genera tu `.txt` en `ejercicios/alumnos/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo (con comentarios educativos), se copia al stack para correr el Silver real de crypto.
 
 ---
 
@@ -30,14 +29,6 @@ graph LR
     B[(Capa Bronze)] --> QC{Quality Checks}
     QC -->|Valid| S[(Capa Silver)]
     QC -->|Invalid| Q[(Cuarentena)]
-
-    subgraph Transformaciones_Senior
-        T1[Normalización Pydantic]
-        T2[Tipado Estricto]
-        T3[Deduplicación Idempotente]
-        T4[SCD Tipo 2 - SQL]
-    end
-    S --- Transformaciones_Senior
 ```
 
 ## 🗺️ Linaje de Datos (Bronze → Silver)
@@ -95,7 +86,7 @@ Abrí `clase04.ipynb`. La primera parte explica conceptos (Contratos de Datos, P
 | # | DAG generado | Path destino | Qué aporta |
 |---|--------------|--------------|------------|
 | 01 | `silver_01_basico.py` | `stack/dags/02-silver/` | Limpieza básica: strip + Title Case + fillna + parser flexible de fechas |
-| 02 | `silver_02_quarantine.py` | `stack/dags/02-silver/` | Contrato Pydantic generado dinámicamente desde `ventas.yaml` + Pattern Quarantine + Audit metadata |
+| 02 | `silver_02_contrato.py` | `stack/dags/02-silver/` | **Contract-driven**: Pydantic generado en runtime desde `ventas.yaml` + Pattern Quarantine + Audit metadata |
 
 Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`). En la UI, filtrá por **tag `silver`** para verlos juntos. Activalos y verás los datos en `silver.ventas_demo` y `silver.quarantine_ventas_demo`.
 
@@ -103,11 +94,15 @@ Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:808
 >
 > **Convención de tags**: sintéticos didácticos llevan `tags=["silver"]`. El DAG productivo (crypto) lleva `tags=["prod", "silver", "crypto"]` para distinguirlo en la UI con el filtro `prod`.
 >
-> **🔁 Continuidad con clase 03**: el `silver_02_quarantine` lee el **mismo `ventas.yaml`** que usaba `bronze_04_con_contrato`. Bronze validaba la *forma*, Silver valida la *semántica*. Un contrato, dos capas.
+> **🔁 Continuidad con clase 03**: el `silver_02_contrato` lee el **mismo `ventas.yaml`** que usaba `bronze_04_con_contrato`. Bronze validaba la *forma*, Silver valida la *semántica*. Un contrato, dos capas.
 
-### Paso 2 — (Opcional) Hacer el ejercicio práctico
+### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-Abrí `ejercicios/ejercicio.ipynb` para refinar tus propios datos crypto (Bronze → Silver). Es práctica personal sin entrega comprometida.
+El ejercicio entregable de esta clase es **[`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)** (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB) y resolvé los **8 ejercicios de SQL básico** de la **Parte 2** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, un INNER JOIN simple). Al final, la sección **📦 Entrega** genera automáticamente tu archivo `ejercicios/alumnos/<apellido>-<nombre>.txt` (motor usado + evidencia de que Northwind cargó + cuántos ejercicios corrieron y devolvieron resultado, **extraído automáticamente ejecutando tus queries — no se autoreporta**) y te indica cómo subirlo (commit + push + **PR nuevo** de esta clase). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+
+> Las queries **no se autocorrigen** (las soluciones no se publican — el aprendizaje es pelearla). Silver es SQL-intensivo: estos patrones son exactamente los del DAG productivo `dag_crypto_silver.py`.
+
+> **Una rama para siempre, un PR por clase**: tu rama `apellido-nombre` es la misma desde clase01; el PR es nuevo cada clase (el anterior ya se mergeó). Detalle en el [README raíz](../README.md).
 
 ### Paso 3 — Deploy del DAG productivo crypto
 
@@ -133,25 +128,18 @@ cp clase04/ejercicios/dag_crypto_silver.py stack/dags/02-silver/
 
 ---
 
-## 🏆 Desafío Senior
+## 📚 El ejercicio en detalle (SQL básico — Northwind)
 
-No te conformes con `replace`. El objetivo es implementar una carga **idempotente** usando SQL nativo (`ON CONFLICT` o `MERGE`), asegurando que tu pipeline pueda fallar y recuperarse sin generar duplicados.
-
----
-
-## 📚 Anexo SQL (opcional, ~1-2 horas)
-
-Si las queries del ejercicio crypto te resultan difíciles, **andá al anexo antes de seguir**. Es un mini-curso de SQL aplicado a Data Quality usando la base **Northwind**:
+El ejercicio entregable (Paso 2) es [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb). Resumen:
 
 | Aspecto | Detalle |
 |---|---|
-| **¿Cuándo conviene hacerlo?** | Si te tropezás con `JOIN`, `GROUP BY`, `ROW_NUMBER` en el ejercicio crypto. O si querés refrescar SQL antes de Silver/Gold. |
-| **¿Qué obtengo?** | Fluidez en SQL aplicado a Data Quality: filtros, deduplicación, integridad referencial, outliers, dedup SCD2 con window functions. |
-| **¿Cuánto tarda?** | 1-2 horas. Está graduado en 4 bloques (E1-E2 SELECT/WHERE → E3-E5 GROUP BY → E6-E8 JOINs → E9-E11 Subqueries+CASE+Window). Podés cortar a la mitad y volver. |
-| **¿Dónde corre?** | Postgres (si tenés el stack levantado) **o** DuckDB (si trabajás offline). El setup detecta auto cuál usar. |
-| **¿Qué obtengo de bonus?** | Una mini-sección al final del notebook que te muestra cómo **dbt** hace todo esto en YAML — la herramienta estándar de la industria. |
+| **Qué practicás** | Fundamentos de SQL que Silver usa todo el tiempo: filtrar, medir para *profiling* (`COUNT`/`MIN`/`MAX`/`AVG`), normalizar y limpiar nulos, derivar atributos con `CASE`, `DISTINCT` y un `JOIN` simple. |
+| **Cómo está armado** | Un solo archivo: **Parte 1 — Setup** (carga Northwind, con datos sucios sembrados a propósito) + **Parte 2** con 8 ejercicios básicos (E1 SELECT/WHERE/ORDER BY · E2 COUNT · E3 MIN/MAX · E4 AVG · E5 normalización+nulos COALESCE · E6 DISTINCT/LIKE · E7 atributo derivado CASE · E8 INNER JOIN) + **📦 Entrega**. Podés cortar y volver. |
+| **Dónde corre** | Postgres (si tenés el stack) **o** DuckDB (offline). La Parte 1 detecta auto cuál usar y carga Northwind. |
+| **Entrega** | Sección **📦 Entrega** al final de `ejercicio.ipynb` → `.txt` en `ejercicios/alumnos/`. |
 
-📖 **Detalle completo**: [`anexo_sql/README.md`](anexo_sql/README.md)
+📖 **Reglas de entrega**: [`ejercicios/README.md`](ejercicios/README.md)
 
 > Cada ejercicio incluye una nota **🔗 En Silver esto sería...** que conecta la técnica SQL con un caso real de la clase. No es SQL desconectado: es la herramienta concreta para construir Silver.
 

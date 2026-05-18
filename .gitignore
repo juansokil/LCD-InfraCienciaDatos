@@ -72,3 +72,4 @@ stack/credentials/*.key
 # --- Excepcion: el .env del stack del laboratorio si se versiona ---
 # Son credenciales locales-only (admin/admin) sin info sensible real.
 !stack/.env
+**/soluciones/
