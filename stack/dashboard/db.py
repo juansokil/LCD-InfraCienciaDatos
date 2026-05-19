@@ -32,16 +32,27 @@ def table_exists(engine, schema, table):
         return conn.execute(query, {"schema": schema, "table": table}).scalar()
 
 
+def run_query(sql: str) -> pd.DataFrame:
+    """Ejecutar SQL y devolver un DataFrame.
+
+    Con pandas 2.x + SQLAlchemy 1.4, ``pd.read_sql`` no reconoce el Engine
+    NI la Connection y cae al path DBAPI legacy -> ``.cursor()`` falla.
+    Ejecutamos con ``conn.execute(text(...))`` (mismo patron que el resto
+    de este modulo) y armamos el DataFrame a mano.
+    """
+    engine = get_engine()
+    with engine.connect() as conn:
+        res = conn.execute(text(sql))
+        return pd.DataFrame(res.fetchall(), columns=list(res.keys()))
+
+
 @st.cache_data(ttl=60)
 def load_table(schema, table):
     """Cargar una tabla completa desde PostgreSQL."""
     engine = get_engine()
     if not table_exists(engine, schema, table):
         return pd.DataFrame()
-    # pandas necesita una Connection (no el Engine): con SQLAlchemy 1.4 +
-    # pandas 2.x, pasar el Engine cae al path legacy -> Engine.cursor() falla.
-    with engine.connect() as conn:
-        return pd.read_sql(f"SELECT * FROM {schema}.{table}", conn)
+    return run_query(f"SELECT * FROM {schema}.{table}")
 
 
 @st.cache_data(ttl=60)
