@@ -38,7 +38,10 @@ def load_table(schema, table):
     engine = get_engine()
     if not table_exists(engine, schema, table):
         return pd.DataFrame()
-    return pd.read_sql(f"SELECT * FROM {schema}.{table}", engine)
+    # pandas necesita una Connection (no el Engine): con SQLAlchemy 1.4 +
+    # pandas 2.x, pasar el Engine cae al path legacy -> Engine.cursor() falla.
+    with engine.connect() as conn:
+        return pd.read_sql(f"SELECT * FROM {schema}.{table}", conn)
 
 
 @st.cache_data(ttl=60)
