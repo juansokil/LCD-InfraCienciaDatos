@@ -121,6 +121,11 @@ services:
       - SOURCE_DB_HOST=data_warehouse
     ports:
       - "8501:8501"
+    volumes:
+      # Las paginas se GENERAN desde clase05.ipynb (%%writefile) al host.
+      # Este bind-mount hace que el contenedor vea esa carpeta en vivo:
+      # generas/refrescas Streamlit y aparecen, sin rebuild de la imagen.
+      - ./dashboard/pages:/app/pages
     depends_on:
       data_warehouse:
         condition: service_healthy
