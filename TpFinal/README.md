@@ -10,7 +10,7 @@ Diseñar e implementar un pipeline de datos end-to-end utilizando una **API púb
 |---|---|
 | Orquestador | Apache Airflow |
 | Base de datos | PostgreSQL (schemas: bronze, silver, gold) |
-| Dashboard | Streamlit |
+| Dashboard | Streamlit (consume tablas Gold) |
 | Containerizacion | Docker Compose |
 
 ## Arquitectura Medallion
@@ -38,9 +38,28 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 
 1. **Repositorio** con el codigo completo
 2. **docker-compose.yml** funcional: `docker compose up` y listo
-3. **DAGs de Airflow**: minimo un DAG por capa (bronze, silver, gold)
-4. **Dashboard en Streamlit** con una vista por capa (Bronze, Silver, Gold)
+3. **DAGs de Airflow**: minimo un DAG por capa (bronze, silver, gold), todos con **schedule definido** y **activos por default** (no en pausa)
+4. **Dashboard en Streamlit** sobre las tablas **Gold** (el dashboard consume el modelo final, no Bronze ni Silver)
 5. **README** del proyecto explicando: API elegida, modelo de datos, como levantar el stack
+
+> ⚠️ **Importante: el stack tiene que arrancar a correr SOLO**. Cuando se haga `docker compose up`, el pipeline empieza a correr sin que haya que activar DAGs a mano ni crear schemas manualmente:
+> - DAGs **activados por default** (en el `@dag(...)` poner `is_paused_upon_creation=False`).
+> - Cada DAG con **schedule definido** (NO `schedule=None`) — elegir el intervalo segun el `Refresh` de la API que eligieron (ej: `@hourly` si la API actualiza cada hora, `"*/15 * * * *"` para cada 15 min, `@daily`, etc.).
+> - Los schemas `bronze`/`silver`/`gold` se crean solos (via `init.sql` montado al postgres).
+> - El dashboard arranca, conecta a Postgres y muestra Gold automaticamente.
+>
+> Una vez levantado, va a haber datos en las tablas en cuestion de minutos/horas segun el schedule.
+
+## Organizacion y entrega
+
+| | |
+|---|---|
+| **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tp-final/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. Ver seccion "Como entregar el TP" mas abajo. |
+| **Politica de APIs** | Pueden repetir la misma API entre grupos (no es excluyente). Si quieren proponer una API fuera de la lista, consultar con el docente. |
+| **Fecha de entrega** | **17-06-26 hasta 23:59** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
+| **Presentacion oral** | **18-06-26 en clase**, **5 a 6 minutos maximo por grupo**. |
+
+> **Sobre `G<NN>`**: `G` = Grupo, `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y confirma el siguiente libre). `G00` es el template de referencia, no es una entrega real.
 
 ## APIs publicas disponibles
 
@@ -146,36 +165,100 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 |---|
 | Pipeline funcional (Bronze → Silver → Gold) | 
 | Calidad del modelo de datos y transformaciones | 
-| Dashboard con visualizaciones relevantes |  
-| Containerizacion (docker compose up y funciona) |  
+| Dashboard sobre Gold con visualizaciones relevantes |  
+| Containerizacion + arranque automatico (`docker compose up` y el pipeline corre solo, sin activar DAGs a mano) |  
 | Documentacion y claridad del codigo |  
 
-## Estructura sugerida del proyecto
+## Esqueleto de entrega
+
+> 💡 **Template del README**: en [`grupos/G00/README.md`](grupos/G00/README.md) hay una plantilla del README que va al lado del codigo (integrantes, API, modelo de datos, como levantar, decisiones tecnicas). Copienlo a `grupos/G<NN>/README.md` como punto de partida — el resto de los archivos los arman desde cero siguiendo este esqueleto.
+
+Cada grupo trabaja dentro de su propia carpeta `TpFinal/grupos/G<NN>/`. La estructura completa que esperamos:
 
 ```
-mi-proyecto/
-├── docker-compose.yml
-├── Dockerfile               # imagen de Airflow (mismo patron que stack/)
-├── init.sql                 # schemas bronze/silver/gold
-├── requirements.txt
+TpFinal/grupos/G<NN>/
+├── README.md                       # API elegida + modelo de datos + como levantar el stack
+├── docker-compose.yml              # 4 servicios: warehouse + airflow_db + airflow + dashboard
+├── Dockerfile                      # imagen Airflow custom (basada en apache/airflow:3.1.5)
+├── Dockerfile.postgres             # opcional: si quieren pre-cargar init.sql en la imagen
+├── init.sql                        # CREATE SCHEMA bronze, silver, gold
+├── requirements.txt                # deps Python para Airflow (pandas, sqlalchemy, requests, etc.)
+├── .env.example                    # variables de entorno (cada uno copia a .env)
+├── .gitignore                      # ignorar .env, credentials/, __pycache__, etc.
 ├── dags/
 │   ├── 01-bronze/
+│   │   └── <api>_bronze.py         # ingesta cruda de la API a schema bronze
 │   ├── 02-silver/
+│   │   └── <api>_silver.py         # limpieza, validacion, tipos
 │   └── 03-gold/
+│       └── <api>_gold.py           # agregaciones, modelo dimensional (fact/dim)
 └── dashboard/
-    ├── Dockerfile
-    ├── app.py
-    ├── db.py
-    ├── requirements.txt
-    └── pages/
+    ├── Dockerfile                  # imagen del dashboard (basada en python:3.11-slim)
+    ├── app.py                      # entrypoint Streamlit (st.set_page_config + intro)
+    ├── db.py                       # conexion a Postgres (reusable desde todas las paginas)
+    ├── requirements.txt            # streamlit, pandas, sqlalchemy, plotly, etc.
+    └── pages/                       # vistas adicionales sobre tablas GOLD
+        └── 1_Gold.py                # dashboard de KPIs / vistas de negocio sobre el modelo final
 ```
+
+> **Patron de referencia**: la estructura sigue la misma logica del [`stack/`](../stack/) del curso (Airflow 3.1.5 + Postgres 17 Alpine + Streamlit). Pueden mirar `stack/` para inspirarse en el `docker-compose.yml`, `Dockerfile`, `init.sql`, etc. 
+
+> **Por que `G<NN>`?** `G` = Grupo y `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y te confirma el siguiente libre). Tiene que coincidir con el nombre de la branch (`tp-final/G01` ↔ `TpFinal/grupos/G01/`) — asi el docente puede comparar branches lado a lado al evaluar.
+
+> **Donde corre el stack del grupo?** En la maquina de cada alumno. Cuando hagan `docker compose up` dentro de `TpFinal/grupos/G<NN>/`, levanta SU propio Postgres, Airflow y Streamlit aislados — no se mezcla con el stack del curso ni con el de otros grupos. **Ojo con los puertos**: si tienen el stack del curso levantado en paralelo, va a haber conflicto en 5432/8080/8501 — apaguen uno antes de levantar el otro, o cambien los mapeos en `docker-compose.yml`.
+
+## Como entregar el TP: branch + PR
+
+El TP se desarrolla y se entrega **en este mismo repo** (no en repo propio). Cada grupo trabaja en su propia branch, y abre un **PR** que oficia como aviso + entrega.
+
+### Paso a paso
+
+**1. Crear la branch** desde `main`:
+
+```bash
+git checkout main && git pull
+git checkout -b tp-final/G<NN>
+# ej: git checkout -b tp-final/G01
+```
+
+**2. Crear la subcarpeta del grupo** en `TpFinal/grupos/G<NN>/` y pushear el primer commit con el esqueleto minimo (ver "Esqueleto de entrega" mas abajo):
+
+```bash
+mkdir -p TpFinal/grupos/G01
+# crear TpFinal/grupos/G01/README.md con: integrantes + API + idea Gold
+git add TpFinal/grupos/G01/
+git commit -m "tp-final/G01: setup inicial (API: OpenAQ)"
+git push -u origin tp-final/G01
+```
+
+**3. Abrir un PR** contra `main`:
+
+- **Titulo exacto**: `TP Final - G<NN> - <API>`
+  Ejemplo: `TP Final - G01 - OpenAQ`
+- **Body sugerido**:
+  - **Integrantes**: nombre completo + usuario de GitHub de cada uno.
+  - **API elegida**: nombre + URL.
+  - **Idea Gold (1-2 oraciones)**: que pregunta de negocio van a responder con su dashboard.
+
+**4. Trabajar en la branch**: commits chicos y frecuentes mejor que pocos grandes. Cada `git push` actualiza el PR automaticamente.
+
+**5. Entrega final (17-06-26 hasta 23:59)**: en el PR, hacer click en el boton **"Ready for review"**. Eso transforma el draft en PR formal — esa accion es la entrega.
+
+**6. Presentacion (18-06-26 en clase)**: 5-6 minutos con el dashboard corriendo en sus maquinas.
+
+
+> **PR (Pull Request)** = propuesta de mergear los commits de una branch a otra; lleva codigo, se puede revisar linea por linea, tiene aprobaciones y se puede mergear.
+> **Branch (rama)** = copia paralela del codigo donde se desarrolla, antes de mergear a `main`.
 
 ## Como empezar
 
-1. Elegir una API de la lista (o proponer otra, consultando con el docente)
-2. Explorar la API: endpoints, estructura de respuesta, limites
-3. Disenar el modelo de datos: que tablas en bronze, que limpieza en silver, que metricas en gold
-4. Armar el `docker-compose.yml` con los 4 servicios: postgres (warehouse), postgres (airflow), airflow, dashboard
-5. Desarrollar los DAGs de Airflow para cada capa
-6. Construir el dashboard en Streamlit
-7. Documentar todo en un README
+1. **Elegir API**: una de la lista (o proponer otra, consultando con el docente).
+2. **Explorar la API**: endpoints, estructura de respuesta, rate limits, auth.
+3. **Disenar el modelo de datos**: que tablas en bronze, que limpieza en silver, que metricas / fact / dim en gold.
+4. **Crear la branch** `tp-final/G<NN>` desde `main` y la carpeta `TpFinal/grupos/G<NN>/` (ver "Como entregar el TP" arriba). **Tip**: arrancá copiando el README template ([`grupos/G00/README.md`](grupos/G00/README.md)) como `TpFinal/grupos/G<NN>/README.md` para tener la plantilla de los datos del proyecto.
+5. **Abrir el PR-draft** contra `main` con el titulo y body sugeridos.
+6. Armar el `docker-compose.yml` con los 4 servicios: postgres (warehouse), postgres (airflow), airflow, dashboard. Inspirarse en [`stack/docker-compose.yml`](../stack/docker-compose.yml).
+7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa) — definir `schedule` segun la frecuencia de la API (ver el `Refresh` de cada API en la seccion arriba) y `is_paused_upon_creation=False` para que arranque solo.
+8. Construir el dashboard en Streamlit **sobre las tablas Gold** (KPIs / vistas de negocio — no se visualizan Bronze ni Silver, eso es backend del pipeline).
+9. Documentar todo en `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar el stack, decisiones tecnicas.
+10. **Entregar** antes del **17-06-26 hasta 23:59**  y **presentar** el **18-06-26** (5-6 min).
