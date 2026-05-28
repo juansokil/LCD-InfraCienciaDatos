@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+
+  db:
+    image: postgres:15-alpine
+    container_name: clima_db
+
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: clima
+
+    ports:
+      - "5432:5432"
+
+  app:
+    build: ./app
+    container_name: clima_app
+
+    depends_on:
+      - db
+
+    volumes:
+      - ./app:/app
+
+    command: python clima.py
