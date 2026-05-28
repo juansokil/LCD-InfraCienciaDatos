@@ -1,0 +1,7 @@
+Apellido: Di Lacio
+Nombre: Lautaro Di Lacio
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 156D22C4B4B8
+Fecha: 2026-05-28
