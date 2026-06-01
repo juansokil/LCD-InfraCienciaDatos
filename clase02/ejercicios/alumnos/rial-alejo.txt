@@ -1,5 +1,5 @@
 Apellido: Rial
 Nombre: Alejo
-Nivel alcanzado: 0 / 3
-Codigo: 285F029DEB08
+Nivel alcanzado: 3 / 3
+Codigo: 9D6633BF835B
 Fecha: 2026-05-31
