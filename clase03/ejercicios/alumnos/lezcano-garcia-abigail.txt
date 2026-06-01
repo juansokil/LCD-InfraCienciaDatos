@@ -1,0 +1,7 @@
+Apellido: Lezcano Garcia
+Nombre: Abigail
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 7E3E6530217D
+Fecha: 2026-06-01
