@@ -33,7 +33,7 @@ services:
       # OPCION A: host 8080 -> contenedor 8080
       #   Si tenés Jenkins, Tomcat, otra app de dev o cualquier cosa usando 8080,
       #   este mapeo va a fallar con "failed to set up container networking".
-      - "8080:8080"
+      - "8081:8080"
       #
       # OPCION B: host 8081 -> contenedor 8080
       #   La UI de Airflow queda en http://localhost:8081 (cero cambios en notebooks
@@ -97,7 +97,7 @@ services:
       # OPCION A (default): host 5432 -> contenedor 5432
       #   Si tenés un Postgres instalado en Windows o algun otro contenedor usando 5432,
       #   este mapeo va a fallar con "failed to set up container networking".
-      - "5432:5432"
+      - "5433:5432"
       #
       # OPCION B: host 5433 -> contenedor 5432
       #   Descomentá esta linea y comentá la de arriba si el puerto 5432 esta ocupado.
