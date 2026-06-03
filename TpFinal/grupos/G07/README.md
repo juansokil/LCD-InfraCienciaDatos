@@ -17,7 +17,7 @@
 - Gastón Rossi (@torino05)
 - Morena Stolerman (@Morenastolerman)
 - Camila Vidoni (@camilavidoni7)
-
+- Alex Flores (@afloreschoquehuanca-byte)
 ## API elegida
 
 - **Nombre**: `CityBikes API`
