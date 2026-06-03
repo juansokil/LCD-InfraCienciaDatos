@@ -1,1 +1,0 @@
-Morena Stolerman
