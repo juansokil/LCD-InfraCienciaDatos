@@ -14,7 +14,8 @@
 
 - Gonzalo Cárdenas (@Zagon22)
 - Gabriela Gattas (@Gabi6285)
-- ...
+- Alex Flores (@afloreschoquehuanca-byte)
+-
 
 ## API elegida
 
