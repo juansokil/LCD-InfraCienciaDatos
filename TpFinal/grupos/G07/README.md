@@ -16,6 +16,7 @@
 - Gabriela Gattas (@Gabi6285)
 - Gastón Rossi (@torino05)
 - Morena Stolerman (@Morenastolerman)
+- Camila Vidoni (@camilavidoni7)
 
 ## API elegida
 
