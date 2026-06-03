@@ -1,0 +1,7 @@
+Apellido: Trenti
+Nombre: Alejo
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 844EFA2CA820
+Fecha: 2026-05-27

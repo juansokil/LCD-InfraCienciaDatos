@@ -1,0 +1,7 @@
+Apellido: Rial
+Nombre: Alejo
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 00C64D7266FE
+Fecha: 2026-06-01
