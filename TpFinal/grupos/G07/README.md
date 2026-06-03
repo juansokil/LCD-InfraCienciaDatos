@@ -15,6 +15,7 @@
 - Gonzalo Cárdenas (@Zagon22)
 - Gabriela Gattas (@Gabi6285)
 - Gastón Rossi (@torino05)
+- Morena Stolerman (@Morenastolerman)
 
 ## API elegida
 
