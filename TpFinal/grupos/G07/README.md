@@ -1,4 +1,4 @@
-# TP Final - G00 (Template del README)
+# TP Final - G07 (Template del README)
 
 > **Este es el template del README** que va al lado del codigo de su grupo.
 >
