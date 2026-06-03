@@ -1,7 +1,0 @@
-Apellido: benson
-Nombre: marcos
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: F32DE70DC917
-Fecha: 2026-05-21

@@ -1,2 +1,0 @@
-# Elias Romero
-@Eliasromero

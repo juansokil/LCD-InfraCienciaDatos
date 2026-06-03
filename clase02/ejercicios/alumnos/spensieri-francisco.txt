@@ -1,5 +1,0 @@
-Apellido: Spensieri
-Nombre: Francisco
-Nivel alcanzado: 2 / 3
-Codigo: 08891FD5D0A3
-Fecha: 2026-05-21

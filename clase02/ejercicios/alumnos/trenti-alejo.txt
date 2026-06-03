@@ -1,5 +1,0 @@
-Apellido: Trenti
-Nombre: Alejo
-Nivel alcanzado: 3 / 3
-Codigo: 39DB5D3FDC79
-Fecha: 2026-05-14

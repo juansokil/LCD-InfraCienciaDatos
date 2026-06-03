@@ -1,2 +1,0 @@
-# Elian Chokler
-@elianchok

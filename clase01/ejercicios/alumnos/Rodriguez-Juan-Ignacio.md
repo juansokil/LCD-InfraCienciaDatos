@@ -1,4 +1,0 @@
-\# Juan Ignacio Rodriguez
-
-@RodJuani
-

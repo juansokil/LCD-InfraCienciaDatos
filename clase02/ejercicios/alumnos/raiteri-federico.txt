@@ -1,5 +1,0 @@
-Apellido: Raiteri
-Nombre: Federico
-Nivel alcanzado: 3 / 3
-Codigo: 0A0FF94E5FD8
-Fecha: 2026-05-31

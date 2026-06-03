@@ -1,5 +1,0 @@
-Apellido: Pellicori
-Nombre: Facundo
-Nivel alcanzado: 2 / 3
-Codigo: BC7EE2EF7B51
-Fecha: 2026-05-20

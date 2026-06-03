@@ -1,2 +1,0 @@
-# Gino Mariani
-@ginomariani

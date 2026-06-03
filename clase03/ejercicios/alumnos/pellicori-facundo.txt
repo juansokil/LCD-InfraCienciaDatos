@@ -1,7 +1,0 @@
-Apellido: Pellicori
-Nombre: Facundo
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: 61F85A5A4C5A
-Fecha: 2026-05-27

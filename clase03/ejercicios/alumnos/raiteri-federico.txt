@@ -1,7 +1,0 @@
-Apellido: Raiteri
-Nombre: Federico
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: A30F423B8917
-Fecha: 2026-05-31

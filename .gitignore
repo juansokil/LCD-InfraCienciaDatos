@@ -76,3 +76,11 @@ stack/credentials/*.key
 # Son credenciales locales-only (admin/admin) sin info sensible real.
 !stack/.env
 **/soluciones/
+
+# Carpetas de las clases
+clase01/
+clase02/
+clase03/
+clase04/
+clase05/
+clase06/

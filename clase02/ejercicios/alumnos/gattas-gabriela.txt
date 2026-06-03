@@ -1,5 +1,0 @@
-Apellido: Gattas
-Nombre: Gabriela
-Nivel alcanzado: 3 / 3
-Codigo: F3B14C9C9F59
-Fecha: 2026-05-15

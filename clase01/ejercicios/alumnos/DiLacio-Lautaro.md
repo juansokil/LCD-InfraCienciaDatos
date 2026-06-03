@@ -1,2 +1,0 @@
-# Lautaro Di Lacio
-@DilacioLautaro

@@ -1,5 +1,0 @@
-Apellido: molendi
-Nombre: lautaro
-Nivel alcanzado: 3 / 3
-Codigo: 7F54A2D95F77
-Fecha: 2026-05-17

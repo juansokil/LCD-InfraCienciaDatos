@@ -1,7 +1,0 @@
-Apellido: sokil
-Nombre: juan
-Motor: duckdb
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: 1DBC570CE22A
-Fecha: 2026-05-20
