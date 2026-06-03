@@ -20,11 +20,11 @@
 
 ## API elegida
 
-- **Nombre**: `<nombre de la API>`
-- **URL**: `<link a la doc oficial>`
-- **Descripcion**: `<breve explicación de que devuelve la API>`
-- **Auth**: `<sin auth / API key gratis / OAuth>`
-- **Refresh**: `<cada cuanto se actualizan los datos>`
+- **Nombre**: `CityBikes API`
+- **URL**: ` https://docs.citybik.es/api`
+- **Descripcion**: `Proporciona datos en tiempo real sobre el estado de estaciones de bicicletas públicas en distintas ciudades del mundo. Devuelve información como cantidad de bicicletas disponibles, slots vacíos, coordenadas geográficas y timestamp de actualización.`
+- **Auth**: `Sin autenticación (no requiere API key para uso básico).`
+- **Refresh**: ` Cada 2–5 minutos (actualización frecuente según la red de bicicletas).`
 
 ## Modelo de datos
 
