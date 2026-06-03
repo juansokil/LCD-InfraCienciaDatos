@@ -1,0 +1,151 @@
+services:
+  # Airflow Standalone - Orquestador UN-SAM
+  airflow:
+    build: .
+    container_name: airflow_standalone
+    env_file: .env
+    environment:
+      - AIRFLOW_UID=${AIRFLOW_UID:-0}
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
+      - AIRFLOW__API__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/credentials/google_key.json
+      - AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=10
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=10
+      - SOURCE_DB_HOST=data_warehouse
+    volumes:
+      # long-form syntax — cross-platform (Windows/Linux/Mac)
+      - type: bind
+        source: ./dags
+        target: /opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+      - type: bind
+        source: ./data
+        target: /opt/airflow/data
+      - type: bind
+        source: ./credentials
+        target: /opt/airflow/credentials
+    ports:
+      # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 8080 internamente.
+      # Solo cambia el puerto del HOST (la URL de la UI: http://localhost:PUERTO).
+      #
+      # OPCION A: host 8080 -> contenedor 8080
+      #   Si tenés Jenkins, Tomcat, otra app de dev o cualquier cosa usando 8080,
+      #   este mapeo va a fallar con "failed to set up container networking".
+      - "8081:8080"
+      #
+      # OPCION B: host 8081 -> contenedor 8080
+      #   La UI de Airflow queda en http://localhost:8081 (cero cambios en notebooks
+      #   ni en DAGs — Airflow no se conecta a si mismo desde el host).
+      # - "8081:8080"
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - de_stack_network
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+          cpus: '2.0'
+
+  # PostgreSQL - Metadatos de Airflow (Interno)
+  airflow_db:
+    image: postgres:17-alpine
+    container_name: airflow_db
+    environment:
+      - POSTGRES_USER=${AF_DB_USER}
+      - POSTGRES_PASSWORD=${AF_DB_PASS}
+      - POSTGRES_DB=${AF_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${AF_DB_USER} -d ${AF_DB_NAME}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: "no"
+    networks:
+      - de_stack_network
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+
+  # PostgreSQL - Data Warehouse (Bronze, Silver, Gold)
+  data_warehouse:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: data_warehouse:custom
+    container_name: data_warehouse
+    environment:
+      - POSTGRES_USER=${SOURCE_DB_USER}
+      - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
+      - POSTGRES_DB=${SOURCE_DB_NAME}
+    volumes:
+      # init.sql se copia adentro de la imagen via Dockerfile.postgres
+      # (sin bind mount → sin problemas de path en Windows)
+      - data_warehouse_data:/var/lib/postgresql/data
+    ports:
+      # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 5432 internamente.
+      # Solo cambia el puerto del HOST (lo que usás desde el notebook con localhost:PUERTO).
+      #
+      # OPCION A (default): host 5432 -> contenedor 5432
+      #   Si tenés un Postgres instalado en Windows o algun otro contenedor usando 5432,
+      #   este mapeo va a fallar con "failed to set up container networking".
+      - "5433:5432"
+      #
+      # OPCION B: host 5433 -> contenedor 5432
+      #   Descomentá esta linea y comentá la de arriba si el puerto 5432 esta ocupado.
+      #   IMPORTANTE: si cambiás a 5433, también hay que actualizar las conexiones  que usen `localhost:5432`.
+      # - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: "no"
+    networks:
+      - de_stack_network
+
+  # Streamlit - Dashboard BI
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard
+    env_file: .env
+    environment:
+      - SOURCE_DB_HOST=data_warehouse
+    ports:
+      - "8501:8501"
+    volumes:
+      # Las paginas se GENERAN desde clase05.ipynb (%%writefile) al host.
+      # Este bind-mount hace que el contenedor vea esa carpeta en vivo:
+      # generas/refrescas Streamlit y aparecen, sin rebuild de la imagen.
+      - ./dashboard/pages:/app/pages
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - de_stack_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+volumes:
+  airflow_db_data:
+  airflow_logs:
+  airflow_plugins:
+  data_warehouse_data:
+
+
+networks:
+  de_stack_network:
+    name: de_stack_network
+    driver: bridge
