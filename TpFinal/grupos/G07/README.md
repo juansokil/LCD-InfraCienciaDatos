@@ -31,6 +31,11 @@
 ### Bronze
 
 `<que tablas crudas guardan + columnas + metadatos de auditoria (ingested_at, source, etc.)>`
+La capa Bronze almacena los datos crudos obtenidos de la API CityBikes. Se registran tres tipos de información:
+1. bronze.networks → snapshot de redes disponibles
+2. bronze.stations → snapshot de estaciones
+3. bronze.snapshots → trazabilidad de requests a la API
+
 
 ### Silver
 
