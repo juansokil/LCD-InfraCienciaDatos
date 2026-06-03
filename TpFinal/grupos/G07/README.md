@@ -13,7 +13,7 @@
 ## Integrantes
 
 - Gonzalo Cárdenas (@Zagon22)
-- Nombre Apellido (@usuario-github)
+- Gabriela Gattas (@Gabi6285)
 - ...
 
 ## API elegida
