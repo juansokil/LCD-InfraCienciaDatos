@@ -1,0 +1,7 @@
+Apellido: Gimenez
+Nombre: Leonel
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 990D0E884209
+Fecha: 2026-05-28

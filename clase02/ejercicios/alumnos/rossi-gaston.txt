@@ -1,0 +1,5 @@
+Apellido: Rossi
+Nombre: Gastón
+Nivel alcanzado: 3 / 3
+Codigo: 5BFC4D5AC8DA
+Fecha: 2026-05-14
