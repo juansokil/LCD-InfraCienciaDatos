@@ -1,5 +1,5 @@
 Apellido: Di Lacio
-Nombre: Lautaro Di Lacio
+Nombre: Lautaro
 Motor: postgres
 Tabla Bronze: bronze.crypto_markets_demo
 Filas cargadas: 50
