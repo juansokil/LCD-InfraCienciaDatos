@@ -1,0 +1,7 @@
+Apellido: bustamante
+Nombre: martin
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 9C3E6237547A
+Fecha: 2026-06-04
