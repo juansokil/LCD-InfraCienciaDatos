@@ -1,0 +1,18 @@
+Apellido: lopez
+Nombre: martina
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=F7B676A1
+  G2: OK (10x2) h=45F9926D
+  G3: OK (8x3) h=E22AEAD4
+  G4: OK (4x2) h=F0D690A0
+  G5: OK (23x2) h=AF183C27
+  G6: OK (3x2) h=3F892DEB
+  G7: OK (24x4) h=AB2ECABD
+  G8: OK (8x3) h=EE052A7D
+Ejercicios con resultado: 8 / 8
+Codigo: F1C044955F79
+Fecha: 2026-06-05
