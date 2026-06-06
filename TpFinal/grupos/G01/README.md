@@ -1,80 +1,143 @@
-# TP Final - G01 
-
+# TP Final - G01 — Open-Meteo Weather Pipeline
 
 ## Integrantes
 
-- Federico Raiteri (@usuario-github)
-- Lautaro Molendi  (@Lautaro-Molendi)
-- Lorenzo Ortmann  (@usuario-github)
-- Lucas Graziadei  (@usuario-github)
-- Rocío Sajama  (@usuario-github)
+| Federico Raiteri | @RaiteriFederico  |
+| Lautaro Molendi | @Lautaro-Molendi |
+| Lorenzo Ortmann | @lorenzoortmann|
+| Lucas Graziadei | @usuario-github |
+| Rocío Sajama | @rocioSajama |
 
 ## API elegida
 
-- **Nombre**: `Open-Meteo`
-- **URL**: `https://open-meteo.com/`
-- **Descripcion**: `API pública de pronóstico y datos meteorológicos históricos.`
-- **Auth**: `Sin auth`
-- **Refresh**: `Cada 1 hora`
+| **Nombre** | Open-Meteo |
+| **URL** | https://open-meteo.com/ |
+| **Descripción** | API pública de pronóstico y datos meteorológicos históricos para coordenadas geográficas arbitrarias |
+| **Auth** | Sin autenticación, sin límite de requests |
+| **Refresh** | Cada 1 hora |
+
+## Regiones monitoreadas
+
+| `buenos_aires` | Buenos Aires | -34.6037 | -58.3816 |
+| `cordoba` | Córdoba | -31.4135 | -64.1811 |
+| `mendoza` | Mendoza | -32.8895 | -68.8458 |
+| `salta` | Salta | -24.7859 | -65.4117 |
+| `tierra_del_fuego` | Tierra del Fuego | -54.8019 | -68.3030 |
 
 ## Modelo de datos
 
 ### Bronze
 
-Ingesta del JSON crudo directo desde la API de Open-Meteo mediante peticiones horarias parametrizadas para un set de coordenadas geográficas fijas en Argentina (elegimos Buenos Aires, Córdoba, Mendoza, Salta y Bariloche).
+Ingesta cruda de la API mediante peticiones horarias parametrizadas por coordenadas. Cada request devuelve dos nodos: `current` (medición real instantánea) y `daily` (pronóstico a 7 días con arrays paralelos). Ambos nodos se guardan juntos en un único payload JSONB sin transformación.
 
-- **Tabla**: `bronze.open_meteo_raw`
-  - `id` (SERIAL PRIMARY KEY): Identificador único de la ingesta.
-  - `id_provincia` (VARCHAR): Código identificador de la región analizada.
-  - `payload` (JSONB): Bloque estructurado crudo con los nodos `current` (medición horaria real) y `daily` (vectores paralelos con el pronóstico extendido a 7 días).
-  - `ingested_at` (TIMESTAMP): Fecha y hora exacta de la captura (Auditoría).
-  - `source` (VARCHAR): Origen del dato, por defecto `'open-meteo'` (Auditoría).
+**Tabla: `bronze.open_meteo_raw`**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id` | SERIAL PK | Identificador único de la ingesta |
+| `id_provincia` | VARCHAR | Código de la región (`buenos_aires`, `cordoba`, etc.) |
+| `payload` | JSONB | JSON crudo con nodos `current` y `daily` |
+| `ingested_at` | TIMESTAMP | Timestamp de captura (auditoría) |
+| `source` | VARCHAR | Origen del dato, siempre `'open-meteo'` |
+
 
 ### Silver
-En esta capa refinamos el JSON de Bronze. Llevamos los datos a un formato relacional limpio, tipado y estructurado, aplicando reglas de consistencia de manera atómica para evitar duplicados mediante claves primarias compuestas.
 
-- **Transformaciones aplicadas**:
-  - **Desanidación**: Apertura de los arrays paralelos del nodo `daily` para transformarlos en registros individuales (filas).
-  - **Normalización de Unidades**: Forzar escala estandarizada en Celsius (°C), milímetros de precipitación (mm) y velocidad del viento en kilómetros por hora (km/h).
-  - **Manejo de Nulos**: Descarte o desvío a cuarentena de registros sin marca temporal válida o coordenadas huérfanas.
-  - **Enriquecimiento**: Cálculo analítico en Python de la **Sensación Térmica** (Apparent Temperature / Heat Index) para registros que carezcan de ella, cruzando temperatura y humedad relativa.
+Desanidación y limpieza del JSON de Bronze. Se separan las mediciones reales del pronóstico en dos tablas relacionales con claves primarias compuestas que garantizan idempotencia, así aseguramos que la misma medición nunca se duplica.
 
-- **Tablas**:
-  - `silver.clima_actual`: Registros históricos de mediciones reales instantáneas.
-    - Clave primaria: `(id_provincia, fecha_hora)`.
-  - `silver.clima_pronostico`: Registros históricos de las predicciones diarias emitidas.
-    - Clave primaria: `(id_provincia, fecha_pronostico)`.
+**Transformaciones:**
+
+- **Desanidación**: Los arrays paralelos del nodo `daily` se convierten en filas individuales via `zip()`
+- **Tipado**: Todos los campos numéricos se mapean a tipos `NUMERIC` con precisión definida
+- **Manejo de nulos**: Registros sin timestamp válido se descartan con warning en el log
+- **`snapshot_ts`**: Registramos el momento exacto en que se emitió cada pronóstico (esto viene del `ingested_at` del registro Bronze), lo que permite calcular el horizonte temporal de cada predicción en Gold
+
+> Las unidades (°C, mm, km/h) y la sensación térmica (`apparent_temperature`) ya vienen correctas desde la API, nos ahorramos la conversión adicional.
+
+**Tabla: `silver.clima_actual`**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id_provincia` | VARCHAR | PK compuesta |
+| `fecha_hora` | TIMESTAMP | PK compuesta — timestamp de la medición |
+| `temperatura_c` | NUMERIC | Temperatura en °C |
+| `sensacion_termica_c` | NUMERIC | Sensación térmica en °C |
+| `humedad_relativa` | INT | Humedad relativa en % |
+| `lluvia_mm` | NUMERIC | Precipitación en mm |
+| `viento_kmh` | NUMERIC | Velocidad del viento en km/h |
+| `weather_code` | INT | Código WMO de condición climática |
+| `actualizado_at` | TIMESTAMP | Timestamp de procesamiento (auditoría) |
+
+**Tabla: `silver.clima_pronostico`**
+
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `id_provincia` | VARCHAR | PK compuesta |
+| `fecha_pronostico` | DATE | PK compuesta — fecha del pronóstico |
+| `snapshot_ts` | TIMESTAMP | Momento en que se emitió el pronóstico |
+| `temp_max_c` | NUMERIC | Temperatura máxima pronosticada |
+| `temp_min_c` | NUMERIC | Temperatura mínima pronosticada |
+| `sensacion_max_c` | NUMERIC | Sensación térmica máxima pronosticada |
+| `sensacion_min_c` | NUMERIC | Sensación térmica mínima pronosticada |
+| `lluvia_acumulada_mm` | NUMERIC | Precipitación acumulada pronosticada |
+| `precipitacion_prob_pct` | INT | Probabilidad de precipitación en % |
+| `viento_max_kmh` | NUMERIC | Viento máximo pronosticado en km/h |
+| `weather_code` | INT | Código WMO del pronóstico |
+| `calculado_at` | TIMESTAMP | Timestamp de procesamiento (auditoría) |
+
+---
 
 ### Gold
-Diseño de un **Modelo Estrella (Star Schema)** enfocado en responder analíticamente dos preguntas de negocio esenciales: *¿Cuál es el comportamiento climático regional histórico?* y *¿Qué tan precisas son las predicciones meteorológicas locales?*
 
-- **Tablas del Modelo**:
-  - `gold.dim_provincia` (Dimensión): Datos geográficos estáticos de control (Latitud, longitud, nombre oficial).
-  - `gold.dim_tiempo` (Dimensión): Tabla de tiempo con granularidad de fecha para facilitar filtros temporales en el dashboard (Año, mes, día, día de la semana).
-  - `gold.fact_clima_diario` (Hechos): Métricas agregadas reales consolidadas al final del día (Temperatura máxima real, mínima real, promedio ponderado y lluvia acumulada total).
-  - `gold.fact_desvio_pronostico` (Hechos Avanzados): Tabla analítica que cruza la predicción guardada hace *X* días con la realidad medida finalmente en esa fecha, calculando el error absoluto medio en grados y la tasa de acierto/error en predicción de lluvias.
+Modelo orientado a responder dos preguntas de negocio: *¿Cuál es el comportamiento climático histórico por región?* y *¿Qué tan precisas son las predicciones de Open-Meteo?*. Sumamos uno diario para poder monitorear el correcto funcionamiento de forma horaria: lo pensamos para facilitar la evaluación.
 
-- **Dashboard (Streamlit)**:
-  El tablero de control consumirá exclusivamente las tablas de la capa `gold`, permitiendo:
-  1. **Comparativa Multiregional**: Análisis cruzado de tendencias de temperatura y lluvias entre provincias de Argentina.
-  2. **Análisis de Confiabilidad**: Un velocímetro/indicador de la precisión del pronóstico de Open-Meteo por región.
-  3. **Alertas de Anomalías**: Reporte histórico de superación de umbrales críticos (Olas de calor, heladas extremas o tormentas severas).
+**Dimensiones:**
 
-## Como levantar el stack
+| Tabla | Descripción |
+|---|---|
+| `gold.dim_provincia` | Datos geográficos estáticos de cada región (nombre, latitud, longitud) |
+| `gold.dim_tiempo` | Calendario con granularidad diaria (año, mes, día, día de semana, fin de semana) |
+| `gold.dim_weather_code` | Lookup table de los 24 códigos WMO con descripción en español, categoría e indicador de alerta |
+
+**Tablas de hechos:**
+
+| Tabla | Descripción |
+|---|---|
+| `gold.fact_clima_diario` | Temperatura promedio, máxima y mínima real, lluvia acumulada y categoría de confort térmico por provincia y día |
+| `gold.fact_desvio_pronostico` | Cruce entre pronóstico emitido y medición real: error absoluto en °C, acierto en predicción de lluvia |
+
+---
+
+### Dashboard (Streamlit)
+
+
+| Página | Descripción |
+|---|---|
+| **Condiciones Actuales** | KPIs de temperatura y condición climática por provincia con iconos WMO. Incluye evolución horaria del día en curso |
+| **Comparativa Regional** | Gráficos de temperatura promedio, rango térmico y lluvia acumulada entre provincias a lo largo del tiempo |
+| **Precisión del Pronóstico** | Error absoluto medio por provincia, scatter de pronosticado vs real, acierto en predicción de lluvia y evolución temporal del error |
+
+
+## Cómo levantar el stack
 
 ```bash
 cd TpFinal/grupos/G01/
 cp .env.example .env
-docker compose up -d --build
-# Esperar ~30s a que Airflow termine de inicializar
+docker compose up --build
+```
 
-**Accesos**:
-- Airflow UI: http://localhost:8080 (`admin` / `admin`)
-- Dashboard (Gold): http://localhost:8501
-- Postgres: `localhost:5432` (DB: weather_dwh, user/pass en .env)
+**Accesos:**
 
-**Apagar**:
+| Servicio | URL | Credenciales |
+|---|---|---|
+| Airflow UI | http://localhost:8080 | Sin login (SimpleAuthManager) |
+| Dashboard | http://localhost:8501 | Sin login |
+| Postgres | localhost:5432 | Usuario y contraseña definidos en `.env` |
+
+**Una vez levantado**, los DAGs arrancan solos, pusimos `is_paused_upon_creation=False`.
+**Apagar:**
+
 ```bash
-docker compose down            # apaga, conserva datos
-docker compose down -v         # apaga y BORRA volumenes (cuidado)
+docker compose down     
+docker compose down -v (si es necesario eliminar los volúmenes por algún problema de chaché con airflow, pasó al principio del proyecto)
 ```
