@@ -121,8 +121,10 @@ Modelo orientado a responder dos preguntas de negocio: *¿Cuál es el comportami
 ## Cómo levantar el stack
 
 ```bash
-cd TpFinal/grupos/G01/
-cp .env.example .env
+git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
+cd LCD-InfraCienciaDatos
+git checkout tp-final/G01
+cd TpFinal/grupos/G01
 docker compose up --build
 ```
 
@@ -139,5 +141,4 @@ docker compose up --build
 
 ```bash
 docker compose down     
-docker compose down -v (si es necesario eliminar los volúmenes por algún problema de chaché con airflow, pasó al principio del proyecto)
 ```
