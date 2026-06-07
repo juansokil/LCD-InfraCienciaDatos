@@ -3,19 +3,17 @@
 ## Integrantes
 
 - Elian Chokler (@chokler-elian)
-- Nicolás Borro (@nborro137)
+- Nicolas Borro (@nborro137)
 - Franco Santonastaso (@FranSanto7)
 - Hernan Paglione (@hernanpaglione)
 - Francisco Spensieri (@FranSpensieri)
 - Juan Ignacio Rodriguez (@RodJuani)
 
-
-
 ## API elegida
 
 - **Nombre**: Open Exchange Rates
-- **URL**: `https://openexchangerates.org/api`
-- **Descripcion**: API de tipos de cambio que devuelve un snapshot con cotizaciones de multiples monedas respecto de USD.
+- **URL**: `https://openexchangerates.org/api/latest.json`
+- **Descripcion**: API de tipos de cambio que devuelve un snapshot con cotizaciones de multiples monedas respecto de una moneda base. En este proyecto usaremos el endpoint `latest.json`, que devuelve un `timestamp` Unix, una moneda `base` y un objeto `rates` con pares `codigo_moneda -> cotizacion`.
 - **Auth**: API key gratuita
 - **Refresh**: cada hora
 
@@ -23,25 +21,47 @@
 
 ### Bronze
 
-Se guardara el JSON crudo de cada snapshot de cotizaciones con metadatos de auditoria:
+Se guardara el JSON crudo de cada llamada a la API con metadatos de auditoria. El payload real tiene esta forma:
+
+- `disclaimer`
+- `license`
+- `timestamp`
+- `base`
+- `rates` (objeto JSON anidado con una clave por moneda)
+
+En Bronze la idea es conservar una fila por llamada a la API, sin desanidar todavia el objeto `rates`.
+
+Columnas candidatas para Bronze:
 
 - `ingested_at`
 - `source`
-- `base_currency`
-- `api_timestamp`
-- `raw_payload`
+- `base`
+- `timestamp`
+- `raw_json`
+- `disclaimer`
+- `license`
 
-Ademas, se evaluará guardar una tabla bronze ya desanidada por moneda para facilitar la capa Silver.
+Bronze funcionara como fuente de verdad: preserva el snapshot original y permite rehacer Silver y Gold si cambia la logica de transformacion.
 
 ### Silver
 
-Se aplicarán transformaciones de limpieza y normalización:
+Se aplicaran transformaciones de limpieza y normalizacion:
 
 - parseo del JSON anidado de `rates`
 - una fila por moneda por snapshot
+- conversion de `timestamp` a `clear_ts` para leerlo mejor
 - tipado estricto de timestamp, codigo de moneda y valor
-- deduplicacion por `api_timestamp` + `currency_code`
-- validación basica de valores nulos o cotizaciones no positivas
+- deduplicacion por `timestamp` + `currency_code`
+- validacion basica de valores nulos o cotizaciones no positivas
+
+Propuesta de estructura Silver:
+
+- `clear_ts`
+- `timestamp`
+- `base`
+- `currency_code`
+- `exchange_rate`
+- `ingested_at`
 
 ### Gold
 
@@ -56,7 +76,8 @@ Posibles metricas / vistas Gold:
 - evolucion temporal por moneda
 - variacion porcentual entre snapshots
 - ranking de monedas con mayor suba o baja relativa
-- comparacion de monedas seleccionadas contra Peso Argentino
+- comparacion de monedas seleccionadas contra ARS
+- analisis de tipo de cambio cruzado derivado entre monedas seleccionadas
 
 La pregunta de negocio del dashboard sera:
 
@@ -81,17 +102,17 @@ La estructura del grupo seguira el esqueleto pedido en [TpFinal/README.md](../..
 
 ```text
 TpFinal/grupos/G02/
-├── README.md
-├── docker-compose.yml
-├── Dockerfile
-├── init.sql
-├── requirements.txt
-├── dags/
-│   ├── 01-bronze/
-│   ├── 02-silver/
-│   └── 03-gold/
-└── dashboard/
-    ├── app.py
-    ├── db.py
-    └── pages/
+|-- README.md
+|-- docker-compose.yml
+|-- Dockerfile
+|-- init.sql
+|-- requirements.txt
+|-- dags/
+|   |-- 01-bronze/
+|   |-- 02-silver/
+|   `-- 03-gold/
+`-- dashboard/
+    |-- app.py
+    |-- db.py
+    `-- pages/
 ```
