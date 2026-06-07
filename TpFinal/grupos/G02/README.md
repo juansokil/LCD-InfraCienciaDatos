@@ -7,6 +7,7 @@
 - Franco Santonastaso (@FranSanto7)
 - Hernan Paglione (@hernanpaglione)
 - Francisco Spensieri (@FranSpensieri)
+- Juan Ignacio Rodriguez (@RodJuani)
 
 
 
