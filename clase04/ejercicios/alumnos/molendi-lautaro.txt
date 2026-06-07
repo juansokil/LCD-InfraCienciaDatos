@@ -1,0 +1,18 @@
+Apellido: molendi
+Nombre: lautaro
+Motor: duckdb
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (37x3) h=544A3981
+  E2: OK (1x1) h=6B640DAB
+  E3: OK (1x2) h=D51E7DBD
+  E4: OK (1x1) h=3DB62A1B
+  E5: OK (91x4) h=251D7107
+  E6: OK (3x1) h=FCB944CF
+  E7: OK (77x3) h=5A7DEA0F
+  E8: OK (20x3) h=57B16931
+Ejercicios con resultado: 8 / 8
+Codigo: 49013225E665
+Fecha: 2026-06-07
