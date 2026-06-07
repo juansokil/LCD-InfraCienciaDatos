@@ -35,9 +35,9 @@ Columnas candidatas para Bronze:
 
 - `ingested_at`
 - `source`
-- `base_currency`
-- `api_timestamp_unix`
-- `raw_payload`
+- `base`
+- `timestamp`
+- `raw_json`
 - `disclaimer`
 - `license`
 
@@ -49,16 +49,16 @@ Se aplicaran transformaciones de limpieza y normalizacion:
 
 - parseo del JSON anidado de `rates`
 - una fila por moneda por snapshot
-- conversion de `api_timestamp_unix` a `snapshot_ts`
+- conversion de `timestamp` a `clear_ts` para leerlo mejor
 - tipado estricto de timestamp, codigo de moneda y valor
-- deduplicacion por `api_timestamp_unix` + `currency_code`
+- deduplicacion por `timestamp` + `currency_code`
 - validacion basica de valores nulos o cotizaciones no positivas
 
 Propuesta de estructura Silver:
 
-- `snapshot_ts`
-- `api_timestamp_unix`
-- `base_currency`
+- `clear_ts`
+- `timestamp`
+- `base`
 - `currency_code`
 - `exchange_rate`
 - `ingested_at`
