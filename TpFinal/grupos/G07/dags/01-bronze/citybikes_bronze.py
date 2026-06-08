@@ -49,12 +49,18 @@ def bronze_citybikes_pipeline():
         # EXTRACCIÓN
         # =================================================
 
-        url = "http://api.citybik.es/v2/networks/ecobici"
+        networks_url = "http://api.citybik.es/v2/networks"
+        ecobici_url = "http://api.citybik.es/v2/networks/ecobici"
 
         try:
-            response = requests.get(url, timeout=30)
-            response.raise_for_status()
-            raw_data = response.json()
+            networks_response = requests.get(networks_url, timeout=30)
+            networks_response.raise_for_status()
+            networks_raw_data = networks_response.json()
+
+            ecobici_response = requests.get(ecobici_url, timeout=30)
+            ecobici_response.raise_for_status()
+            ecobici_raw_data = ecobici_response.json()
+    
         except requests.RequestException as e:
             raise Exception(f"Error consultando API CityBikes: {e}")
 
@@ -62,20 +68,38 @@ def bronze_citybikes_pipeline():
         # LANDING
         # =================================================
 
-        filename = "ecobici_stations.json"
+        networks_filename = "networks.json"
+        ecobici_filename = "ecobici_stations.json"
 
-        landing_path = os.path.join(
+        networks_landing_path = os.path.join(
             LANDING,
-            filename
+            networks_filename
+        )
+
+        ecobici_landing_path = os.path.join(
+            LANDING,
+            ecobici_filename
         )
 
         with open(
-            landing_path,
+            networks_landing_path,
             "w",
             encoding="utf-8"
         ) as f:
             json.dump(
-                raw_data,
+                networks_raw_data,
+                f,
+                ensure_ascii=False,
+                indent=2
+            )
+
+        with open(
+            ecobici_landing_path,
+            "w",
+            encoding="utf-8"
+        ) as f:
+            json.dump(
+                ecobici_raw_data,
                 f,
                 ensure_ascii=False,
                 indent=2
@@ -85,30 +109,112 @@ def bronze_citybikes_pipeline():
         # NORMALIZACIÓN BRONZE
         # =================================================
 
-        stations = raw_data["network"]["stations"]
+        ingested_at = datetime.now(UTC).isoformat()
+        network = ecobici_raw_data["network"]
+        stations = network["stations"]
+        all_networks = networks_raw_data["networks"]
 
-        df = pd.DataFrame(stations)
+        def normalizar_columnas(dataframe):
+            dataframe.columns = [
+                c.strip().replace(" ", "_")
+                for c in dataframe.columns
+            ]
+            return dataframe
 
         # convertir estructuras complejas a JSON
-        for col in df.columns:
-            df[col] = df[col].apply(
-                lambda x: json.dumps(x)
-                if isinstance(x, (dict, list))
-                else x
-            )
-
-        df.columns = [
-            c.strip().replace(" ", "_")
-            for c in df.columns
-        ]
+        def convertir_estructuras_complejas(dataframe):
+            for col in dataframe.columns:
+                dataframe[col] = dataframe[col].apply(
+                    lambda x: json.dumps(x, ensure_ascii=False)
+                    if isinstance(x, (dict, list))
+                    else x
+                )
+            return dataframe
 
         # =================================================
         # METADATA
         # =================================================
 
-        df["ds"] = ds
-        df["source_url"] = url
-        df["ingested_at"] = datetime.now(UTC).isoformat()
+        # Tabla bronze.networks: snapshot de todas las redes disponibles.
+        networks_rows = []
+        for item in all_networks:
+            location = item.get("location", {}) or {}
+
+            networks_rows.append({
+                "network_id": item.get("id"),
+                "name": item.get("name"),
+                "city": location.get("city"),
+                "country": location.get("country"),
+                "latitude": location.get("latitude"),
+                "longitude": location.get("longitude"),
+                "href": item.get("href"),
+                "timestamp_ingesta": ingested_at,
+                "ds": ds,
+                "source_url": networks_url,
+                "ingested_at": ingested_at,
+            })
+
+        df_networks = pd.DataFrame(networks_rows)
+        df_networks = convertir_estructuras_complejas(df_networks)
+        df_networks = normalizar_columnas(df_networks)
+
+        # Tabla bronze.stations: snapshot de estaciones de EcoBici.
+        station_rows = []
+
+        for station in stations:
+            extra = station.get("extra", {}) or {}
+
+            station_rows.append({
+                "station_id": station.get("id"),
+                "network_id": network.get("id"),
+                "name": station.get("name"),
+                "latitude": station.get("latitude"),
+                "longitude": station.get("longitude"),
+                "free_bikes": station.get("free_bikes"),
+                "empty_slots": station.get("empty_slots"),
+                "timestamp_api": station.get("timestamp"),
+                "timestamp_ingesta": ingested_at,
+                "extra_json": json.dumps(extra, ensure_ascii=False),
+                "ds": ds,
+                "source_url": ecobici_url,
+                "ingested_at": ingested_at,
+            })
+
+        df_stations = pd.DataFrame(station_rows)
+        df_stations = convertir_estructuras_complejas(df_stations)
+        df_stations = normalizar_columnas(df_stations)
+
+        # Tabla bronze.snapshots: trazabilidad de cada request a la API.
+        df_snapshots = pd.DataFrame([
+            {
+                "snapshot_id": f"{ds}__networks",
+                "network_id": None,
+                "endpoint": "/v2/networks",
+                "status_code": networks_response.status_code,
+                "response_json": json.dumps(networks_raw_data, ensure_ascii=False),
+                "timestamp_ingesta": ingested_at,
+                "ds": ds,
+                "source_url": networks_url,
+                "ingested_at": ingested_at,
+            },
+            {
+                "snapshot_id": f"{ds}__ecobici",
+                "network_id": network.get("id"),
+                "endpoint": "/v2/networks/ecobici",
+                "status_code": ecobici_response.status_code,
+                "response_json": json.dumps(ecobici_raw_data, ensure_ascii=False),
+                "timestamp_ingesta": ingested_at,
+                "ds": ds,
+                "source_url": ecobici_url,
+                "ingested_at": ingested_at,
+            }
+        ])
+
+        tables = {
+            "networks": df_networks,
+            "stations": df_stations,
+            "snapshots": df_snapshots,
+        }
 
         # =================================================
         # POSTGRES
@@ -125,14 +231,9 @@ def bronze_citybikes_pipeline():
         engine = sqlalchemy.create_engine(DB_URI)
 
         schema_db = "bronze"
-        table = "ecobici_stations"
-
-        fq_table = f'"{schema_db}"."{table}"'
-
         conn = engine.raw_connection()
 
         try:
-
             cur = conn.cursor()
 
             # =============================================
@@ -143,85 +244,82 @@ def bronze_citybikes_pipeline():
                 f'CREATE SCHEMA IF NOT EXISTS "{schema_db}";'
             )
 
-            cur.execute(
-                f"""
-                CREATE TABLE IF NOT EXISTS {fq_table} (
-                    ds text,
-                    source_url text,
-                    ingested_at text
-                );
-                """
-            )
-
-            conn.commit()
+            for table, df in tables.items():
+                fq_table = f'"{schema_db}"."{table}"'
 
             # =============================================
             # EVOLUCIÓN DE ESQUEMA
             # =============================================
-
-            for col in df.columns:
-
-                if col in (
-                    "ds",
-                    "source_url",
-                    "ingested_at"
-                ):
-                    continue
-
                 cur.execute(
-                    f'''
-                    ALTER TABLE {fq_table}
-                    ADD COLUMN IF NOT EXISTS "{col}" text;
-                    '''
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {fq_table} (
+                        ds text,
+                        source_url text,
+                        ingested_at text
+                    );
+                    """
                 )
-
-            conn.commit()
+                conn.commit()
 
             # =============================================
             # IDEMPOTENCIA
             # =============================================
+                for col in df.columns:
+                    if col in (
+                        "ds",
+                        "source_url",
+                        "ingested_at"
+                    ):
+                        continue
 
-            cur.execute(
-                f"DELETE FROM {fq_table} WHERE ds = %s;",
-                (ds,)
-            )
-
-            conn.commit()
-
+                    cur.execute(
+                        f'''
+                        ALTER TABLE {fq_table}
+                        ADD COLUMN IF NOT EXISTS "{col}" text;
+                        '''
+                    )
+                
+                conn.commit()
             # =============================================
             # INSERT
             # =============================================
 
-            insert_cols = list(df.columns)
+                cur.execute(
+                    f"DELETE FROM {fq_table} WHERE ds = %s;",
+                    (ds,)
+                )
+                conn.commit()
+                
+                insert_cols = list(df.columns)
 
-            cols_sql = ", ".join(
-                [f'"{c}"' for c in insert_cols]
-            )
+                cols_sql = ", ".join(
+                    [f'"{c}"' for c in insert_cols]
+                )
 
-            placeholders = ", ".join(
-                ["%s"] * len(insert_cols)
-            )
+                placeholders = ", ".join(
+                    ["%s"] * len(insert_cols)
+                )
 
-            insert_sql = f"""
-                INSERT INTO {fq_table}
-                ({cols_sql})
-                VALUES ({placeholders});
-            """
+                insert_sql = f"""
+                    INSERT INTO {fq_table}
+                    ({cols_sql})
+                    VALUES ({placeholders});
+                """
 
-            df = df.where(
-                pd.notnull(df),
-                None
-            )
+                df = df.where(
+                    pd.notnull(df),
+                    None
+                )
 
-            rows = [
-                tuple(row)
-                for row in df[insert_cols].to_numpy()
-            ]
+                rows = [
+                    tuple(row)
+                    for row in df[insert_cols].to_numpy()
+                ]
 
-            cur.executemany(
-                insert_sql,
-                rows
-            )
+                cur.executemany(
+                    insert_sql,
+                    rows
+                )
 
             conn.commit()
 
@@ -243,22 +341,35 @@ def bronze_citybikes_pipeline():
                 "%H%M%S"
             )
 
-            final_filename = (
-                f"{timestamp_str}__{filename}"
+            networks_final_filename = (
+                f"{timestamp_str}__{networks_filename}"
+            )
+            ecobici_final_filename = (
+                f"{timestamp_str}__{ecobici_filename}"
             )
 
+
             shutil.move(
-                landing_path,
+                networks_landing_path,
                 os.path.join(
                     ds_dir,
-                    final_filename
+                    networks_final_filename
+                )
+            )
+            shutil.move(
+                ecobici_landing_path,
+                os.path.join(
+                    ds_dir,
+                    ecobici_final_filename
                 )
             )
 
+
             print(
                 f"Ingesta exitosa. "
-                f"Se guardaron {len(rows)} estaciones "
-                f"en bronze.ecobici_stations"
+                f"Se guardaron {len(df_networks)} redes, "
+                f"{len(df_stations)} estaciones y "
+                f"{len(df_snapshots)} snapshots en bronze."
             )
 
         finally:
