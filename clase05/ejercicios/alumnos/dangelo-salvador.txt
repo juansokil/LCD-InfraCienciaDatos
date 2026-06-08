@@ -1,0 +1,18 @@
+Apellido: Dangelo
+Nombre: Salvador
+Motor: duckdb
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=90772C28
+  G2: OK (10x2) h=0A129698
+  G3: OK (8x4) h=C23E6D7A
+  G4: OK (4x2) h=AEA757C5
+  G5: OK (23x2) h=590C1048
+  G6: OK (3x2) h=C40FBC5E
+  G7: OK (24x4) h=8553CC7E
+  G8: OK (8x3) h=37E7DC2E
+Ejercicios con resultado: 8 / 8
+Codigo: 604D3612957F
+Fecha: 2026-06-04

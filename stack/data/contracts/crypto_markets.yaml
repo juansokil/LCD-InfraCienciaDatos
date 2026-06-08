@@ -1,0 +1,106 @@
+# =====================================================================
+# Data Contract — dataset: crypto_markets
+# ---------------------------------------------------------------------
+# Manifiesto declarativo del dataset que ingestamos desde la API publica
+# de CoinGecko (/coins/markets). Es el equivalente a `ventas.yaml` pero
+# para un dataset REAL (no sintetico) y con origen API (no archivos).
+#
+# Diferencias clave vs `ventas.yaml`:
+#   - `format.type: api`              (no es csv/json/jsonl, es payload de API)
+#   - `evolution_policy.allow_new_columns: true`  (las APIs evolucionan,
+#                                                  agregan campos sin avisar)
+#   - Sin SCD por ahora: crypto se ingesta como snapshot historico via
+#     `ingested_at`, no como dimension cambiante.
+#
+# Este contrato lo consumen:
+#   - Bronze (clase03): valida que la API devolvio las columnas core.
+#     Si falta `current_price`, el DAG aborta antes de insertar (no escribe
+#     bronze.crypto_markets corrupto).
+#   - Silver (clase04, futuro): aplicara `quality_rules` (current_price >= 0,
+#     market_cap >= 0, market_cap_rank >= 1).
+# =====================================================================
+
+dataset: crypto_markets
+version: 1.0
+owner: data_engineering
+source: coingecko_api
+
+# ----- FORMA DEL ORIGEN -----------------------------------------------
+# A diferencia de `ventas` (archivos), crypto viene de una API HTTP.
+format:
+  type: api
+  encoding: "utf-8"
+
+delivery:
+  frequency: hourly
+  source_endpoint: "https://api.coingecko.com/api/v3/coins/markets"
+  source_params:
+    vs_currency: usd
+    order: market_cap_desc
+
+# ----- SCHEMA ESPERADO (columnas core) -------------------------------
+# CoinGecko devuelve 22+ columnas. Solo declaramos las que consideramos
+# CORE (las que el DAG productivo necesita para funcionar).
+# El resto entra automaticamente porque `evolution_policy.allow_new_columns: true`.
+schema:
+  - name: id
+    type: string
+    nullable: false
+    primary_key: true     # ej: "bitcoin", "ethereum", "solana"
+
+  - name: symbol
+    type: string
+    nullable: false       # ej: "btc", "eth", "sol"
+
+  - name: name
+    type: string
+    nullable: false       # ej: "Bitcoin", "Ethereum"
+
+  - name: current_price
+    type: numeric
+    nullable: false
+    rules:
+      ge: 0               # los precios no pueden ser negativos
+
+  - name: market_cap
+    type: numeric
+    nullable: true        # algunas criptos chicas pueden tener market_cap null
+    rules:
+      ge: 0
+
+  - name: market_cap_rank
+    type: integer
+    nullable: true
+    rules:
+      ge: 1               # el ranking arranca en 1
+
+  - name: last_updated
+    type: timestamp
+    nullable: false       # CoinGecko siempre devuelve cuando refresco el dato
+
+# ----- REGLAS DE CALIDAD ---------------------------------------------
+# Bronze NO valida estas reglas (son a nivel fila). Silver (clase04) las
+# aplica con Pydantic generado dinamicamente desde este YAML.
+quality_rules:
+  - rule: unique
+    column: id
+
+  - rule: not_null
+    column: id
+
+  - rule: not_null
+    column: current_price
+
+  - rule: positive
+    column: current_price
+
+# ----- EVOLUCION DE SCHEMA -------------------------------------------
+# DIFERENCIA CLAVE con ventas.yaml: las APIs externas evolucionan y agregan
+# campos sin previo aviso. Si rechazaramos cada vez que CoinGecko agrega una
+# columna nueva, el pipeline se romperia constantemente. Por eso permitimos
+# columnas nuevas (allow_new_columns: true) pero exigimos que no falten las
+# requeridas (allow_missing_columns: false).
+evolution_policy:
+  allow_new_columns: true
+  allow_missing_columns: false
+  allow_type_changes: false

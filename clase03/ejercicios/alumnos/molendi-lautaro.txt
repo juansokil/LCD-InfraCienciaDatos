@@ -1,0 +1,7 @@
+Apellido: molendi
+Nombre: lautaro
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: CE03AEE2F084
+Fecha: 2026-05-25

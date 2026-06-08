@@ -1,0 +1,7 @@
+Apellido: Vidoni
+Nombre: Camila
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 13063ECAABE0
+Fecha: 2026-05-21

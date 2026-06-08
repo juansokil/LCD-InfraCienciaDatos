@@ -1,0 +1,7 @@
+Apellido: Lust
+Nombre: Tobias
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: B54F3E9D9752
+Fecha: 2026-06-07
