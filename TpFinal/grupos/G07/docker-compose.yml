@@ -2,7 +2,7 @@ services:
   # Airflow Standalone - Orquestador UN-SAM
   airflow:
     build: .
-    container_name: airflow_standalone
+    container_name: airflow_standalone_g07
     env_file: .env
     environment:
       - AIRFLOW_UID=${AIRFLOW_UID:-0}
@@ -27,18 +27,7 @@ services:
         source: ./credentials
         target: /opt/airflow/credentials
     ports:
-      # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 8080 internamente.
-      # Solo cambia el puerto del HOST (la URL de la UI: http://localhost:PUERTO).
-      #
-      # OPCION A: host 8080 -> contenedor 8080
-      #   Si tenés Jenkins, Tomcat, otra app de dev o cualquier cosa usando 8080,
-      #   este mapeo va a fallar con "failed to set up container networking".
       - "8081:8080"
-      #
-      # OPCION B: host 8081 -> contenedor 8080
-      #   La UI de Airflow queda en http://localhost:8081 (cero cambios en notebooks
-      #   ni en DAGs — Airflow no se conecta a si mismo desde el host).
-      # - "8081:8080"
     depends_on:
       airflow_db:
         condition: service_healthy
@@ -54,7 +43,7 @@ services:
   # PostgreSQL - Metadatos de Airflow (Interno)
   airflow_db:
     image: postgres:17-alpine
-    container_name: airflow_db
+    container_name: airflow_db_g07
     environment:
       - POSTGRES_USER=${AF_DB_USER}
       - POSTGRES_PASSWORD=${AF_DB_PASS}
@@ -81,7 +70,7 @@ services:
       context: .
       dockerfile: Dockerfile.postgres
     image: data_warehouse:custom
-    container_name: data_warehouse
+    container_name: data_warehouse_g07
     environment:
       - POSTGRES_USER=${SOURCE_DB_USER}
       - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
@@ -91,18 +80,7 @@ services:
       # (sin bind mount → sin problemas de path en Windows)
       - data_warehouse_data:/var/lib/postgresql/data
     ports:
-      # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 5432 internamente.
-      # Solo cambia el puerto del HOST (lo que usás desde el notebook con localhost:PUERTO).
-      #
-      # OPCION A (default): host 5432 -> contenedor 5432
-      #   Si tenés un Postgres instalado en Windows o algun otro contenedor usando 5432,
-      #   este mapeo va a fallar con "failed to set up container networking".
       - "5433:5432"
-      #
-      # OPCION B: host 5433 -> contenedor 5432
-      #   Descomentá esta linea y comentá la de arriba si el puerto 5432 esta ocupado.
-      #   IMPORTANTE: si cambiás a 5433, también hay que actualizar las conexiones  que usen `localhost:5432`.
-      # - "5433:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}" ]
       interval: 10s
@@ -115,16 +93,13 @@ services:
   # Streamlit - Dashboard BI
   dashboard:
     build: ./dashboard
-    container_name: dashboard
+    container_name: dashboard_g07
     env_file: .env
     environment:
       - SOURCE_DB_HOST=data_warehouse
     ports:
       - "8501:8501"
     volumes:
-      # Las paginas se GENERAN desde clase05.ipynb (%%writefile) al host.
-      # Este bind-mount hace que el contenedor vea esa carpeta en vivo:
-      # generas/refrescas Streamlit y aparecen, sin rebuild de la imagen.
       - ./dashboard/pages:/app/pages
     depends_on:
       data_warehouse:
@@ -149,3 +124,4 @@ networks:
   de_stack_network:
     name: de_stack_network
     driver: bridge
+    external: true
