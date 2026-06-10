@@ -3,8 +3,7 @@ DAG Bronze: Ingesta de API CityBikes (Ecobici Buenos Aires)
 Pipeline: API -> Landing -> Metadata -> Idempotencia (ts) -> Bronze(Postgres) -> Processed
 """
 
-from airflow.decorators import dag, task
-from airflow.operators.python import get_current_context
+from airflow.sdk import dag, task, get_current_context
 from datetime import datetime, timedelta
 import os
 import shutil
@@ -51,6 +50,8 @@ def bronze_citybikes_pipeline():
 
         for d in [LANDING, PROCESSED]:
             os.makedirs(d, exist_ok=True)
+
+        os.makedirs('/opt/airflow/data/landing', exist_ok=True)
 
         # =================================================
         # EXTRACCIÓN
