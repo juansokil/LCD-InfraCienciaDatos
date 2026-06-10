@@ -1,0 +1,18 @@
+Apellido: quinteros
+Nombre: lautaro
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=8D5395BC
+  G2: OK (10x2) h=AB306873
+  G3: OK (8x4) h=D071C923
+  G4: OK (4x2) h=C1895248
+  G5: OK (23x2) h=F7E18A8A
+  G6: OK (3x2) h=3F892DEB
+  G7: OK (3x5) h=5F08FCB2
+  G8: OK (8x3) h=BE19C4D8
+Ejercicios con resultado: 8 / 8
+Codigo: 1DF6C0E0879C
+Fecha: 2026-06-10
