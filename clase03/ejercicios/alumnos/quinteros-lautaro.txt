@@ -1,0 +1,7 @@
+Apellido: quinteros
+Nombre: lautaro
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 25955EB7D4F5
+Fecha: 2026-05-27
