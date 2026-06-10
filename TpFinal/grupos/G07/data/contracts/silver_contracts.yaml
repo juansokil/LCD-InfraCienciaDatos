@@ -1,7 +1,7 @@
 version: "1.0"
 layer: silver
 source: bronze
-schedule: "@daily"
+schedule: "*/5 * * * * "
 
 tables:
 
@@ -56,7 +56,7 @@ tables:
       - name: ds
         type: text
         nullable: false
-        description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
+        description: Fecha en la que se obtuvo la información (YYYY-MM-DD) [vieja partición]
       - name: ingested_at
         type: text
         nullable: false
@@ -65,7 +65,7 @@ tables:
   - name: stations
     schema: silver
     description: >
-      Master station dimension. Una fila por estación por fecha (ds).
+      Master station dimension. Una fila por estación por timestamp (ts).
       Registra las estaciones y su ubicación (lat. y long.).
     primary_key: [station_id, ds]
     indexes:
@@ -115,14 +115,14 @@ tables:
   - name: station_availability
     schema: silver
     description: >
-      Fact table. Una fila por estación por fecha (ds).
+      Fact table. Una fila por estación por timestamp (ts).
       Por cada fila se precisa la cantidad de bicicletas disponibles (más los slots que están vacíos) para esa snpashot.
       También se registra la posición de la estación en cuestión (lat. y long.)
-    primary_key: [station_id, ds]
+    primary_key: [station_id, ts]
     indexes:
       - columns: [network_id]
       - columns: [timestamp_api]
-      - columns: [ds]
+      - columns: [ts]
     foreign_keys:
       - column: station_id
         references: silver.stations.station_id
@@ -130,10 +130,10 @@ tables:
         references: silver.networks.network_id
     idempotency:
       strategy: delete_insert
-      partition_col: ds
+      partition_col: ts
     source:
       table: bronze.stations
-      filter: "ds = '{{ ds }}'"
+      filter: "ts = '{{ ts }}'"
     columns:
       - name: station_id
         type: text
@@ -171,6 +171,10 @@ tables:
         type: text
         nullable: false
         description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
+      - name: ts
+        type: text
+        nullable: false
+        description: Partición
       - name: ingested_at
         type: text
         nullable: false
@@ -178,19 +182,19 @@ tables:
 
   - name: snapshots
     schema: silver
-    primary_key:  [snapshot_id, ds]
+    primary_key:  [snapshot_id, ts]
     indexes:
       - columns: [network_id]
-      - columns: [ds]
+      - columns: [ts]
     foreign_keys:
       - column: network_id
         references: silver.networks.network_id
     idempotency:
       strategy: delete_insert
-      partition_col: ds
+      partition_col: ts
     source:
       table: bronze.snapshots
-      filter: "ds = '{{ ds }}'"
+      filter: "ts = '{{ ts }}'"
     columns:
       - name: snapshot_id
         type: text
@@ -217,3 +221,7 @@ tables:
         type: text
         nullable: false
         description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
+      - name: ts
+        type: text
+        nullable: false
+        description: Partición
