@@ -16,14 +16,14 @@ import yaml
 import os
  
 # =====================================================
-# CONTRATO
+# CONTRATO RUTA
 # =====================================================
  
 # CONTRACT_PATH = "/opt/airflow/data/contracts/silver_contracts.yaml"
  
 CONTRACT_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__),
-    "..", "..",   # up to project/
+    "..", "..",
     "data",
     "contracts",
     "silver_contracts.yaml"
@@ -74,12 +74,14 @@ def build_delete_sql(schema, table, partition_col):
         WHERE "{partition_col}" = %s;
     """
  
-def build_insert_sql(schema, table, source_table, columns, ds):
+def build_insert_sql(schema, table, source_table, columns, ts, ds):
     col_names = ", ".join(f'"{c["name"]}"' for c in columns)
  
     select_parts = []
     for c in columns:
-        if c["name"] == "ds":
+        if c["name"] == "ts":
+            select_parts.append(f"'{ts}' AS ts")
+        elif c["name"] == "ds":
             select_parts.append(f"'{ds}' AS ds")
         elif "cast" in c:
             select_parts.append(f'{c["cast"]} AS "{c["name"]}"')
@@ -87,22 +89,31 @@ def build_insert_sql(schema, table, source_table, columns, ds):
             select_parts.append(f'"{c["name"]}"')
  
     select_clause = ",\n        ".join(select_parts)
-    source_filter = f"WHERE ds = '{ds}'"
+    source_filter = f"""
+        WHERE ts = (
+            SELECT MAX(ts)
+            FROM {source_table}
+            WHERE ts <= '{ts}'
+        )
+    """
  
     return f"""
         INSERT INTO "{schema}"."{table}"
         ({col_names})
         SELECT
-        {select_clause}
+            {select_clause}
         FROM {source_table}
         {source_filter};
     """
  
+
+ 
 @dag(
     dag_id="silver_citybikes",
     start_date=datetime(2024, 1, 1),
-    schedule="@daily",
+    schedule="*/5 * * * *",
     catchup=False,
+    is_paused_upon_creation=False,
     default_args={
         "retries": 3,
         "retry_delay": timedelta(minutes=5),
@@ -128,6 +139,7 @@ def silver_citybikes_pipeline():
     @task
     def procesar_tabla(table_def: dict):
         ctx = get_current_context()
+        ts = ctx["ts"]
         ds = ctx["ds"]
  
         schema   = table_def["schema"]
@@ -136,6 +148,8 @@ def silver_citybikes_pipeline():
         src      = table_def["source"]["table"]
         part_col = table_def["idempotency"]["partition_col"]
  
+        part_val = ds if part_col == "ds" else ts
+
         engine = get_engine()
         conn   = engine.raw_connection()
  
@@ -155,24 +169,40 @@ def silver_citybikes_pipeline():
                 cur.execute(build_add_column_sql(schema, table, col))
             conn.commit()
  
+            cur.execute(
+                f"SELECT MAX(ts) FROM {src} WHERE ts <= %s;",
+                (ts,)
+            )
+            latest_bronze_ts = cur.fetchone()[0]
+ 
+            if latest_bronze_ts is None:
+                print(
+                    f"silver.{table} SKIPPED — "
+                    f"no bronze data available for ts <= {ts}"
+                )
+                return
+
             # -----------------------------------------
             # IDEMPOTENCIA
             # -----------------------------------------
-            cur.execute(build_delete_sql(schema, table, part_col), (ds,))
+
+            cur.execute(build_delete_sql(schema, table, part_col), (part_val,))           
             conn.commit()
  
             # -----------------------------------------
             # INSERT
             # -----------------------------------------
-            insert_sql = build_insert_sql(schema, table, src, columns, ds)
+            insert_sql = build_insert_sql(schema, table, src, columns, ts, ds)
             cur.execute(insert_sql)
             conn.commit()
  
             row_count = cur.rowcount
             print(
                 f"silver.{table} OK — "
-                f"{row_count} rows inserted for ds={ds}"
+                f"{row_count} rows inserted for {part_col}={part_val} "
+                f"(from bronze ts={latest_bronze_ts})"
             )
+
  
         finally:
             conn.close()
