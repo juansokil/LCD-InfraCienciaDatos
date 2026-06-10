@@ -1,0 +1,219 @@
+version: "1.0"
+layer: silver
+source: bronze
+schedule: "@daily"
+
+tables:
+
+  - name: networks
+    schema: silver
+    description: >
+      Snapshot diaria de todas las redes de bicicletas que ofrece la API CityBikes.
+      Una fila por cada network por fecha (ds).
+    primary_key: [network_id, ds]
+    indexes:
+      - columns: [country]
+      - columns: [ds]
+    idempotency:
+      strategy: delete_insert
+      partition_col: ds
+    source:
+      table: bronze.networks
+      filter: "ds = '{{ ds }}'"
+    columns:
+      - name: network_id
+        type: text
+        nullable: false
+        description: Identificador unívoco de cada red de bicicletas
+      - name: name
+        type: text
+        nullable: false
+        description: Nombre de la red
+      - name: city
+        type: text
+        nullable: true
+        description: Ciudad en la que la red opera
+      - name: country
+        type: text
+        nullable: true
+        description: Código ISO del país
+      - name: latitude
+        type: float
+        nullable: true
+        description: Latitud del centroide de la red
+        source_col: latitude
+        cast: "CAST(latitude AS FLOAT)"
+      - name: longitude
+        type: float
+        nullable: true
+        description: Longitud del centroide de la red
+        source_col: longitude
+        cast: "CAST(longitude AS FLOAT)"
+      - name: href
+        type: text
+        nullable: true
+        description: Endpoint de la red
+      - name: ds
+        type: text
+        nullable: false
+        description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
+      - name: ingested_at
+        type: text
+        nullable: false
+        description: Timestamp de la ingesta
+
+  - name: stations
+    schema: silver
+    description: >
+      Master station dimension. Una fila por estación por fecha (ds).
+      Registra las estaciones y su ubicación (lat. y long.).
+    primary_key: [station_id, ds]
+    indexes:
+      - columns: [network_id]
+      - columns: [ds]
+    foreign_keys:
+      - column: network_id
+        references: silver.networks.network_id
+    idempotency:
+      strategy: delete_insert
+      partition_col: ds
+    source:
+      table: bronze.stations
+      filter: "ds = '{{ ds }}'"
+    columns:
+      - name: station_id
+        type: text
+        nullable: false
+        description: Identificador unívoco de cada estación de una red
+      - name: network_id
+        type: text
+        nullable: false
+        description: Clave foránea (enlace a silver.networks)
+      - name: name
+        type: text
+        nullable: false
+        description: Nombre de la estación
+      - name: latitude
+        type: float
+        nullable: true
+        description: Latitud de la estación
+        cast: "CAST(latitude AS FLOAT)"
+      - name: longitude
+        type: float
+        nullable: true
+        description: Longitud de la estación
+        cast: "CAST(longitude AS FLOAT)"
+      - name: ds
+        type: text
+        nullable: false
+        description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
+      - name: ingested_at
+        type: text
+        nullable: false
+        description: Timestamp de la ingesta
+
+  - name: station_availability
+    schema: silver
+    description: >
+      Fact table. Una fila por estación por fecha (ds).
+      Por cada fila se precisa la cantidad de bicicletas disponibles (más los slots que están vacíos) para esa snpashot.
+      También se registra la posición de la estación en cuestión (lat. y long.)
+    primary_key: [station_id, ds]
+    indexes:
+      - columns: [network_id]
+      - columns: [timestamp_api]
+      - columns: [ds]
+    foreign_keys:
+      - column: station_id
+        references: silver.stations.station_id
+      - column: network_id
+        references: silver.networks.network_id
+    idempotency:
+      strategy: delete_insert
+      partition_col: ds
+    source:
+      table: bronze.stations
+      filter: "ds = '{{ ds }}'"
+    columns:
+      - name: station_id
+        type: text
+        nullable: false
+        description: Clave foránea (enlace a silver.stations)
+      - name: network_id
+        type: text
+        nullable: false
+        description: Clave foránea denormalizada (facilita el join con la tabla silver.networks)
+      - name: latitude
+        type: float
+        nullable: true
+        description: Latitud de la estación
+        cast: "CAST(latitude AS FLOAT)"
+      - name: longitude
+        type: float
+        nullable: true
+        description: Longitud de la estación
+        cast: "CAST(longitude AS FLOAT)"
+      - name: free_bikes
+        type: int
+        nullable: true
+        description: Cantidad de bicicletas disponibles al momento del snapshot
+        cast: "CAST(free_bikes AS INT)"
+      - name: empty_slots
+        type: int
+        nullable: true
+        description: Cantidad de slots vacíos al momento del snapshot
+        cast: "CAST(empty_slots AS INT)"
+      - name: timestamp_api
+        type: text
+        nullable: true
+        description: Timestamp de la lectura de la API
+      - name: ds
+        type: text
+        nullable: false
+        description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
+      - name: ingested_at
+        type: text
+        nullable: false
+        description: Timestamp de la ingesta
+
+  - name: snapshots
+    schema: silver
+    primary_key:  [snapshot_id, ds]
+    indexes:
+      - columns: [network_id]
+      - columns: [ds]
+    foreign_keys:
+      - column: network_id
+        references: silver.networks.network_id
+    idempotency:
+      strategy: delete_insert
+      partition_col: ds
+    source:
+      table: bronze.snapshots
+      filter: "ds = '{{ ds }}'"
+    columns:
+      - name: snapshot_id
+        type: text
+        nullable: false
+        description: Identificador unívoco de cada snapshot
+      - name: network_id
+        type: text
+        nullable: true
+        description: Clave foránea (enlace a silver.networks) - Puede ser nula cuando no se consume alguna red en particular
+      - name: endpoint
+        type: text
+        nullable: false
+        description: Endpoint
+      - name: status_code
+        type: int
+        nullable: false
+        cast: "CAST(status_code AS INT)"
+        description: Código de respuesta HTTP
+      - name: ingested_at
+        type: text
+        nullable: false
+        description: Timestamp de la ingesta
+      - name: ds
+        type: text
+        nullable: false
+        description: Fecha en la que se obtuvo la información (YYYY-MM-DD)
