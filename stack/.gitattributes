@@ -1,8 +1,0 @@
-# Forzar LF para archivos que se ejecutan en Linux
-*.sh text eol=lf
-*.py text eol=lf
-*.sql text eol=lf
-Dockerfile text eol=lf
-.editorconfig text eol=lf
-.gitattributes text eol=lf
-.airflowignore text eol=lf
