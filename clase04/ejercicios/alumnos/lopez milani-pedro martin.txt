@@ -1,0 +1,18 @@
+Apellido: lopez milani
+Nombre: pedro martin
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (24x3) h=F9977B80
+  E2: OK (1x1) h=A252CACC
+  E3: OK (1x2) h=B3DD7528
+  E4: OK (1x1) h=C292C083
+  E5: OK (91x4) h=B8675A60
+  E6: OK (24x1) h=993DC2D7
+  E7: OK (77x4) h=36CCB595
+  E8: OK (20x3) h=41F90B3A
+Ejercicios con resultado: 8 / 8
+Codigo: F63B8A65FA54
+Fecha: 2026-05-29

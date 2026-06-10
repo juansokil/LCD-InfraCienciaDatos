@@ -1,0 +1,7 @@
+Apellido: Rodriguez
+Nombre: Juan Ignacio
+Motor: postgres
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: C9021C921AFB
+Fecha: 2026-05-26

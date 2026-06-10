@@ -1,0 +1,18 @@
+Apellido: Cárdenas
+Nombre: Gonzalo
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=8D5395BC
+  G2: OK (10x2) h=AB306873
+  G3: OK (8x4) h=450D2905
+  G4: OK (4x2) h=E3EE94EA
+  G5: OK (23x2) h=C2FAC6F3
+  G6: OK (3x2) h=544F7E5E
+  G7: OK (77x3) h=33C70313
+  G8: OK (8x2) h=F09AEE3F
+Ejercicios con resultado: 8 / 8
+Codigo: 3B1709418771
+Fecha: 2026-06-06
