@@ -11,7 +11,7 @@ x-airflow-common:
     - POSTGRES_USER=${POSTGRES_USER}
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     - POSTGRES_DB=${POSTGRES_DB}
-    - API_KEY_EXCHANGE=${API_KEY_EXCHANGE}
+    - API_KEY=${API_KEY}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./requirements.txt:/requirements.txt

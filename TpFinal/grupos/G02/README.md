@@ -31,15 +31,20 @@ Se guardara el JSON crudo de cada llamada a la API con metadatos de auditoria. E
 
 En Bronze la idea es conservar una fila por llamada a la API, sin desanidar todavia el objeto `rates`.
 
-Columnas candidatas para Bronze:
+El DAG `01_bronze_exchange_rates` corre cada hora, consume `latest.json` y guarda una fila por snapshot real. Para evitar duplicados, calcula un `payload_hash` del JSON canonicamente serializado y hace `ON CONFLICT DO NOTHING`.
 
+Estructura actual de `bronze.exchange_rates_raw`:
+
+- `id`
 - `ingested_at`
 - `source`
-- `base`
-- `timestamp`
+- `base_currency`
+- `api_timestamp`
 - `raw_json`
+- `rates`
 - `disclaimer`
 - `license`
+- `payload_hash`
 
 Bronze funcionara como fuente de verdad: preserva el snapshot original y permite rehacer Silver y Gold si cambia la logica de transformacion.
 
@@ -51,17 +56,24 @@ Se aplicaran transformaciones de limpieza y normalizacion:
 - una fila por moneda por snapshot
 - conversion de `timestamp` a `clear_ts` para leerlo mejor
 - tipado estricto de timestamp, codigo de moneda y valor
-- deduplicacion por `timestamp` + `currency_code`
+- normalizacion de `base_currency` y `currency_code` con trim + uppercase
+- deduplicacion por `api_timestamp` + `currency_code`
 - validacion basica de valores nulos o cotizaciones no positivas
+- trazabilidad hacia Bronze mediante el id de la fila fuente y el hash del payload
 
-Propuesta de estructura Silver:
+Estructura actual de `silver.exchange_rates`:
 
+- `id`
 - `clear_ts`
-- `timestamp`
-- `base`
+- `api_timestamp`
+- `base_currency`
 - `currency_code`
 - `exchange_rate`
 - `ingested_at`
+- `bronze_raw_id`
+- `source_payload_hash`
+
+El DAG `02_silver_exchange_rates` desanida `rates` con `jsonb_each_text`, inserta una fila por moneda y usa `UNIQUE (api_timestamp, currency_code)` para evitar duplicados.
 
 ### Gold
 
@@ -87,9 +99,10 @@ La pregunta de negocio del dashboard sera:
 
 ```bash
 cd TpFinal/grupos/G02/
-cp .env.example .env
 docker compose up -d --build
 ```
+
+El proyecto incluye un `.env` versionado para que el stack pueda levantarse directamente al clonar el repo.
 
 **Accesos esperados**:
 - Airflow UI: `http://localhost:8080`
@@ -103,16 +116,16 @@ La estructura del grupo seguira el esqueleto pedido en [TpFinal/README.md](../..
 ```text
 TpFinal/grupos/G02/
 |-- README.md
+|-- .env
 |-- docker-compose.yml
-|-- Dockerfile
 |-- init.sql
 |-- requirements.txt
 |-- dags/
 |   |-- 01-bronze/
+|   |   `-- dag_exchange_bronze.py
 |   |-- 02-silver/
-|   `-- 03-gold/
+|   |   `-- dag_exchange_silver.py
 `-- dashboard/
+    |-- Dockerfile
     |-- app.py
-    |-- db.py
-    `-- pages/
 ```
