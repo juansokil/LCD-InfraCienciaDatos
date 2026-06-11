@@ -1,0 +1,18 @@
+Apellido: Di Lacio
+Nombre: Lautaro
+Motor: duckdb
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=282D158E
+  G2: OK (10x2) h=025577D7
+  G3: OK (8x4) h=0F029821
+  G4: OK (4x2) h=D42851AE
+  G5: OK (23x2) h=7C85A67F
+  G6: OK (3x2) h=EA41EE02
+  G7: OK (24x4) h=3863A071
+  G8: OK (8x3) h=19444901
+Ejercicios con resultado: 8 / 8
+Codigo: 6B299241887D
+Fecha: 2026-06-11
