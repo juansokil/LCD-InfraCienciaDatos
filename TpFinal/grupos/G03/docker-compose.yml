@@ -46,6 +46,7 @@ services:
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@airflow_db/airflow
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-postgres pandas
     ports:
       - "8081:8080"  # Puerto 8081 para ver la web de Airflow en tu navegador
     volumes:
