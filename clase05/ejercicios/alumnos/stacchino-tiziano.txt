@@ -1,0 +1,18 @@
+Apellido: stacchino
+Nombre: tiziano
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=5401247A
+  G2: OK (10x2) h=04CE97AF
+  G3: OK (8x4) h=9C574CB3
+  G4: OK (4x2) h=261C848F
+  G5: OK (23x2) h=9D8D7647
+  G6: OK (3x2) h=3F892DEB
+  G7: OK (24x3) h=44E7A146
+  G8: OK (8x3) h=5829320C
+Ejercicios con resultado: 8 / 8
+Codigo: 99E5B946D4CF
+Fecha: 2026-06-10
