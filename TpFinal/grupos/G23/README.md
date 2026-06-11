@@ -3,7 +3,7 @@
 ## Integrantes
 
 - Facundo Pellicori (@FacundoPellicori)
-- Nombre Apellido (@usuario-github)
+- Marcos Benson (@marcosbenson)
 - Nombre Apellido (@usuario-github)
 
 ## API elegida
