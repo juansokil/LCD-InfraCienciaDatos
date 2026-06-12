@@ -11,6 +11,19 @@ tables:
       Snapshot diaria de todas las redes de bicicletas que ofrece la API CityBikes.
       Una fila por cada network por fecha (ds).
     primary_key: [network_id, ds]
+    quality_rules:
+      - name: latitude_range
+        condition: "latitude BETWEEN -90 AND 90"
+        quarantine_if: "latitude IS NOT NULL AND NOT (latitude BETWEEN -90 AND 90)"
+        description: "latitude debe estar entre -90 y 90"
+      - name: longitude_range
+        condition: "longitude BETWEEN -180 AND 180"
+        quarantine_if: "longitude IS NOT NULL AND NOT (longitude BETWEEN -180 AND 180)"
+        description: "longitude debe estar entre -180 y 180"
+      - name: name_not_null
+        condition: "name IS NOT NULL"
+        quarantine_if: "name IS NULL"
+        description: "name no puede ser nulo"
     indexes:
       - columns: [country]
       - columns: [ds]
@@ -61,11 +74,7 @@ tables:
         type: text
         nullable: false
         description: Timestamp de la ingesta
-        quality_rules:
-      - "latitude debe estar entre -90 y 90"
-      - "longitude debe estar entre -180 y 180"
-      - "network_id debe ser único por fecha (ds)"
-      - "name no puede ser nulo"
+
 
   - name: stations
     schema: silver
@@ -73,6 +82,15 @@ tables:
       Master station dimension. Una fila por estación por timestamp (ts).
       Registra las estaciones y su ubicación (lat. y long.).
     primary_key: [station_id, ds]
+    quality_rules:
+      - name: latitude_range
+        condition: "latitude BETWEEN -90 AND 90"
+        quarantine_if: "latitude IS NOT NULL AND NOT (latitude BETWEEN -90 AND 90)"
+        description: "latitude debe estar entre -90 y 90"
+      - name: longitude_range
+        condition: "longitude BETWEEN -180 AND 180"
+        quarantine_if: "longitude IS NOT NULL AND NOT (longitude BETWEEN -180 AND 180)"
+        description: "longitude debe estar entre -180 y 180"
     indexes:
       - columns: [network_id]
       - columns: [ds]
@@ -105,12 +123,12 @@ tables:
         type: float
         nullable: true
         description: Latitud de la estación
-        cast: "CAST(latitude AS FLOAT)"
+        cast: "CAST(src.latitude AS FLOAT)"
       - name: longitude
         type: float
         nullable: true
         description: Longitud de la estación
-        cast: "CAST(longitude AS FLOAT)"
+        cast: "CAST(src.longitude AS FLOAT)"
       - name: barrio
         type: text
         nullable: true
@@ -129,9 +147,7 @@ tables:
         type: text
         nullable: false
         description: Timestamp de la ingesta
-        quality_rules:
-      - "latitude debe estar entre -90 y 90"
-      - "longitude debe estar entre -180 y 180"
+
 
   - name: station_availability
     schema: silver
@@ -140,6 +156,15 @@ tables:
       Por cada fila se precisa la cantidad de bicicletas disponibles (más los slots que están vacíos) para esa snpashot.
       También se registra la posición de la estación en cuestión (lat. y long.)
     primary_key: [station_id, ts]
+    quality_rules:
+      - name: free_bikes_non_negative
+        condition: "free_bikes >= 0"
+        quarantine_if: "free_bikes IS NOT NULL AND free_bikes < 0"
+        description: "free_bikes no puede ser negativo"
+      - name: empty_slots_non_negative
+        condition: "empty_slots >= 0"
+        quarantine_if: "empty_slots IS NOT NULL AND empty_slots < 0"
+        description: "empty_slots no puede ser negativo"
     indexes:
       - columns: [network_id]
       - columns: [timestamp_api]
@@ -200,9 +225,7 @@ tables:
         type: text
         nullable: false
         description: Timestamp de la ingesta
-        quality_rules:
-      - "free_bikes no puede ser negativo"
-      - "empty_slots no puede ser negativo"
+
         
 
   - name: snapshots
