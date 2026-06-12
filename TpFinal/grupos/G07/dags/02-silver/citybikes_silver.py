@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import sqlalchemy
 import yaml
 import os
+import pandas as pd
  
 # =====================================================
 # CONTRATO RUTA
@@ -74,9 +75,9 @@ def build_delete_sql(schema, table, partition_col):
         WHERE "{partition_col}" = %s;
     """
  
-def build_insert_sql(schema, table, source_table, columns, ts, ds):
+def build_insert_sql(schema, table, source_table, columns, ts, ds, joins=None):
     col_names = ", ".join(f'"{c["name"]}"' for c in columns)
- 
+
     select_parts = []
     for c in columns:
         if c["name"] == "ts":
@@ -86,23 +87,26 @@ def build_insert_sql(schema, table, source_table, columns, ts, ds):
         elif "cast" in c:
             select_parts.append(f'{c["cast"]} AS "{c["name"]}"')
         else:
-            select_parts.append(f'"{c["name"]}"')
- 
+            select_parts.append(f'src."{c["name"]}"')
+
     select_clause = ",\n        ".join(select_parts)
+    join_clause = "\n    ".join(joins or [])
+
     source_filter = f"""
-        WHERE ts = (
+        WHERE src.ts = (
             SELECT MAX(ts)
             FROM {source_table}
             WHERE ts <= '{ts}'
         )
     """
- 
+
     return f"""
         INSERT INTO "{schema}"."{table}"
         ({col_names})
         SELECT
             {select_clause}
-        FROM {source_table}
+        FROM {source_table} AS src
+        {join_clause}
         {source_filter};
     """
  
@@ -137,6 +141,26 @@ def silver_citybikes_pipeline():
             engine.dispose()
  
     @task
+    def cargar_station_barrios():
+        engine = get_engine()
+        BARRIOS_PATH = os.path.abspath(os.path.join(
+            os.path.dirname(__file__),
+            "..", "..",
+            "data",
+            "seeds",
+            "station_barrios.csv"
+        ))
+        df = pd.read_csv(BARRIOS_PATH)
+        df.to_sql(
+            "station_barrios",
+            engine,
+            schema="silver",
+            if_exists="replace",
+            index=False
+        )
+        engine.dispose()
+
+    @task
     def procesar_tabla(table_def: dict):
         ctx = get_current_context()
         ts = ctx["ts"]
@@ -146,6 +170,7 @@ def silver_citybikes_pipeline():
         table    = table_def["name"]
         columns  = table_def["columns"]
         src      = table_def["source"]["table"]
+        joins = table_def["source"].get("joins", [])
         part_col = table_def["idempotency"]["partition_col"]
  
         part_val = ds if part_col == "ds" else ts
@@ -192,7 +217,7 @@ def silver_citybikes_pipeline():
             # -----------------------------------------
             # INSERT
             # -----------------------------------------
-            insert_sql = build_insert_sql(schema, table, src, columns, ts, ds)
+            insert_sql = build_insert_sql(schema, table, src, columns, ts, ds, joins)
             cur.execute(insert_sql)
             conn.commit()
  
@@ -214,12 +239,17 @@ def silver_citybikes_pipeline():
  
     contract  = load_contract()
     schema_op = crear_schema()
- 
+    barrios_op = cargar_station_barrios() 
+
     for table_def in contract["tables"]:
         task_op = procesar_tabla.override(
             task_id=f"procesar_{table_def['name']}"
         )(table_def)
-        schema_op >> task_op
+    
+        if table_def["name"] == "stations":
+            schema_op >> barrios_op >> task_op
+        else:
+            schema_op >> task_op
  
 silver_citybikes_pipeline()
  
