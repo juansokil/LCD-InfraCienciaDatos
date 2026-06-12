@@ -50,6 +50,8 @@ with DAG(
                 "latitude": ciudad["latitude"],
                 "longitude": ciudad["longitude"],
                 "current": variables_clima,
+                "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
+                "past_days": 90,
                 "timezone": "auto"
             }
             
