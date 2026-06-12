@@ -41,13 +41,10 @@ with DAG(
             params = {
                 "latitude": ciudad["latitude"],
                 "longitude": ciudad["longitude"],
-<<<<<<< HEAD
                 "current": variables_clima,
                 "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
-=======
                 "current": "temperature_2m,wind_speed_10m,wind_direction_10m,is_day,weather_code",
                 "hourly": "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code,is_day",
->>>>>>> 379dd4df9832a9b67b009b354eacd4961c324a57
                 "past_days": 90,
                 "timezone": "auto"
             }
