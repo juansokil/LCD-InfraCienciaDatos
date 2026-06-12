@@ -43,6 +43,7 @@ La capa Bronze almacena los datos crudos obtenidos de la API CityBikes. Se regis
 `<que transformaciones aplican: limpieza, validacion de tipos, deduplicacion, enriquecimiento>`
  
 - Validación de datos en Silver
+  
 Las reglas de calidad están definidas en el contrato de datos:
 [Ver contrato Silver](./data/contracts/silver_contracts.yaml)
 
