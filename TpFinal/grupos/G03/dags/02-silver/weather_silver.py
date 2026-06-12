@@ -5,39 +5,33 @@ from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 
-# Configuración básica del robot (DAG)
 default_args = {
     'owner': 'grupo03',
     'start_date': datetime(2026, 1, 1),
     'retries': 1,
 }
 
-# Declaramos el DAG de la capa Silver
 with DAG(
     dag_id='weather_silver_pipeline',
     default_args=default_args,
-    schedule_interval='@hourly',          # Se ejecuta cada una hora de forma automática
-    is_paused_upon_creation=False,        # Arranca encendido por defecto como pide el enunciado
+    schedule_interval='@hourly',
+    is_paused_upon_creation=False,
     catchup=False
 ) as dag:
 
     @task
     def orquestar_limpieza_silver():
-        """Lee de Bronze, limpia con Pandas usando la lógica del grupo y guarda en Silver"""
-        
-        # 1. Conectarse a la base de datos del grupo
         pg_hook = PostgresHook(postgres_conn_id='postgres_default')
         conn = pg_hook.get_conn()
         cursor = conn.cursor()
 
-        # 2. EXTRAER: Traer los datos crudos que guardó el equipo de Bronze
+        # Extraemos los últimos JSON cargados en Bronze
         query_select = "SELECT ciudad, raw_json FROM bronze.raw_weather_data;"
         cursor.execute(query_select)
         registros = cursor.fetchall()
 
-        # Si todavía no hay datos en Bronze, avisamos y frenamos para no romper nada
         if not registros:
-            print("La capa Bronze está vacía. No hay datos para limpiar todavía.")
+            print("La capa Bronze está vacía.")
             cursor.close()
             conn.close()
             return
@@ -46,31 +40,33 @@ with DAG(
         datos_actuales_acumulados = []
         datos_forecast_acumulados = []
 
-        # 3. TRANSFORMAR: Procesamiento con Pandas (Basado en el borrador de tus compañeros)
+        # Recorremos cada JSON depositado en Bronze
         for fila in registros:
             nombre_ciudad = fila[0]
-            json_crudo = fila[1] # El bloque de datos de la API
+            json_crudo = fila[1]
 
             try:
-                # --- Procesar Clima Actual ---
-                # Buscamos la sección del clima de hoy dentro del JSON
-                current = json_crudo.get("current", json_crudo.get("current_weather", {}))
-                if current:
-                    datos_actuales_acumulados.append({
-                        "ciudad": nombre_ciudad,
-                        "latitude": json_crudo.get("latitude"),
-                        "longitude": json_crudo.get("longitude"),
-                        "time": current.get("time"),
-                        "temperature": current.get("temperature_2m", current.get("temperature")),
-                        "windspeed": current.get("wind_speed_10m", current.get("windspeed", 0)),
-                        "winddirection": current.get("wind_direction_10m", current.get("winddirection", 0)),
-                        "is_day": current.get("is_day", 1),
-                        "weather_current": current.get("weather_code", current.get("weathercode", 0)),
-                        "timezone": json_crudo.get("timezone"),
-                        "fecha_procesamiento": fecha_proceso_actual
-                    })
+                # --- MODIFICADO: Procesar Datos Horarios (Historial + Presente) ---
+                hourly = json_crudo.get("hourly", {})
+                if hourly and "time" in hourly:
+                    # Mapeamos los arrays paralelos que devuelve Open-Meteo
+                    for i in range(len(hourly["time"])):
+                        datos_actuales_acumulados.append({
+                            "ciudad": nombre_ciudad,
+                            "latitude": json_crudo.get("latitude"),
+                            "longitude": json_crudo.get("longitude"),
+                            "time": hourly["time"][i],
+                            "temperature": hourly["temperature_2m"][i],
+                            "windspeed": hourly["wind_speed_10m"][i],
+                            "winddirection": hourly["wind_direction_10m"][i],
+                            "precipitation": hourly["precipitation"][i], -- <--- CAPTURA DE LLUVIA REAL
+                            "is_day": hourly["is_day"][i],
+                            "weather_current": hourly["weather_code"][i],
+                            "timezone": json_crudo.get("timezone"),
+                            "fecha_procesamiento": fecha_proceso_actual
+                        })
 
-                # --- Procesar Pronóstico Extendido (7 días) ---
+                # --- Procesar Pronóstico Extendido (7 días futuros) ---
                 daily = json_crudo.get("daily", {})
                 if daily and "time" in daily:
                     for i in range(len(daily["time"])):
@@ -85,44 +81,38 @@ with DAG(
                         })
 
             except Exception as e:
-                # Si una ciudad falla, este bloque evita que se caiga todo el pipeline (Robustez)
-                print(f"Advertencia: No se pudo limpiar el registro de {nombre_ciudad}. Motivo: {str(e)}")
+                print(f"Advertencia: Error procesando {nombre_ciudad}: {str(e)}")
                 continue
 
-        # 4. CALIDAD DE DATOS: Aplicamos las reglas de limpieza con Pandas
-        # Procesamos Clima Actual si hay datos
+        # --- CARGAR EN TABLA WEATHER_CURRENT (Con Upsert manual) ---
         if datos_actuales_acumulados:
             df_current = pd.DataFrame(datos_actuales_acumulados)
-            df_current.dropna(subset=["time", "temperature"], inplace=True) # Manejo de nulos
-            df_current.drop_duplicates(subset=["ciudad", "time"], inplace=True) # Eliminar duplicados
+            df_current.dropna(subset=["time", "temperature"], inplace=True)
+            df_current.drop_duplicates(subset=["ciudad", "time"], inplace=True)
             
-            # --- CARGAR EN TABLA WEATHER_CURRENT ---
             for _, fila in df_current.iterrows():
-                # Para cumplir con la estrategia de no duplicar datos (Estrategia Upsert/Incremental)
-                # Primero chequeamos si ese registro exacto ya existe en la tabla de Silver
                 cursor.execute("""
                     SELECT 1 FROM silver.weather_current WHERE ciudad = %s AND time = %s;
                 """, (fila["ciudad"], pd.to_datetime(fila["time"])))
                 
-                # Si no existe, lo guardamos
                 if not cursor.fetchone():
                     query_insert_current = """
-                        INSERT INTO silver.weather_current (ciudad, latitude, longitude, time, temperature, windspeed, winddirection, is_day, weather_current, timezone, fecha_procesamiento)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+                        INSERT INTO silver.weather_current (ciudad, latitude, longitude, time, temperature, windspeed, winddirection, precipitation, is_day, weather_current, timezone, fecha_procesamiento)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
                     """
                     cursor.execute(query_insert_current, (
                         fila["ciudad"], fila["latitude"], fila["longitude"], pd.to_datetime(fila["time"]),
                         float(fila["temperature"]), float(fila["windspeed"]), float(fila["winddirection"]),
-                        int(fila["is_day"]), int(fila["weather_current"]), fila["timezone"], fila["fecha_procesamiento"]
+                        float(fila["precipitation"]), int(fila["is_day"]), int(fila["weather_current"]), 
+                        fila["timezone"], fila["fecha_procesamiento"]
                     ))
 
-        # Procesamos Pronóstico si hay datos
+        # --- CARGAR EN TABLA WEATHER_FORECAST ---
         if datos_forecast_acumulados:
             df_forecast = pd.DataFrame(datos_forecast_acumulados)
             df_forecast.dropna(subset=["fecha_pronostico", "temp_min", "temp_max"], inplace=True)
             df_forecast.drop_duplicates(subset=["ciudad", "fecha_pronostico"], inplace=True)
 
-            # --- CARGAR EN TABLA WEATHER_FORECAST ---
             for _, fila in df_forecast.iterrows():
                 cursor.execute("""
                     SELECT 1 FROM silver.weather_forecast WHERE ciudad = %s AND fecha_pronostico = %s;
@@ -139,11 +129,9 @@ with DAG(
                         float(fila["prob_lluvia"]), int(fila["weather_forecast"]), fila["fecha_procesamiento"]
                     ))
 
-        # 5. Guardar los cambios definitivos en la base de datos
         conn.commit()
         cursor.close()
         conn.close()
-        print("¡Datos procesados y guardados en la capa Silver con éxito!")
+        print("¡Datos históricos y actuales procesados en Silver!")
 
-    # Activamos la tarea dentro de Airflow
     orquestar_limpieza_silver()
