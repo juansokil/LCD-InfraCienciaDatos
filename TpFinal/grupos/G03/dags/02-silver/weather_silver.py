@@ -59,7 +59,7 @@ with DAG(
                             "temperature": hourly["temperature_2m"][i],
                             "windspeed": hourly["wind_speed_10m"][i],
                             "winddirection": hourly["wind_direction_10m"][i],
-                            "precipitation": hourly["precipitation"][i], -- <--- CAPTURA DE LLUVIA REAL
+                            "precipitation": hourly["precipitation"][i], 
                             "is_day": hourly["is_day"][i],
                             "weather_current": hourly["weather_code"][i],
                             "timezone": json_crudo.get("timezone"),
