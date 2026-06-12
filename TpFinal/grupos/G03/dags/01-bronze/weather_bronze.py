@@ -38,6 +38,13 @@ with DAG(
 
         for ciudad in config["cities"]:
             # MODIFICADO: Estructuramos los parámetros para traer el bloque actual + 90 días de historial horario
+            variables_clima = [
+                   "temperature_2m",
+                   "wind_speed_10m",
+                   "wind_direction_10m",
+                   "is_day",
+                   "weather_code"
+            ]
             params = {
                 "latitude": ciudad["latitude"],
                 "longitude": ciudad["longitude"],
