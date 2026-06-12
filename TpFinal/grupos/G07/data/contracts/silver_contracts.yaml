@@ -61,6 +61,11 @@ tables:
         type: text
         nullable: false
         description: Timestamp de la ingesta
+        quality_rules:
+      - "latitude debe estar entre -90 y 90"
+      - "longitude debe estar entre -180 y 180"
+      - "network_id debe ser único por fecha (ds)"
+      - "name no puede ser nulo"
 
   - name: stations
     schema: silver
@@ -111,6 +116,9 @@ tables:
         type: text
         nullable: false
         description: Timestamp de la ingesta
+        quality_rules:
+      - "latitude debe estar entre -90 y 90"
+      - "longitude debe estar entre -180 y 180"
 
   - name: station_availability
     schema: silver
@@ -179,6 +187,10 @@ tables:
         type: text
         nullable: false
         description: Timestamp de la ingesta
+        quality_rules:
+      - "free_bikes no puede ser negativo"
+      - "empty_slots no puede ser negativo"
+        
 
   - name: snapshots
     schema: silver
