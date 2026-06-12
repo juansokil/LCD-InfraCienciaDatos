@@ -1,6 +1,5 @@
-# TP Final - G07 (Template del README)
+# TP Final - G07 
 
-> **Este es el template del README** que va al lado del codigo de su grupo.
 >
 > **Naming**: cada grupo va en `TpFinal/grupos/G<NN>/`, donde `G` = Grupo y `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). `G00` es el template, no es una entrega real.
 >
@@ -42,6 +41,13 @@ La capa Bronze almacena los datos crudos obtenidos de la API CityBikes. Se regis
 ### Silver
 
 `<que transformaciones aplican: limpieza, validacion de tipos, deduplicacion, enriquecimiento>`
+ 
+- Validación de datos en Silver
+Las reglas de calidad están definidas en el contrato de datos:
+[Ver contrato Silver](./data/contracts/silver_contracts.yaml)
+
+quality_rules agregadas: aseguran consistencia y calidad antes de pasar a la capa Gold.
+
 
 ### Gold
 
