@@ -5,6 +5,7 @@
 - Facundo Pellicori (@FacundoPellicori)
 - Marcos Benson (@marcosbenson)
 - Nombre Apellido (@usuario-github)
+- João Baptista Luis Kaniki (@YarkJl90)
 
 ## API elegida
 
