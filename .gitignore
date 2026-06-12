@@ -22,7 +22,7 @@ ENV/
 *.sqlite
 *.duckdb
 *.wal
-*.csv
+# *.csv
 *.xlsx
 *.parquet
 
