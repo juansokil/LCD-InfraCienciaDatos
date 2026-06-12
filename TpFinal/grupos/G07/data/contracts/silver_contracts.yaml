@@ -85,6 +85,9 @@ tables:
     source:
       table: bronze.stations
       filter: "ds = '{{ ds }}'"
+      joins:
+        - LEFT JOIN silver.station_barrios AS barrios
+          ON src.station_id = barrios.station_id
     columns:
       - name: station_id
         type: text
@@ -108,6 +111,16 @@ tables:
         nullable: true
         description: Longitud de la estación
         cast: "CAST(longitude AS FLOAT)"
+      - name: barrio
+        type: text
+        nullable: true
+        description: Barrio de la estación
+        cast: "barrios.barrio"
+      - name: comuna
+        type: integer
+        nullable: true
+        description: Comuna de la estación
+        cast: "CAST(barrios.comuna AS INTEGER)"
       - name: ds
         type: text
         nullable: false
