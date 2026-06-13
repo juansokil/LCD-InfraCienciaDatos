@@ -203,38 +203,61 @@ else:
     fig_ranking.update_layout(yaxis={"categoryorder": "total ascending"})
     st.plotly_chart(fig_ranking, use_container_width=True)
 
-
 # =====================================================
-# MAPA
+# MAPA DE DISPONIBILIDAD (SEMÁFORO)
 # =====================================================
 
 st.subheader("Mapa de disponibilidad actual")
 
-mapa = df_actual_filtrado.dropna(subset=["latitude", "longitude"])
+mapa = df_actual_filtrado.dropna(subset=["latitude", "longitude"]).copy()
 
 if mapa.empty:
     st.warning("No hay coordenadas disponibles para mostrar el mapa.")
 else:
+    # 1. CREAMOS LOS RANGOS (Buckets)
+    # Definimos los cortes de 0 a 100 con pasos de 20
+    bins = [0, 20, 40, 60, 80, 100]
+    labels = ["0-20% (Alta)", "20-40% (Media-Alta)", "40-60% (Media)", "60-80% (Media-Baja)", "80-100% (Crítica)"]
+    
+    mapa["rango_ocupacion"] = pd.cut(mapa["occupancy_pct_actual"], bins=bins, labels=labels, include_lowest=True)
+
+    # 2. DEFINIMOS EL MAPA DE COLORES (Semáforo)
+    # Verde fuerte -> Verde claro -> Amarillo -> Naranja -> Rojo
+    color_map = {
+        "0-20% (Alta)": "#228B22",        # ForestGreen
+        "20-40% (Media-Alta)": "#9ACD32", # YellowGreen
+        "40-60% (Media)": "#FFD700",      # Gold (Amarillo)
+        "60-80% (Media-Baja)": "#FF8C00", # DarkOrange
+        "80-100% (Crítica)": "#FF0000"    # Red
+    }
+
+    # 3. ARMAMOS EL MAPA DISCRETO
     fig_mapa = px.scatter_mapbox(
         mapa,
         lat="latitude",
         lon="longitude",
         size="free_bikes_actuales",
-        color="occupancy_pct_actual",
+        color="rango_ocupacion", # <-- Ahora usamos la categoría, no el número
+        color_discrete_map=color_map, # <-- Aplicamos nuestro semáforo
+        category_orders={"rango_ocupacion": labels}, # Ordenamos la leyenda
         hover_name="name",
         hover_data={
             "free_bikes_actuales": True,
-            "empty_slots_actuales": True,
-            "occupancy_pct_actual": True,
-            "estado_critico_actual": True,
+            "occupancy_pct_actual": ":.2f",
+            "rango_ocupacion": True,
             "latitude": False,
             "longitude": False,
         },
         zoom=11,
         height=600,
-        title="Estado actual de estaciones",
+        title="Disponibilidad por Rangos (Verde = Muchas Bicis | Rojo = Pocas Bicis)"
     )
-    fig_mapa.update_layout(mapbox_style="open-street-map")
+
+    fig_mapa.update_layout(
+        mapbox_style="open-street-map",
+        legend_title_text="Ocupación (%)"
+    )
+    
     st.plotly_chart(fig_mapa, use_container_width=True)
 
 
