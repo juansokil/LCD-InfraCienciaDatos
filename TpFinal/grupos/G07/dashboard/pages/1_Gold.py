@@ -209,37 +209,44 @@ else:
 
 st.subheader("Mapa de disponibilidad actual")
 
+# 1. Filtramos primero por coordenadas para tener la base limpia
 mapa = df_actual_filtrado.dropna(subset=["latitude", "longitude"]).copy()
 
 if mapa.empty:
     st.warning("No hay coordenadas disponibles para mostrar el mapa.")
 else:
-    # 1. CREAMOS LOS RANGOS (Buckets)
-    # Definimos los cortes de 0 a 100 con pasos de 20
+    # Convertimos los Decimal de Postgres a floats numéricos limpios
+    mapa["occupancy_pct_actual"] = pd.to_numeric(
+        mapa["occupancy_pct_actual"],
+        errors="coerce"
+    )
+    # Eliminamos las filas donde el porcentaje haya quedado nulo (None/Null)
+    mapa = mapa.dropna(subset=["occupancy_pct_actual"])
+
+    # 2. Ahora sí, pd.cut no va a fallar porque los datos son 100% numéricos y sin nulos
     bins = [0, 20, 40, 60, 80, 100]
     labels = ["0-20% (Alta)", "20-40% (Media-Alta)", "40-60% (Media)", "60-80% (Media-Baja)", "80-100% (Crítica)"]
     
     mapa["rango_ocupacion"] = pd.cut(mapa["occupancy_pct_actual"], bins=bins, labels=labels, include_lowest=True)
 
-    # 2. DEFINIMOS EL MAPA DE COLORES (Semáforo)
-    # Verde fuerte -> Verde claro -> Amarillo -> Naranja -> Rojo
+    # 3. Mapeo de colores para el semáforo
     color_map = {
-        "0-20% (Alta)": "#228B22",        # ForestGreen
-        "20-40% (Media-Alta)": "#9ACD32", # YellowGreen
-        "40-60% (Media)": "#FFD700",      # Gold (Amarillo)
-        "60-80% (Media-Baja)": "#FF8C00", # DarkOrange
-        "80-100% (Crítica)": "#FF0000"    # Red
+        "0-20% (Alta)": "#228B22",        # Verde fuerte
+        "20-40% (Media-Alta)": "#9ACD32", # Verde claro
+        "40-60% (Media)": "#FFD700",      # Amarillo
+        "60-80% (Media-Baja)": "#FF8C00", # Naranja
+        "80-100% (Crítica)": "#FF0000"    # Rojo
     }
 
-    # 3. ARMAMOS EL MAPA DISCRETO
+    # 4. Armado del mapa de Plotly
     fig_mapa = px.scatter_mapbox(
         mapa,
         lat="latitude",
         lon="longitude",
         size="free_bikes_actuales",
-        color="rango_ocupacion", # <-- Ahora usamos la categoría, no el número
-        color_discrete_map=color_map, # <-- Aplicamos nuestro semáforo
-        category_orders={"rango_ocupacion": labels}, # Ordenamos la leyenda
+        color="rango_ocupacion", 
+        color_discrete_map=color_map, 
+        category_orders={"rango_ocupacion": labels}, 
         hover_name="name",
         hover_data={
             "free_bikes_actuales": True,
