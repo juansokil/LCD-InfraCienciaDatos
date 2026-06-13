@@ -1,0 +1,192 @@
+tables:
+  - schema: gold
+    table: dim_time
+    description: Dimensión temporal para análisis y filtros del dashboard.
+    primary_key:
+      - time_id
+    columns:
+      - name: time_id
+        type: BIGINT
+        nullable: false
+        description: Identificador temporal con formato YYYYMMDDHH.
+      - name: fecha
+        type: DATE
+        nullable: false
+        description: Fecha del registro.
+      - name: hora
+        type: INTEGER
+        nullable: false
+        description: Hora del día (0-23).
+      - name: dia_semana
+        type: INTEGER
+        nullable: false
+        description: Día de la semana según PostgreSQL.
+      - name: nombre_dia
+        type: TEXT
+        nullable: false
+        description: Nombre del día de la semana.
+      - name: mes
+        type: INTEGER
+        nullable: false
+        description: Número de mes.
+      - name: nombre_mes
+        type: TEXT
+        nullable: false
+        description: Nombre del mes.
+      - name: anio
+        type: INTEGER
+        nullable: false
+        description: Año del registro.
+
+  - schema: gold
+    table: dim_zona
+    description: Dimensión geográfica para agrupar estaciones por zona.
+    primary_key:
+      - zona_id
+    columns:
+      - name: zona_id
+        type: TEXT
+        nullable: false
+        description: Identificador de zona construido a partir de comuna y barrio.
+      - name: barrio
+        type: TEXT
+        nullable: true
+        description: Barrio de la estación, proveniente de silver.stations.
+      - name: comuna
+        type: INTEGER
+        nullable: true
+        description: Comuna de la estación, proveniente de silver.stations.
+
+  - schema: gold
+    table: dim_estacion
+    description: Dimensión con información descriptiva de cada estación.
+    primary_key:
+      - station_id
+    columns:
+      - name: station_id
+        type: TEXT
+        nullable: false
+        description: Identificador único de la estación.
+      - name: network_id
+        type: TEXT
+        nullable: false
+        description: Identificador de la red a la que pertenece la estación.
+      - name: name
+        type: TEXT
+        nullable: false
+        description: Nombre de la estación.
+      - name: latitude
+        type: FLOAT
+        nullable: true
+        description: Latitud geográfica de la estación.
+      - name: longitude
+        type: FLOAT
+        nullable: true
+        description: Longitud geográfica de la estación.
+      - name: barrio
+        type: TEXT
+        nullable: true
+        description: Barrio de la estación.
+      - name: comuna
+        type: INTEGER
+        nullable: true
+        description: Comuna de la estación.
+      - name: zona_id
+        type: TEXT
+        nullable: false
+        description: Identificador de zona construido a partir de comuna y barrio.
+
+  - schema: gold
+    table: fact_ocupacion_por_hora
+    description: Métricas horarias de ocupación y disponibilidad por estación.
+    primary_key:
+      - time_id
+      - station_id
+    columns:
+      - name: time_id
+        type: BIGINT
+        nullable: false
+        description: Referencia temporal con formato YYYYMMDDHH.
+      - name: station_id
+        type: TEXT
+        nullable: false
+        description: Referencia a la estación.
+      - name: network_id
+        type: TEXT
+        nullable: false
+        description: Referencia a la red de bicicletas.
+      - name: zona_id
+        type: TEXT
+        nullable: false
+        description: Referencia a la zona.
+      - name: free_bikes_promedio
+        type: NUMERIC(10,2)
+        nullable: true
+        description: Promedio de bicicletas disponibles durante la hora.
+      - name: empty_slots_promedio
+        type: NUMERIC(10,2)
+        nullable: true
+        description: Promedio de espacios libres durante la hora.
+      - name: occupancy_pct_promedio
+        type: NUMERIC(10,2)
+        nullable: true
+        description: Porcentaje promedio de ocupación durante la hora.
+      - name: occupancy_pct_maxima
+        type: NUMERIC(10,2)
+        nullable: true
+        description: Mayor porcentaje de ocupación observado durante la hora.
+      - name: occupancy_pct_minima
+        type: NUMERIC(10,2)
+        nullable: true
+        description: Menor porcentaje de ocupación observado durante la hora.
+      - name: cantidad_observaciones
+        type: INTEGER
+        nullable: false
+        description: Cantidad de observaciones utilizadas para calcular los agregados.
+      - name: porcentaje_tiempo_critico
+        type: NUMERIC(10,4)
+        nullable: true
+        description: Proporción de observaciones de la hora en las que la estación estuvo en estado crítico.
+
+  - schema: gold
+    table: fact_estado_actual_estacion
+    description: Último estado disponible de cada estación.
+    primary_key:
+      - station_id
+    columns:
+      - name: station_id
+        type: TEXT
+        nullable: false
+        description: Referencia a la estación.
+      - name: network_id
+        type: TEXT
+        nullable: false
+        description: Referencia a la red de bicicletas.
+      - name: time_id
+        type: BIGINT
+        nullable: false
+        description: Momento del último snapshot con formato YYYYMMDDHH.
+      - name: ts
+        type: TEXT
+        nullable: false
+        description: Partición temporal del último snapshot disponible.
+      - name: timestamp_api
+        type: TEXT
+        nullable: true
+        description: Timestamp de lectura de la API.
+      - name: free_bikes_actuales
+        type: INTEGER
+        nullable: true
+        description: Bicicletas disponibles actualmente.
+      - name: empty_slots_actuales
+        type: INTEGER
+        nullable: true
+        description: Espacios libres actualmente.
+      - name: occupancy_pct_actual
+        type: NUMERIC(10,2)
+        nullable: true
+        description: Porcentaje actual de ocupación.
+      - name: estado_critico_actual
+        type: BOOLEAN
+        nullable: false
+        description: Indica si la estación se encuentra actualmente en estado crítico.
