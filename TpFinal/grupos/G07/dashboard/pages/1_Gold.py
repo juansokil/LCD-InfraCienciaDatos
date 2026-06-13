@@ -8,7 +8,7 @@ Muestra KPIs generales, estado actual de estaciones y patrón horario de ocupaci
 import plotly.express as px
 import streamlit as st
 from db import run_query
-
+import pandas as pd
 
 # =====================================================
 # CONFIGURACIÓN
