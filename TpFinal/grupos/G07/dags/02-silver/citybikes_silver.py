@@ -109,6 +109,88 @@ def build_insert_sql(schema, table, source_table, columns, ts, ds, joins=None):
         {join_clause}
         {source_filter};
     """
+
+# =====================================================
+# CONSTRAINTS FÍSICAS
+# =====================================================
+
+def constraint_name(prefix, table, columns):
+    cols = "_".join(columns)
+    return f"{prefix}_{table}_{cols}"
+
+
+def quote_columns(columns):
+    return ", ".join(f'"{c}"' for c in columns)
+
+
+def split_schema_table(table_ref):
+    schema, table = table_ref.split(".", 1)
+    return schema, table
+
+
+def build_add_pk_sql(schema, table, primary_key):
+    pk_name = constraint_name("pk", table, primary_key)
+    pk_cols = quote_columns(primary_key)
+
+    return f"""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = '{pk_name}'
+                  AND conrelid = '"{schema}"."{table}"'::regclass
+            ) THEN
+                ALTER TABLE "{schema}"."{table}"
+                ADD CONSTRAINT "{pk_name}"
+                PRIMARY KEY ({pk_cols});
+            END IF;
+        END $$;
+    """
+
+
+def build_add_fk_sql(schema, table, fk_def):
+    columns = fk_def.get("columns") or [fk_def["column"]]
+    references_table = fk_def.get("references_table")
+    references_columns = fk_def.get("references_columns")
+
+    if references_table is None:
+        # Compatibilidad con el formato viejo:
+        # references: silver.networks.network_id
+        ref_parts = fk_def["references"].split(".")
+        references_schema = ref_parts[0]
+        references_table_name = ref_parts[1]
+        references_columns = [ref_parts[2]]
+    else:
+        references_schema, references_table_name = split_schema_table(references_table)
+
+    fk_name = constraint_name("fk", table, columns)
+    fk_cols = quote_columns(columns)
+    ref_cols = quote_columns(references_columns)
+
+    return f"""
+        DO $$
+        BEGIN
+            IF NOT EXISTS (
+                SELECT 1
+                FROM pg_constraint
+                WHERE conname = '{fk_name}'
+                  AND conrelid = '"{schema}"."{table}"'::regclass
+            ) THEN
+                ALTER TABLE "{schema}"."{table}"
+                ADD CONSTRAINT "{fk_name}"
+                FOREIGN KEY ({fk_cols})
+                REFERENCES "{references_schema}"."{references_table_name}" ({ref_cols});
+            END IF;
+        END $$;
+    """
+
+
+def build_drop_constraint_sql(schema, table, constraint):
+    return f"""
+        ALTER TABLE IF EXISTS "{schema}"."{table}"
+        DROP CONSTRAINT IF EXISTS "{constraint}";
+    """
  
 
  
@@ -159,6 +241,75 @@ def silver_citybikes_pipeline():
             index=False
         )
         engine.dispose()
+
+    @task
+    def eliminar_constraints():
+        contract = load_contract()
+        engine = get_engine()
+        conn = engine.raw_connection()
+
+        try:
+            cur = conn.cursor()
+
+            # Primero se eliminan las FK, porque dependen de las PK.
+            for table_def in contract["tables"]:
+                schema = table_def["schema"]
+                table = table_def["name"]
+
+                for fk_def in table_def.get("foreign_keys", []):
+                    columns = fk_def.get("columns") or [fk_def["column"]]
+                    fk_name = constraint_name("fk", table, columns)
+                    cur.execute(build_drop_constraint_sql(schema, table, fk_name))
+
+            # Después se eliminan las PK.
+            for table_def in contract["tables"]:
+                schema = table_def["schema"]
+                table = table_def["name"]
+                primary_key = table_def.get("primary_key")
+
+                if primary_key:
+                    pk_name = constraint_name("pk", table, primary_key)
+                    cur.execute(build_drop_constraint_sql(schema, table, pk_name))
+
+            conn.commit()
+            print("Constraints físicas eliminadas OK")
+
+        finally:
+            conn.close()
+            engine.dispose()
+
+    @task
+    def aplicar_constraints():
+        contract = load_contract()
+        engine = get_engine()
+        conn = engine.raw_connection()
+
+        try:
+            cur = conn.cursor()
+
+            # Primero se crean las PK.
+            for table_def in contract["tables"]:
+                schema = table_def["schema"]
+                table = table_def["name"]
+                primary_key = table_def.get("primary_key")
+
+                if primary_key:
+                    cur.execute(build_add_pk_sql(schema, table, primary_key))
+
+            # Después se crean las FK.
+            for table_def in contract["tables"]:
+                schema = table_def["schema"]
+                table = table_def["name"]
+
+                for fk_def in table_def.get("foreign_keys", []):
+                    cur.execute(build_add_fk_sql(schema, table, fk_def))
+
+            conn.commit()
+            print("Constraints físicas aplicadas OK")
+
+        finally:
+            conn.close()
+            engine.dispose()
 
     @task
     def procesar_tabla(table_def: dict):
@@ -239,17 +390,27 @@ def silver_citybikes_pipeline():
  
     contract  = load_contract()
     schema_op = crear_schema()
-    barrios_op = cargar_station_barrios() 
+    drop_constraints_op = eliminar_constraints()
+    barrios_op = cargar_station_barrios()
+    apply_constraints_op = aplicar_constraints()
+
+    schema_op >> drop_constraints_op
+
+    processed_tasks = []
 
     for table_def in contract["tables"]:
         task_op = procesar_tabla.override(
             task_id=f"procesar_{table_def['name']}"
         )(table_def)
-    
+
         if table_def["name"] == "stations":
-            schema_op >> barrios_op >> task_op
+            drop_constraints_op >> barrios_op >> task_op
         else:
-            schema_op >> task_op
+            drop_constraints_op >> task_op
+
+        processed_tasks.append(task_op)
+
+    processed_tasks >> apply_constraints_op
  
 silver_citybikes_pipeline()
  
