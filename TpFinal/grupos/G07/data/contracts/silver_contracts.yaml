@@ -212,6 +212,18 @@ tables:
         nullable: true
         description: Cantidad de slots vacíos al momento del snapshot
         cast: "CAST(empty_slots AS INT)"
+      - name: occupancy_pct
+        type: float
+        nullable: true
+        description: Porcentaje de ocupación de la estación
+        cast: |
+          CASE
+            WHEN (CAST(src.free_bikes AS FLOAT) + CAST(src.empty_slots AS FLOAT)) > 0
+            THEN CAST(src.free_bikes AS FLOAT)
+                / (CAST(src.free_bikes AS FLOAT) + CAST(src.empty_slots AS FLOAT))
+                * 100
+            ELSE NULL
+          END
       - name: timestamp_api
         type: text
         nullable: true
