@@ -74,8 +74,21 @@ def build_delete_sql(schema, table, partition_col):
         DELETE FROM "{schema}"."{table}"
         WHERE "{partition_col}" = %s;
     """
+
+# =====================================================
+# SOURCE FILTER HELPER
+# =====================================================
+
+def build_source_filter_sql(source_table, ts):
+    return f"""
+        src.ts = (
+            SELECT MAX(ts)
+            FROM {source_table}
+            WHERE ts <= '{ts}'
+        )
+    """
  
-def build_insert_sql(schema, table, source_table, columns, ts, ds, joins=None):
+def build_insert_sql(schema, table, source_table, columns, ts, ds, joins=None, quality_rules=None):
     col_names = ", ".join(f'"{c["name"]}"' for c in columns)
 
     select_parts = []
@@ -91,14 +104,18 @@ def build_insert_sql(schema, table, source_table, columns, ts, ds, joins=None):
 
     select_clause = ",\n        ".join(select_parts)
     join_clause = "\n    ".join(joins or [])
+    source_filter = build_source_filter_sql(source_table, ts)
 
-    source_filter = f"""
-        WHERE src.ts = (
-            SELECT MAX(ts)
-            FROM {source_table}
-            WHERE ts <= '{ts}'
-        )
-    """
+    quarantine_conditions = [
+        rule["quarantine_if"]
+        for rule in (quality_rules or [])
+        if isinstance(rule, dict) and "quarantine_if" in rule
+    ]
+
+    quarantine_filter = ""
+    if quarantine_conditions:
+        invalid_condition = " OR ".join(f"({cond})" for cond in quarantine_conditions)
+        quarantine_filter = f"\n          AND NOT ({invalid_condition})"
 
     return f"""
         INSERT INTO "{schema}"."{table}"
@@ -107,7 +124,60 @@ def build_insert_sql(schema, table, source_table, columns, ts, ds, joins=None):
             {select_clause}
         FROM {source_table} AS src
         {join_clause}
-        {source_filter};
+        WHERE {source_filter}
+        {quarantine_filter};
+    """
+
+# =====================================================
+# CUARENTENA
+# =====================================================
+
+def build_create_quarantine_sql(schema):
+    return f"""
+        CREATE TABLE IF NOT EXISTS "{schema}"."quarantine" (
+            quarantine_id BIGSERIAL PRIMARY KEY,
+            target_table TEXT NOT NULL,
+            rule_name TEXT NOT NULL,
+            rule_description TEXT,
+            source_table TEXT NOT NULL,
+            ds TEXT,
+            ts TEXT,
+            quarantined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            record JSONB NOT NULL
+        );
+    """
+
+
+def build_delete_quarantine_sql(schema, table, partition_col):
+    return f"""
+        DELETE FROM "{schema}"."quarantine"
+        WHERE target_table = %s
+          AND {partition_col} = %s;
+    """
+
+
+def build_quarantine_insert_sql(schema, table, source_table, ts, ds, joins, rule):
+    join_clause = "\n    ".join(joins or [])
+    source_filter = build_source_filter_sql(source_table, ts)
+    rule_name = rule["name"]
+    rule_description = rule.get("description", "")
+    quarantine_if = rule["quarantine_if"]
+
+    return f"""
+        INSERT INTO "{schema}"."quarantine"
+        (target_table, rule_name, rule_description, source_table, ds, ts, record)
+        SELECT
+            '{table}' AS target_table,
+            '{rule_name}' AS rule_name,
+            '{rule_description}' AS rule_description,
+            '{source_table}' AS source_table,
+            '{ds}' AS ds,
+            '{ts}' AS ts,
+            to_jsonb(src) AS record
+        FROM {source_table} AS src
+        {join_clause}
+        WHERE {source_filter}
+          AND ({quarantine_if});
     """
 
 # =====================================================
@@ -323,6 +393,7 @@ def silver_citybikes_pipeline():
         src      = table_def["source"]["table"]
         joins = table_def["source"].get("joins", [])
         part_col = table_def["idempotency"]["partition_col"]
+        quality_rules = table_def.get("quality_rules", [])
  
         part_val = ds if part_col == "ds" else ts
 
@@ -344,6 +415,12 @@ def silver_citybikes_pipeline():
             for col in columns:
                 cur.execute(build_add_column_sql(schema, table, col))
             conn.commit()
+
+            # -----------------------------------------
+            # QUARANTINE TABLE
+            # -----------------------------------------
+            cur.execute(build_create_quarantine_sql(schema))
+            conn.commit()
  
             cur.execute(
                 f"SELECT MAX(ts) FROM {src} WHERE ts <= %s;",
@@ -362,13 +439,30 @@ def silver_citybikes_pipeline():
             # IDEMPOTENCIA
             # -----------------------------------------
 
-            cur.execute(build_delete_sql(schema, table, part_col), (part_val,))           
+            cur.execute(build_delete_sql(schema, table, part_col), (part_val,))
+            cur.execute(build_delete_quarantine_sql(schema, table, part_col), (table, part_val))
+            conn.commit()
+
+            # -----------------------------------------
+            # QUARANTINE
+            # -----------------------------------------
+            executable_rules = [
+                rule for rule in quality_rules
+                if isinstance(rule, dict) and "quarantine_if" in rule
+            ]
+
+            for rule in executable_rules:
+                quarantine_sql = build_quarantine_insert_sql(
+                    schema, table, src, ts, ds, joins, rule
+                )
+                cur.execute(quarantine_sql)
+
             conn.commit()
  
             # -----------------------------------------
             # INSERT
             # -----------------------------------------
-            insert_sql = build_insert_sql(schema, table, src, columns, ts, ds, joins)
+            insert_sql = build_insert_sql(schema, table, src, columns, ts, ds, joins, quality_rules)
             cur.execute(insert_sql)
             conn.commit()
  
