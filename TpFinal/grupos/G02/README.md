@@ -77,23 +77,31 @@ El DAG `02_silver_exchange_rates` desanida `rates` con `jsonb_each_text`, insert
 
 ### Gold
 
-Se construira un modelo orientado a analisis de negocio:
+Se construira un modelo orientado a analisis del peso argentino frente a todas las monedas disponibles en la API.
+
+Tablas Gold:
 
 - `gold.dim_currency`
 - `gold.dim_time`
-- `gold.fact_exchange_rate`
+- `gold.fact_ars_exchange_rates`
 
-Posibles metricas / vistas Gold:
+La API entrega cotizaciones contra USD. Para calcular el valor de cada moneda expresado en pesos argentinos se usa:
 
-- evolucion temporal por moneda
-- variacion porcentual entre snapshots
-- ranking de monedas con mayor suba o baja relativa
-- comparacion de monedas seleccionadas contra ARS
-- analisis de tipo de cambio cruzado derivado entre monedas seleccionadas
+```text
+ARS por moneda = cotizacion_ARS / cotizacion_moneda
+```
+
+Metricas principales:
+
+- tipo de cambio actual de ARS frente a cada moneda
+- pesos argentinos necesarios para comprar 1 unidad de cada moneda
+- unidades de cada moneda equivalentes a 1 peso argentino
+- variacion porcentual contra el snapshot anterior
+- ranking de monedas con mayor suba o baja relativa frente al ARS
 
 La pregunta de negocio del dashboard sera:
 
-**Como evolucionan distintas monedas a lo largo del tiempo y cuales muestran mayor variacion relativa entre snapshots?**
+**Cuantos pesos argentinos se necesitan para comprar 1 unidad de cada moneda y cuales muestran mayor variacion relativa entre snapshots?**
 
 ## Como levantar el stack
 
@@ -125,7 +133,11 @@ TpFinal/grupos/G02/
 |   |   `-- dag_exchange_bronze.py
 |   |-- 02-silver/
 |   |   `-- dag_exchange_silver.py
+|   `-- 03-gold/
+|       `-- dag_exchange_gold.py
 `-- dashboard/
     |-- Dockerfile
+    |-- requirements.txt
+    |-- db.py
     |-- app.py
 ```
