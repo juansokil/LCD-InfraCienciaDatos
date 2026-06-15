@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # BD
+  warehouse:
+    image: postgres:17-alpine
+    container_name: g03_warehouse
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: weather_data
+    ports:
+      - "5435:5432"  # Puerto 5435 para evitar conflictos locales
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Corre tu init.sql automáticamente al iniciar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d weather_data"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # BD Airflow
+  airflow_db:
+    image: postgres:15-alpine
+    container_name: g03_airflow_db
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow123
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Apache Airflow
+  airflow:
+    image: apache/airflow:2.8.1
+    container_name: g03_airflow
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow123@airflow_db/airflow
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-postgres pandas
+    ports:
+      - "8081:8080"  # Puerto 8081 para ver la web de Airflow en tu navegador
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./coordenadas.json:/opt/airflow/coordenadas.json  # Permite que tu DAG lea las coordenadas
+    user: "${AIRFLOW_UID:-50000}:0"
+    command: standalone
+
+  # Streamlit
+  dashboard:
+    image: python:3.11-slim
+    container_name: g03_dashboard
+    ports:
+      - "8502:8501"  # Puerto 8502 para la interfaz del Dashboard
+    volumes:
+      - ./dashboard:/app
+    working_dir: /app
+    command: sh -c "pip install streamlit psycopg2-binary && streamlit run app.py --server.port=8501 --server.address=0.0.0.0"
+    restart: always
