@@ -156,8 +156,8 @@ st.header("⏰ Variación horaria de disponibilidad")
 if not df_hora.empty:
 
     # Filtro semana / finde
-    fines_de_semana = ["Sábado", "Domingo"]
-    df_hora["tipo_dia"] = df_hora["nombre_dia"].apply(
+    fines_de_semana = [6, 7]
+    df_hora["tipo_dia"] = df_hora["dia_semana"].apply(
         lambda d: "Fin de semana" if d in fines_de_semana else "Semana"
     )
 
