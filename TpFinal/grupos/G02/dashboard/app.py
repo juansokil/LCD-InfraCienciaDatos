@@ -4,6 +4,10 @@ import streamlit as st
 
 from db import run_query, table_exists
 
+DEFAULT_CURRENCIES = ["USD", "EUR", "BRL", "CLP", "UYU", "GBP"]
+VARIATION_ALERT_THRESHOLD = 5.0
+DEFAULT_TOP_N = 15
+
 
 st.set_page_config(
     page_title="ARS Exchange Monitor",
@@ -15,7 +19,9 @@ st.title("Monitor de tipo de cambio ARS")
 st.caption("Cotizaciones Gold derivadas de Open Exchange Rates")
 
 if not table_exists("gold", "fact_ars_exchange_rates"):
-    st.warning("Todavia no existe `gold.fact_ars_exchange_rates`.")
+    st.warning("Todavía no existe la tabla Gold `gold.fact_ars_exchange_rates`. "
+    "Ejecutá el pipeline completo antes de abrir el dashboard."
+    )
     st.stop()
 
 
@@ -60,6 +66,24 @@ def load_history(currency_codes: list[str]) -> pd.DataFrame:
 
 latest = load_latest_snapshot()
 
+st.sidebar.header("Filtros")
+
+top_n = st.sidebar.slider(
+    "Cantidad de monedas en rankings",
+    min_value=5,
+    max_value=30,
+    value=DEFAULT_TOP_N,
+    step=5,
+    )
+
+alert_threshold = st.sidebar.slider(
+    "Umbral de alerta por variación (%)",
+    min_value=1.0,
+    max_value=20.0,
+    value=VARIATION_ALERT_THRESHOLD,
+    step=1.0,
+    )   
+
 if latest.empty:
     st.info("Gold existe, pero todavia no tiene filas cargadas.")
     st.stop()
@@ -90,7 +114,11 @@ left, right = st.columns([1, 1])
 
 with left:
     st.subheader("Monedas mas caras en ARS")
-    top_expensive = latest.head(15).sort_values("ars_per_currency")
+    top_expensive = (
+        latest
+        .sort_values("ars_per_currency", ascending=False)
+        .head(top_n)
+    )
     fig_expensive = px.bar(
         top_expensive,
         x="ars_per_currency",
@@ -112,7 +140,7 @@ with right:
     else:
         movers = variation.reindex(
             variation["variation_pct_vs_previous"].abs().sort_values(ascending=False).index
-        ).head(15)
+        ).head(top_n)
         movers = movers.sort_values("variation_pct_vs_previous")
         fig_movers = px.bar(
             movers,
@@ -130,6 +158,44 @@ with right:
         st.plotly_chart(fig_movers, use_container_width=True)
 
 st.divider()
+
+st.subheader("Alertas de variación")
+
+variation_alerts = (
+    latest
+    .dropna(subset=["variation_pct_vs_previous"])
+    .loc[lambda df: df["variation_pct_vs_previous"].abs() >= alert_threshold]
+    .sort_values("variation_pct_vs_previous", ascending=False)
+)
+
+if variation_alerts.empty:
+    st.success(
+        f"No hay monedas con variación mayor a ±{alert_threshold:.0f}% respecto del snapshot anterior."
+    )
+else:
+    st.warning(
+        f"Se detectaron {len(variation_alerts)} monedas con variación mayor a ±{alert_threshold:.0f}%."
+    )
+
+    st.dataframe(
+        variation_alerts[
+            [
+                "currency_code",
+                "ars_per_currency",
+                "variation_pct_vs_previous",
+                "rate_per_usd",
+            ]
+        ].rename(
+            columns={
+                "currency_code": "Moneda",
+                "ars_per_currency": "ARS por 1 moneda",
+                "variation_pct_vs_previous": "Variación %",
+                "rate_per_usd": "Moneda por 1 USD",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
 
 st.subheader("Explorar cotizaciones")
 
