@@ -1,143 +1,169 @@
-# TP Final - G02
+# TP Final - Grupo 02: ARS Exchange Monitor
+
 
 ## Integrantes
+* **Elian Chokler** (@chokler-elian)
+* **Nicolas Borro** (@nborro137)
+* **Franco Santonastaso** (@FranSanto7)
+* **Hernan Paglione** (@hernanpaglione)
+* **Francisco Spensieri** (@FranSpensieri)
+* **Juan Ignacio Rodriguez** (@RodJuani)
 
-- Elian Chokler (@chokler-elian)
-- Nicolas Borro (@nborro137)
-- Franco Santonastaso (@FranSanto7)
-- Hernan Paglione (@hernanpaglione)
-- Francisco Spensieri (@FranSpensieri)
-- Juan Ignacio Rodriguez (@RodJuani)
 
-## API elegida
+---
 
-- **Nombre**: Open Exchange Rates
-- **URL**: `https://openexchangerates.org/api/latest.json`
-- **Descripcion**: API de tipos de cambio que devuelve un snapshot con cotizaciones de multiples monedas respecto de una moneda base. En este proyecto usaremos el endpoint `latest.json`, que devuelve un `timestamp` Unix, una moneda `base` y un objeto `rates` con pares `codigo_moneda -> cotizacion`.
-- **Auth**: API key gratuita
-- **Refresh**: cada hora
 
-## Modelo de datos
+## API Elegida
 
-### Bronze
 
-Se guardara el JSON crudo de cada llamada a la API con metadatos de auditoria. El payload real tiene esta forma:
+| Propiedad | Detalle |
+| :--- | :--- |
+| **Nombre** | Open Exchange Rates |
+| **URL** | [https://openexchangerates.org/api/latest.json](https://openexchangerates.org/api/latest.json) |
+| **Autenticación** | API Key Gratuita |
+| **Frecuencia de actualización** | Cada 1 hora (@hourly) |
 
-- `disclaimer`
-- `license`
-- `timestamp`
-- `base`
-- `rates` (objeto JSON anidado con una clave por moneda)
 
-En Bronze la idea es conservar una fila por llamada a la API, sin desanidar todavia el objeto `rates`.
+> **Descripción:** API de tipos de cambio que devuelve un snapshot con cotizaciones de múltiples monedas respecto de una moneda base (USD). En este proyecto consumimos el endpoint latest.json, el cual provee un timestamp Unix, la moneda base y un objeto anidado rates con pares codigo_moneda -> cotizacion.
 
-El DAG `01_bronze_exchange_rates` corre cada hora, consume `latest.json` y guarda una fila por snapshot real. Para evitar duplicados, calcula un `payload_hash` del JSON canonicamente serializado y hace `ON CONFLICT DO NOTHING`.
 
-Estructura actual de `bronze.exchange_rates_raw`:
+---
 
-- `id`
-- `ingested_at`
-- `source`
-- `base_currency`
-- `api_timestamp`
-- `raw_json`
-- `rates`
-- `disclaimer`
-- `license`
-- `payload_hash`
 
-Bronze funcionara como fuente de verdad: preserva el snapshot original y permite rehacer Silver y Gold si cambia la logica de transformacion.
+## Modelo de Datos (Arquitectura Medallion)
 
-### Silver
 
-Se aplicaran transformaciones de limpieza y normalizacion:
+### Capa Bronze (Datos Crudos)
+Se encarga de la ingesta directa de la API conservando el JSON original sin desanidar junto a metadatos de auditoría para asegurar la trazabilidad como fuente de verdad. El DAG `01_bronze_exchange_rates` corre cada hora, calcula un `payload_hash` del JSON canónicamente serializado y aplica un mecanismo de `ON CONFLICT DO NOTHING` para evitar duplicaciones.
 
-- parseo del JSON anidado de `rates`
-- una fila por moneda por snapshot
-- conversion de `timestamp` a `clear_ts` para leerlo mejor
-- tipado estricto de timestamp, codigo de moneda y valor
-- normalizacion de `base_currency` y `currency_code` con trim + uppercase
-- deduplicacion por `api_timestamp` + `currency_code`
-- validacion basica de valores nulos o cotizaciones no positivas
-- trazabilidad hacia Bronze mediante el id de la fila fuente y el hash del payload
 
-Estructura actual de `silver.exchange_rates`:
-
-- `id`
-- `clear_ts`
-- `api_timestamp`
-- `base_currency`
-- `currency_code`
-- `exchange_rate`
-- `ingested_at`
-- `bronze_raw_id`
-- `source_payload_hash`
-
-El DAG `02_silver_exchange_rates` desanida `rates` con `jsonb_each_text`, inserta una fila por moneda y usa `UNIQUE (api_timestamp, currency_code)` para evitar duplicados.
-
-### Gold
-
-Se construira un modelo orientado a analisis del peso argentino frente a todas las monedas disponibles en la API.
-
-Tablas Gold:
-
-- `gold.dim_currency`
-- `gold.dim_time`
-- `gold.fact_ars_exchange_rates`
-
-La API entrega cotizaciones contra USD. Para calcular el valor de cada moneda expresado en pesos argentinos se usa:
-
-```text
-ARS por moneda = cotizacion_ARS / cotizacion_moneda
+**Estructura de la tabla bronze.exchange_rates_raw:**
+```sql
+- id (SERIAL PRIMARY KEY)
+- ingested_at (TIMESTAMP)
+- source (VARCHAR)
+- base_currency (VARCHAR)
+- api_timestamp (BIGINT)
+- raw_json (JSONB)
+- rates (JSONB)
+- disclaimer (TEXT)
+- license (TEXT)
+- payload_hash (VARCHAR UNIQUE)
 ```
 
-Metricas principales:
+### Capa Silver (Datos Limpios y Validados)
 
-- tipo de cambio actual de ARS frente a cada moneda
-- pesos argentinos necesarios para comprar 1 unidad de cada moneda
-- unidades de cada moneda equivalentes a 1 peso argentino
-- variacion porcentual contra el snapshot anterior
-- ranking de monedas con mayor suba o baja relativa frente al ARS
 
-La pregunta de negocio del dashboard sera:
+Aplica procesos de limpieza, tipado estricto y normalización de los datos de la capa anterior. El DAG `02_silver_exchange_rates` desanida el objeto *rates* utilizando la función nativa de Postgres *jsonb_each_text*, transformando la estructura a una fila por moneda por cada snapshot.
 
-**Cuantos pesos argentinos se necesitan para comprar 1 unidad de cada moneda y cuales muestran mayor variacion relativa entre snapshots?**
 
-## Como levantar el stack
+**Transformaciones aplicadas:**
+
+
+* **Parseo** del JSON anidado y estructuración tabular.
+* **Conversión** de timestamps crudos a formato legible (*clear_ts*).
+* **Normalización** de cadenas de texto (*base_currency* y *currency_code* con *TRIM* + *UPPER*).
+* **Validación relacional** de consistencia (filtros contra valores nulos o cotizaciones *exchange_rate* <= 0).
+* **Deduplicación estricta** aplicando un índice compuesto *UNIQUE* (*api_timestamp*, *currency_code*).
+
+
+**Estructura de la tabla silver.exchange_rates:**
+```sql
+- id (SERIAL PRIMARY KEY)
+- clear_ts (TIMESTAMP)
+- api_timestamp (BIGINT)
+- base_currency (VARCHAR)
+- currency_code (VARCHAR)
+- exchange_rate (NUMERIC)
+- ingested_at (TIMESTAMP)
+- bronze_raw_id (INTEGER)
+- source_payload_hash (VARCHAR)
+```
+
+### Capa Gold (Modelo Analítico de Negocio)
+
+
+Diseñada bajo un enfoque dimensional orientado a resolver la lógica del negocio. Nos enfocamos en el análisis del comportamiento del Peso Argentino (ARS) frente a todas las divisas globales disponibles. Dado que la API cotiza de forma nativa contra el USD, derivamos el tipo de cambio cruzado mediante la fórmula:
+
+
+$$\text{ARS por moneda} = \frac{\text{cotización ARS}}{\text{cotización moneda}}$$
+
+
+**Tablas del esquema Gold:**
+
+
+* **gold.dim_time**: Dimensión temporal detallando día de la semana, hora, mes y año.
+* **gold.dim_currency**: Dimensión de monedas para auditoría de vigencia de registros.
+* **gold.fact_ars_exchange_rates**: Tabla de hechos que calcula las variaciones porcentuales frente al snapshot previo y procesa las equivalencias cruzadas de valor.
+
+**Métricas principales visualizadas:**
+
+* Tipo de cambio actual de ARS frente a cada moneda.
+* Pesos argentinos necesarios para comprar 1 unidad de cada moneda.
+* Unidades de cada moneda equivalentes a 1 peso argentino.
+* Variación porcentual contra el snapshot anterior.
+* Ranking de monedas con mayor suba o baja relativa frente al ARS.
+
+----
+
+> **Pregunta de negocio del Dashboard:
+> ¿Cuántos pesos argentinos se necesitan para comprar 1 unidad de cada moneda y cuáles muestran mayor variación relativa entre snapshots de la API?**
+
+
+---
+
+
+## Cómo levantar el Stack
+
+
+El proyecto incluye configuradas todas las variables de entorno necesarias dentro del archivo `.env` versionado para posibilitar el despliegue directo inmediatamente después de clonar el repositorio.
+
 
 ```bash
+# 1. Navegá hasta la carpeta del grupo
 cd TpFinal/grupos/G02/
+
+# 2. Construí y levantá todo el ecosistema en segundo plano
 docker compose up -d --build
 ```
 
-El proyecto incluye un `.env` versionado para que el stack pueda levantarse directamente al clonar el repo.
 
-**Accesos esperados**:
-- Airflow UI: `http://localhost:8080`
-- Dashboard: `http://localhost:8501`
-- Postgres: `localhost:5432`
+### Accesos Esperados
 
-## Estructura del proyecto
 
-La estructura del grupo seguira el esqueleto pedido en [TpFinal/README.md](../../README.md):
+* **Airflow UI:** http://localhost:8080
+* **Streamlit Dashboard:** http://localhost:8501
+* **PostgreSQL Warehouse:** localhost:5432 (Database: exchange)
+
+
+---
+
+
+## Estructura del Proyecto
+
+
+La estructura sigue el esqueleto pedido en [TpFinal/README.md](../../README.md):
+
 
 ```text
 TpFinal/grupos/G02/
-|-- README.md
-|-- .env
-|-- docker-compose.yml
-|-- init.sql
-|-- requirements.txt
-|-- dags/
-|   |-- 01-bronze/
-|   |   `-- dag_exchange_bronze.py
-|   |-- 02-silver/
-|   |   `-- dag_exchange_silver.py
-|   `-- 03-gold/
-|       `-- dag_exchange_gold.py
-`-- dashboard/
-    |-- Dockerfile
-    |-- requirements.txt
-    |-- db.py
-    |-- app.py
-```
+├── README.md               # Documentación del proyecto
+├── .env                    # Variables de entorno pre-configuradas
+├── .env.example            # Plantilla de referencia de variables
+├── docker-compose.yml      # Orquestación de los 4 servicios del stack
+├── init.sql                # Inicialización automatizada de esquemas de la base
+├── requirements.txt        # Dependencias Python para el entorno de Airflow
+├── dags/
+│   ├── 01-bronze/
+│   │   └── dag_exchange_bronze.py  # DAG de Ingesta cruda
+│   ├── 02-silver/
+│   │   └── dag_exchange_silver.py  # DAG de Limpieza e idempotencia
+│   └── 03-gold/
+│       └── dag_exchange_gold.py    # DAG del Modelo Dimensional
+└── dashboard/
+    ├── Dockerfile          # Imagen optimizada para el frontend
+    ├── requirements.txt    # Librerías (Streamlit, Plotly, SQLAlchemy)
+    ├── db.py               # Módulo reutilizable de conexión y queries
+    ├── app.py              # Entrypoint formal y portada de bienvenida
+    └── pages/
+        └── 1_Gold.py       # Interfaz y lógicas de visualización de métricas
