@@ -68,10 +68,30 @@ services:
       --lastname admin \
       --role Admin \
       --email admin@email.com &&
-      airflow webserver &
-      airflow scheduler
+      airflow webserver
       "
 
+  airflow_scheduler:
+    image: apache/airflow:2.8.1
+    container_name: g03_airflow_scheduler
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+    environment:
+      AIRFLOW_CONN_POSTGRES_DEFAULT: "postgresql://admin:admin123@warehouse:5432/weather_data"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow123@airflow_db:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-postgres pandas"
+      AIRFLOW__WEBSERVER__SECRET_KEY: supersecretkeyfortpfinalg03
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./coordenadas.json:/opt/airflow/coordenadas.json
+    user: "${AIRFLOW_UID:-50000}:0"
+    command: scheduler
+    
   # Streamlit Dashboard
   dashboard:
     image: python:3.11-slim
