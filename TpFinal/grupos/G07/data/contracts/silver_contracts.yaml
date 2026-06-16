@@ -192,16 +192,6 @@ tables:
         type: text
         nullable: false
         description: Clave foránea denormalizada (facilita el join con la tabla silver.networks)
-      # - name: latitude
-      #   type: float
-      #   nullable: true
-      #   description: Latitud de la estación
-      #   cast: "CAST(latitude AS FLOAT)"
-      # - name: longitude
-      #   type: float
-      #   nullable: true
-      #   description: Longitud de la estación
-      #   cast: "CAST(longitude AS FLOAT)"
       - name: free_bikes
         type: int
         nullable: true
@@ -212,10 +202,10 @@ tables:
         nullable: true
         description: Cantidad de slots vacíos al momento del snapshot
         cast: "CAST(empty_slots AS INT)"
-      - name: occupancy_pct
+      - name: free_bikes_pct
         type: float
         nullable: true
-        description: Porcentaje de ocupación de la estación
+        description: Proporción de bicicletas disponibles sobre espacios totales
         cast: |
           CASE
             WHEN (CAST(src.free_bikes AS FLOAT) + CAST(src.empty_slots AS FLOAT)) > 0

@@ -38,11 +38,12 @@ CONTRACT_PATH = os.path.abspath(os.path.join(
     "gold_contracts.yaml"
 ))
 
-# Umbrales operativos para definir estaciones críticas.
-# - ocupación menor al 10%: estación casi vacía
-# - ocupación mayor al 90%: estación casi llena
-UMBRAL_OCUPACION_BAJA = 0.10
-UMBRAL_OCUPACION_ALTA = 0.90
+# Umbrales operativos para clasificar estaciones según proporción de bicicletas disponibles.
+# - menor a 40%: estación de devolución
+# - entre 40% y 60%: estación equilibrada
+# - mayor a 60%: estación de alquiler
+UMBRAL_DEVOLUCION = 40
+UMBRAL_ALQUILER = 60
 
 
 # =====================================================
@@ -278,11 +279,13 @@ def gold_citybikes():
             zona_id,
             free_bikes_promedio,
             empty_slots_promedio,
-            occupancy_pct_promedio,
-            occupancy_pct_maxima,
-            occupancy_pct_minima,
+            free_bikes_pct_promedio,
+            free_bikes_pct_maxima,
+            free_bikes_pct_minima,
             cantidad_observaciones,
-            porcentaje_tiempo_critico
+            porcentaje_tiempo_devolucion,
+            porcentaje_tiempo_equilibrada,
+            porcentaje_tiempo_alquiler
         )
         SELECT
             TO_CHAR(sa.ts::timestamp, 'YYYYMMDDHH24')::BIGINT AS time_id,
@@ -295,18 +298,32 @@ def gold_citybikes():
             ) AS zona_id,
             AVG(sa.free_bikes)::NUMERIC(10, 2) AS free_bikes_promedio,
             AVG(sa.empty_slots)::NUMERIC(10, 2) AS empty_slots_promedio,
-            AVG(sa.occupancy_pct)::NUMERIC(10, 2) AS occupancy_pct_promedio,
-            MAX(sa.occupancy_pct)::NUMERIC(10, 2) AS occupancy_pct_maxima,
-            MIN(sa.occupancy_pct)::NUMERIC(10, 2) AS occupancy_pct_minima,
+            AVG(sa.free_bikes_pct)::NUMERIC(10, 2) AS free_bikes_pct_promedio,
+            MAX(sa.free_bikes_pct)::NUMERIC(10, 2) AS free_bikes_pct_maxima,
+            MIN(sa.free_bikes_pct)::NUMERIC(10, 2) AS free_bikes_pct_minima,
             COUNT(*)::INTEGER AS cantidad_observaciones,
             AVG(
                 CASE
-                    WHEN sa.occupancy_pct < {UMBRAL_OCUPACION_BAJA * 100}
-                      OR sa.occupancy_pct > {UMBRAL_OCUPACION_ALTA * 100}
+                    WHEN sa.free_bikes_pct < {UMBRAL_DEVOLUCION}
                     THEN 1
                     ELSE 0
                 END
-            )::NUMERIC(10, 4) AS porcentaje_tiempo_critico
+            )::NUMERIC(10, 4) AS porcentaje_tiempo_devolucion,
+            AVG(
+                CASE
+                    WHEN sa.free_bikes_pct >= {UMBRAL_DEVOLUCION}
+                     AND sa.free_bikes_pct <= {UMBRAL_ALQUILER}
+                    THEN 1
+                    ELSE 0
+                END
+            )::NUMERIC(10, 4) AS porcentaje_tiempo_equilibrada,
+            AVG(
+                CASE
+                    WHEN sa.free_bikes_pct > {UMBRAL_ALQUILER}
+                    THEN 1
+                    ELSE 0
+                END
+            )::NUMERIC(10, 4) AS porcentaje_tiempo_alquiler
         FROM silver.station_availability sa
         LEFT JOIN silver.stations st
             ON sa.station_id = st.station_id
@@ -314,7 +331,7 @@ def gold_citybikes():
         WHERE sa.ts IS NOT NULL
           AND sa.station_id IS NOT NULL
           AND sa.network_id IS NOT NULL
-          AND sa.occupancy_pct IS NOT NULL
+          AND sa.free_bikes_pct IS NOT NULL
         GROUP BY
             TO_CHAR(sa.ts::timestamp, 'YYYYMMDDHH24')::BIGINT,
             sa.station_id,
@@ -350,7 +367,8 @@ def gold_citybikes():
             timestamp_api,
             free_bikes_actuales,
             empty_slots_actuales,
-            occupancy_pct_actual,
+            free_bikes_pct_actual,
+            tipo_estacion_actual,
             estado_critico_actual
         )
         WITH ultimo_snapshot AS (
@@ -373,10 +391,17 @@ def gold_citybikes():
             timestamp_api,
             free_bikes AS free_bikes_actuales,
             empty_slots AS empty_slots_actuales,
-            occupancy_pct AS occupancy_pct_actual,
+            free_bikes_pct AS free_bikes_pct_actual,
             CASE
-                WHEN occupancy_pct < {UMBRAL_OCUPACION_BAJA * 100}
-                  OR occupancy_pct > {UMBRAL_OCUPACION_ALTA * 100}
+                WHEN free_bikes_pct < {UMBRAL_DEVOLUCION}
+                THEN 'Estación de devolución'
+                WHEN free_bikes_pct <= {UMBRAL_ALQUILER}
+                THEN 'Estación equilibrada'
+                ELSE 'Estación de alquiler'
+            END AS tipo_estacion_actual,
+            CASE
+                WHEN free_bikes_pct < {UMBRAL_DEVOLUCION}
+                  OR free_bikes_pct > {UMBRAL_ALQUILER}
                 THEN TRUE
                 ELSE FALSE
             END AS estado_critico_actual

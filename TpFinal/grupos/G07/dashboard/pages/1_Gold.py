@@ -15,6 +15,16 @@ st.set_page_config(
 st.title("🥇 EcoBici Analytics — Dashboard Operativo")
 st.subheader("Indicadores analíticos para la gestión del sistema EcoBici CABA")
 
+st.markdown("""
+**El presente dashboard permite observar:** 
+- Disponibilidad de bicis en tiempo real
+- Slots disponibles para devolución en tiempo real 
+- Variación horaria de la disponibilidad, según el tipo de día o según la zona
+- Promedio de bicis disponibles según la zona
+- Relación entre bicis disponibles y slots disponibles
+- Estaciones que suelen tener más bicis disponibles o más slots disponibles
+""")
+
 # ──────────────────────────────────────────────────────────────
 # Conexión
 # ──────────────────────────────────────────────────────────────
@@ -47,7 +57,8 @@ df_estado = run_query("""
         f.timestamp_api,
         f.free_bikes_actuales,
         f.empty_slots_actuales,
-        f.occupancy_pct_actual,
+        f.free_bikes_pct_actual,
+        f.tipo_estacion_actual,
         f.estado_critico_actual,
         d.name      AS station_name,
         d.latitude,
@@ -59,7 +70,7 @@ df_estado = run_query("""
     LEFT JOIN gold.dim_estacion d USING (station_id)
 """)
 
-# Ocupación por hora + hora real desde dim_time
+# Disponibilidad por hora y zona + hora real desde dim_time
 df_hora = run_query("""
     SELECT
         f.time_id,
@@ -67,31 +78,36 @@ df_hora = run_query("""
         t.dia_semana,
         t.nombre_dia,
         f.zona_id,
+        e.comuna,
+        e.barrio,
         f.station_id,
         f.free_bikes_promedio,
         f.empty_slots_promedio,
-        f.occupancy_pct_promedio,
-        f.porcentaje_tiempo_critico
+        f.free_bikes_pct_promedio,
+        f.porcentaje_tiempo_devolucion,
+        f.porcentaje_tiempo_equilibrada,
+        f.porcentaje_tiempo_alquiler
     FROM gold.fact_ocupacion_por_hora f
     LEFT JOIN gold.dim_time t USING (time_id)
+    LEFT JOIN gold.dim_estacion e USING (station_id)
     WHERE t.hora IS NOT NULL
 """)
 
-# Top 10 estaciones más críticas (históricamente)
-df_top10 = run_query("""
+# Perfil funcional histórico de estaciones
+df_perfil_estaciones = run_query("""
     SELECT
-        e.name      AS station_name,
+        e.name AS station_name,
         e.barrio,
-        e.zona_id,
-        ROUND(AVG(f.porcentaje_tiempo_critico)::numeric, 1)  AS pct_critico_prom,
-        ROUND(AVG(f.free_bikes_promedio)::numeric, 1)        AS avg_free_bikes,
-        ROUND(AVG(f.occupancy_pct_promedio)::numeric, 1)     AS avg_ocupacion_pct
+        e.comuna,
+        ROUND((AVG(f.porcentaje_tiempo_devolucion) * 100)::numeric, 1)  AS pct_tiempo_devolucion,
+        ROUND((AVG(f.porcentaje_tiempo_equilibrada) * 100)::numeric, 1) AS pct_tiempo_equilibrada,
+        ROUND((AVG(f.porcentaje_tiempo_alquiler) * 100)::numeric, 1)    AS pct_tiempo_alquiler,
+        ROUND(AVG(f.free_bikes_promedio)::numeric, 1)                  AS avg_free_bikes,
+        ROUND(AVG(f.free_bikes_pct_promedio)::numeric, 1)              AS avg_free_bikes_pct
     FROM gold.fact_ocupacion_por_hora f
     LEFT JOIN gold.dim_estacion e USING (station_id)
     WHERE e.name IS NOT NULL
-    GROUP BY e.name, e.barrio, e.zona_id
-    ORDER BY pct_critico_prom DESC
-    LIMIT 10
+    GROUP BY e.name, e.barrio, e.comuna
 """)
 
 # ══════════════════════════════════════════════════════════════
@@ -112,40 +128,53 @@ col2.metric("🅿️ Slots libres",
             f"{int(df_estado['empty_slots_actuales'].sum()):,}")
 col3.metric("📍 Estaciones activas",
             df_estado["station_id"].nunique())
-col4.metric("🚨 Estaciones críticas",
+col4.metric("⚖️ Estaciones no equilibradas",
             int(df_estado["estado_critico_actual"].sum()))
 
 # Mapa
 df_mapa = df_estado.dropna(subset=["latitude", "longitude"])
 if not df_mapa.empty:
-    df_mapa["Estado"] = df_mapa["estado_critico_actual"].map(
-        {True: "🔴 Crítica", False: "🟢 Normal"}
-    )
+    df_mapa["Tipo de estación"] = df_mapa["tipo_estacion_actual"]
     fig_map = px.scatter_mapbox(
         df_mapa,
         lat="latitude",
         lon="longitude",
-        color="Estado",
-        color_discrete_map={"🔴 Crítica": "red", "🟢 Normal": "green"},
+        color="Tipo de estación",
         size="free_bikes_actuales",
         hover_name="station_name",
-        hover_data={
-            "barrio":               True,
-            "comuna":               True,
-            "free_bikes_actuales":  True,
-            "empty_slots_actuales": True,
-            "occupancy_pct_actual": True,
-            "latitude":  False,
-            "longitude": False,
-            "Estado":    False,
+        hover_data=[
+            "barrio",
+            "comuna",
+            "free_bikes_actuales",
+            "empty_slots_actuales",
+            "free_bikes_pct_actual",
+            "Tipo de estación",
+        ],
+        color_discrete_map={
+            "Estación de devolución": "#2196F3",   # azul
+            "Estación equilibrada": "#FFC107",    # amarillo
+            "Estación de alquiler": "#F44336",    # rojo
         },
         zoom=11,
         height=500,
         mapbox_style="open-street-map",
+
         title="Disponibilidad en tiempo real — Ecobici CABA",
     )
+    fig_map.update_traces(
+        hovertemplate=(
+            "<b>%{hovertext}</b><br>"
+            "Barrio: %{customdata[0]}<br>"
+            "Comuna: %{customdata[1]}<br>"
+            "🚲 Bicis disponibles: %{customdata[2]:.0f}<br>"
+            "🅿️ Slots libres: %{customdata[3]:.0f}<br>"
+            "📊 % bicis disponibles: %{customdata[4]:.1f}%<br>"
+            "⚖️ %{customdata[5]}"
+            "<extra></extra>"
+        )
+    )
     st.plotly_chart(fig_map, use_container_width=True)
-    st.caption("🟢 Normal  |  🔴 Crítica (menos del 10% de bicis o slots disponibles)")
+    st.caption("Clasificación: devolución (<40% bicis), equilibrada (40–60%), alquiler (>60%).")
 
 # ══════════════════════════════════════════════════════════════
 # 2. VARIACIÓN HORARIA
@@ -161,91 +190,142 @@ if not df_hora.empty:
         lambda d: "Fin de semana" if d in fines_de_semana else "Semana"
     )
 
-    tipo_sel = st.radio(
-        "Filtrar por tipo de día:",
-        ["Todos", "Semana", "Fin de semana"],
-        horizontal=True,
-    )
-    df_filtrado = (
-        df_hora if tipo_sel == "Todos"
-        else df_hora[df_hora["tipo_dia"] == tipo_sel]
-    )
+    col_filtro_dia, col_filtro_comuna, col_filtro_barrio = st.columns(3)
 
-    # Franja horaria
-    def franja(hora):
-        if   6 <= hora < 12: return "Mañana (6-12)"
-        elif 12 <= hora < 18: return "Tarde (12-18)"
-        else:                  return "Noche (18-6)"
+    with col_filtro_dia:
+        tipo_sel = st.radio(
+            "Filtrar por tipo de día:",
+            ["Todos los días", "Semana", "Fin de semana"],
+            horizontal=True,
+        )
 
-    df_filtrado = df_filtrado.copy()
-    df_filtrado["franja"] = df_filtrado["hora"].apply(franja)
+    comunas_disponibles = sorted(
+        df_hora["comuna"].dropna().astype(int).unique().tolist()
+    ) if "comuna" in df_hora.columns and not df_hora["comuna"].dropna().empty else []
 
-    orden_franjas = ["Mañana (6-12)", "Tarde (12-18)", "Noche (18-6)"]
+    with col_filtro_comuna:
+        comuna_sel = st.selectbox(
+            "Filtrar por comuna:",
+            ["Todas las comunas"] + [f"Comuna {c}" for c in comunas_disponibles],
+        )
 
-    df_franja = (
-        df_filtrado.groupby("franja")[
+    df_barrios_posibles = df_hora.copy()
+    if comuna_sel != "Todas las comunas":
+        comuna_num = int(comuna_sel.replace("Comuna ", ""))
+        df_barrios_posibles = df_barrios_posibles[df_barrios_posibles["comuna"] == comuna_num]
+
+    barrios_disponibles = sorted(
+        df_barrios_posibles["barrio"].dropna().astype(str).unique().tolist()
+    ) if "barrio" in df_barrios_posibles.columns and not df_barrios_posibles["barrio"].dropna().empty else []
+
+    with col_filtro_barrio:
+        barrio_sel = st.selectbox(
+            "Filtrar por barrio:",
+            ["Todos los barrios"] + barrios_disponibles,
+        )
+
+    df_filtrado = df_hora.copy()
+
+    if tipo_sel != "Todos los días":
+        df_filtrado = df_filtrado[df_filtrado["tipo_dia"] == tipo_sel]
+
+    if comuna_sel != "Todas las comunas":
+        comuna_num = int(comuna_sel.replace("Comuna ", ""))
+        df_filtrado = df_filtrado[df_filtrado["comuna"] == comuna_num]
+
+    if barrio_sel != "Todos los barrios":
+        df_filtrado = df_filtrado[df_filtrado["barrio"] == barrio_sel]
+
+    if df_filtrado.empty:
+        st.info(f"Todavía no hay datos disponibles para los filtros seleccionados: {tipo_sel} — {comuna_sel} — {barrio_sel}.")
+    else:
+        # Franja horaria
+        def franja(hora):
+            if   6 <= hora < 12: return "Mañana (6-12)"
+            elif 12 <= hora < 18: return "Tarde (12-18)"
+            else:                  return "Noche (18-6)"
+
+        df_filtrado = df_filtrado.copy()
+        df_filtrado["franja"] = df_filtrado["hora"].apply(franja)
+
+        orden_franjas = ["Mañana (6-12)", "Tarde (12-18)", "Noche (18-6)"]
+
+        df_franja = (
+            df_filtrado.groupby("franja")[
+                ["free_bikes_promedio", "empty_slots_promedio"]
+            ]
+            .mean()
+            .reset_index()
+            .melt(id_vars="franja", var_name="Métrica", value_name="Promedio")
+        )
+        df_franja["Métrica"] = df_franja["Métrica"].map({
+            "free_bikes_promedio":  "🚲 Bicis disponibles",
+            "empty_slots_promedio": "🅿️ Slots libres",
+        })
+
+        fig_franja = px.bar(
+            df_franja,
+            x="franja",
+            y="Promedio",
+            color="Métrica",
+            barmode="group",
+            category_orders={"franja": orden_franjas},
+            title=f"Disponibilidad promedio por franja horaria — {tipo_sel} — {comuna_sel} — {barrio_sel}",
+            labels={"franja": "Franja horaria", "Promedio": "Cantidad promedio"},
+            color_discrete_map={
+                "🚲 Bicis disponibles": "#2196F3",
+                "🅿️ Slots libres":      "#FF9800",
+            },
+            custom_data=["Métrica", "franja", "Promedio"],
+        )
+        fig_franja.update_traces(
+            hovertemplate=(
+                "<b>%{customdata[0]}</b><br>"
+                "Franja horaria: %{customdata[1]}<br>"
+                "Cantidad promedio: %{customdata[2]:.1f}"
+                "<extra></extra>"
+            )
+        )
+        st.plotly_chart(fig_franja, use_container_width=True)
+
+        # KPIs de hora pico (hora real desde dim_time)
+        df_por_hora = df_filtrado.groupby("hora")[
             ["free_bikes_promedio", "empty_slots_promedio"]
-        ]
-        .mean()
-        .reset_index()
-        .melt(id_vars="franja", var_name="Métrica", value_name="Promedio")
-    )
-    df_franja["Métrica"] = df_franja["Métrica"].map({
-        "free_bikes_promedio":  "🚲 Bicis disponibles",
-        "empty_slots_promedio": "🅿️ Slots libres",
-    })
+        ].mean().dropna(how="all")
 
-    fig_franja = px.bar(
-        df_franja,
-        x="franja",
-        y="Promedio",
-        color="Métrica",
-        barmode="group",
-        category_orders={"franja": orden_franjas},
-        title=f"Disponibilidad promedio por franja horaria — {tipo_sel}",
-        labels={"franja": "Franja horaria", "Promedio": "Cantidad promedio"},
-        color_discrete_map={
-            "🚲 Bicis disponibles": "#2196F3",
-            "🅿️ Slots libres":      "#FF9800",
-        },
-    )
-    st.plotly_chart(fig_franja, use_container_width=True)
+        if df_por_hora.empty:
+            st.info(f"Todavía no hay datos horarios suficientes para los filtros seleccionados: {tipo_sel} — {comuna_sel} — {barrio_sel}.")
+        else:
+            hora_critica_bicis = int(df_por_hora["free_bikes_promedio"].idxmin())
+            hora_critica_slots = int(df_por_hora["empty_slots_promedio"].idxmin())
 
-    # KPIs de hora pico (hora real desde dim_time)
-    df_por_hora = df_filtrado.groupby("hora")[
-        ["free_bikes_promedio", "empty_slots_promedio"]
-    ].mean()
+            col5, col6 = st.columns(2)
+            col5.metric("🚲 Hora más crítica de bicis",
+                        f"{hora_critica_bicis:02d}:00 hs",
+                        help=f"Hora del día con menor disponibilidad de bicis — {tipo_sel} — {comuna_sel} — {barrio_sel}")
+            col6.metric("🅿️ Hora más crítica de slots",
+                        f"{hora_critica_slots:02d}:00 hs",
+                        help=f"Hora del día con menor cantidad de slots libres — {tipo_sel} — {comuna_sel} — {barrio_sel}")
 
-    hora_critica_bicis = int(df_por_hora["free_bikes_promedio"].idxmin())
-    hora_critica_slots = int(df_por_hora["empty_slots_promedio"].idxmin())
+            # Top 3 horas críticas
+            top3_bicis = (
+                df_por_hora["free_bikes_promedio"]
+                .nsmallest(3).reset_index()
+                .rename(columns={"hora": "Hora", "free_bikes_promedio": "Bicis promedio"})
+            )
+            top3_slots = (
+                df_por_hora["empty_slots_promedio"]
+                .nsmallest(3).reset_index()
+                .rename(columns={"hora": "Hora", "empty_slots_promedio": "Slots promedio"})
+            )
+            top3_bicis["Hora"] = top3_bicis["Hora"].apply(lambda h: f"{int(h):02d}:00 hs")
+            top3_slots["Hora"] = top3_slots["Hora"].apply(lambda h: f"{int(h):02d}:00 hs")
 
-    col5, col6 = st.columns(2)
-    col5.metric("🚲 Hora más crítica de bicis",
-                f"{hora_critica_bicis:02d}:00 hs",
-                help=f"Hora del día con menor disponibilidad de bicis — {tipo_sel}")
-    col6.metric("🅿️ Hora más crítica de slots",
-                f"{hora_critica_slots:02d}:00 hs",
-                help=f"Hora del día con menor cantidad de slots libres — {tipo_sel}")
-
-    # Top 3 horas críticas
-    top3_bicis = (
-        df_por_hora["free_bikes_promedio"]
-        .nsmallest(3).reset_index()
-        .rename(columns={"hora": "Hora", "free_bikes_promedio": "Bicis promedio"})
-    )
-    top3_slots = (
-        df_por_hora["empty_slots_promedio"]
-        .nsmallest(3).reset_index()
-        .rename(columns={"hora": "Hora", "empty_slots_promedio": "Slots promedio"})
-    )
-    top3_bicis["Hora"] = top3_bicis["Hora"].apply(lambda h: f"{int(h):02d}:00 hs")
-    top3_slots["Hora"] = top3_slots["Hora"].apply(lambda h: f"{int(h):02d}:00 hs")
-
-    col7, col8 = st.columns(2)
-    col7.markdown("**🚲 Top 3 horas con menos bicis**")
-    col7.dataframe(top3_bicis.round(1), hide_index=True, use_container_width=True)
-    col8.markdown("**🅿️ Top 3 horas con menos slots**")
-    col8.dataframe(top3_slots.round(1), hide_index=True, use_container_width=True)
+            col7, col8 = st.columns(2)
+            col7.markdown("**🚲 Top 3 horas con menos bicis**")
+            col7.dataframe(top3_bicis.round(1), hide_index=True, use_container_width=True)
+            col8.markdown("**🅿️ Top 3 horas con menos slots**")
+            col8.dataframe(top3_slots.round(1), hide_index=True, use_container_width=True)
 
 else:
     st.info("Todavía no hay suficientes datos históricos.")
@@ -256,89 +336,131 @@ else:
 st.divider()
 st.header("🏙️ Disponibilidad por zona")
 
+agrupacion_zona = st.radio(
+    "Agrupar por:",
+    ["Barrio", "Comuna"],
+    horizontal=True,
+)
+
+if agrupacion_zona == "Barrio":
+    columna_agrupacion = "barrio"
+    etiqueta_eje = "Barrio"
+    titulo_grafico = "Promedio de bicis disponibles por barrio (de mayor a menor)"
+else:
+    columna_agrupacion = "comuna"
+    etiqueta_eje = "Comuna"
+    titulo_grafico = "Promedio de bicis disponibles por comuna (de mayor a menor)"
+
 df_zona = (
-    df_estado.dropna(subset=["zona_id"])
-    .groupby("zona_id")[["free_bikes_actuales", "empty_slots_actuales"]]
+    df_estado.dropna(subset=[columna_agrupacion])
+    .groupby(columna_agrupacion)[["free_bikes_actuales", "empty_slots_actuales"]]
     .mean()
     .reset_index()
-    .sort_values("free_bikes_actuales", ascending=True)  # más críticas primero
+    .sort_values("free_bikes_actuales", ascending=True)
 )
 
 if not df_zona.empty:
-    df_zona["zona_id"] = df_zona["zona_id"].astype(str)
+    if agrupacion_zona == "Comuna":
+        df_zona["zona_label"] = df_zona[columna_agrupacion].astype(int).apply(lambda c: f"Comuna {c}")
+    else:
+        df_zona["zona_label"] = df_zona[columna_agrupacion].astype(str).str.title()
 
     fig_zona = px.bar(
         df_zona,
         x="free_bikes_actuales",
-        y="zona_id",
+        y="zona_label",
         orientation="h",
-        title="Promedio de bicis disponibles por zona (de más crítica a menos)",
+        title=titulo_grafico,
         labels={
             "free_bikes_actuales": "Bicis disponibles (promedio)",
-            "zona_id":             "Zona / Comuna",
+            "zona_label": etiqueta_eje,
         },
         color="free_bikes_actuales",
         color_continuous_scale="RdYlGn",
+        custom_data=["zona_label", "free_bikes_actuales", "empty_slots_actuales"],
     )
     fig_zona.update_layout(yaxis={"categoryorder": "total ascending"})
+    fig_zona.update_traces(
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>"
+            "🚲 Bicis disponibles promedio: %{customdata[1]:.1f}<br>"
+            "🅿️ Slots libres promedio: %{customdata[2]:.1f}"
+            "<extra></extra>"
+        )
+    )
     st.plotly_chart(fig_zona, use_container_width=True)
-    st.caption("Las zonas más a la izquierda tienen menos bicis disponibles → mayor criticidad.")
 else:
     st.info("Datos de zona no disponibles todavía.")
 
 # ══════════════════════════════════════════════════════════════
-# 4. TOP 10 ESTACIONES PROBLEMÁTICAS (HISTÓRICO)
+# 4. PERFIL FUNCIONAL DE ESTACIONES (HISTÓRICO)
 # ══════════════════════════════════════════════════════════════
 st.divider()
-st.header("🚨 Top 10 estaciones con mayor tiempo en estado crítico")
-st.caption("Basado en el historial completo de observaciones registradas — promedio de todas las horas")
+st.header("🧭 Perfil funcional de estaciones")
+st.markdown("Basado en el historial completo: proporción de tiempo en que cada estación funcionó principalmente como devolución, equilibrada o alquiler.")
 
-if not df_top10.empty:
-    fig_top10 = px.bar(
-        df_top10.sort_values("pct_critico_prom", ascending=True),
-        x="pct_critico_prom",
-        y="station_name",
-        orientation="h",
-        color="pct_critico_prom",
-        color_continuous_scale="RdYlGn_r",
-        title="% de tiempo en estado crítico por estación",
-        labels={
-            "pct_critico_prom": "% tiempo crítico",
-            "station_name":     "Estación",
-        },
-        hover_data={"barrio": True, "avg_free_bikes": True, "avg_ocupacion_pct": True},
-    )
-    st.plotly_chart(fig_top10, use_container_width=True)
+if not df_perfil_estaciones.empty:
+    tab_devolucion, tab_alquiler, tab_equilibrada = st.tabs([
+        "⬇️ Devolución",
+        "⬆️ Alquiler",
+        "⚖️ Equilibradas",
+    ])
 
-    st.dataframe(
-        df_top10.rename(columns={
-            "station_name":     "Estación",
-            "barrio":           "Barrio",
-            "zona_id":          "Zona",
-            "pct_critico_prom": "% tiempo crítico",
-            "avg_free_bikes":   "Bicis promedio",
-            "avg_ocupacion_pct":"Ocupación promedio %",
-        }),
-        use_container_width=True,
-        hide_index=True,
-    )
+    with tab_devolucion:
+        st.subheader("Top 10 estaciones aptas para devolución")
+        st.markdown("Estaciones que estuvieron mayor proporción del tiempo con menos del 40% de bicicletas disponibles. Suelen tener más espacios libres para devolver que bicicletas para alquilar.")
+        df_devolucion = df_perfil_estaciones.nlargest(10, "pct_tiempo_devolucion")
+        st.dataframe(
+            df_devolucion.rename(columns={
+                "station_name": "Estación",
+                "barrio": "Barrio",
+                "comuna": "Comuna",
+                "pct_tiempo_devolucion": "% tiempo devolución",
+                "pct_tiempo_equilibrada": "% tiempo equilibrada",
+                "pct_tiempo_alquiler": "% tiempo alquiler",
+                "avg_free_bikes": "Bicis promedio",
+                "avg_free_bikes_pct": "Bicis disponibles promedio %",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    with tab_alquiler:
+        st.subheader("Top 10 estaciones aptas para alquiler")
+        st.markdown("Estaciones que estuvieron mayor proporción del tiempo con más del 60% de bicicletas disponibles. Suelen tener más bicicletas para alquilar que espacios libres para devolución.")
+        df_alquiler = df_perfil_estaciones.nlargest(10, "pct_tiempo_alquiler")
+        st.dataframe(
+            df_alquiler.rename(columns={
+                "station_name": "Estación",
+                "barrio": "Barrio",
+                "comuna": "Comuna",
+                "pct_tiempo_devolucion": "% tiempo devolución",
+                "pct_tiempo_equilibrada": "% tiempo equilibrada",
+                "pct_tiempo_alquiler": "% tiempo alquiler",
+                "avg_free_bikes": "Bicis promedio",
+                "avg_free_bikes_pct": "Bicis disponibles promedio %",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    with tab_equilibrada:
+        st.subheader("Top 10 estaciones más equilibradas")
+        st.markdown("Estaciones que estuvieron mayor proporción del tiempo entre 40% y 60% de bicicletas disponibles.")
+        df_equilibrada = df_perfil_estaciones.nlargest(10, "pct_tiempo_equilibrada")
+        st.dataframe(
+            df_equilibrada.rename(columns={
+                "station_name": "Estación",
+                "barrio": "Barrio",
+                "comuna": "Comuna",
+                "pct_tiempo_devolucion": "% tiempo devolución",
+                "pct_tiempo_equilibrada": "% tiempo equilibrada",
+                "pct_tiempo_alquiler": "% tiempo alquiler",
+                "avg_free_bikes": "Bicis promedio",
+                "avg_free_bikes_pct": "Bicis disponibles promedio %",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
 else:
-    st.info("Todavía no hay suficientes datos históricos para el ranking.")
-
-# ══════════════════════════════════════════════════════════════
-# 5. CONCLUSIONES
-# ══════════════════════════════════════════════════════════════
-st.divider()
-st.markdown("""
-### 📑 Conclusiones
-
-- 🚲 **Zonas con estaciones vacías** → requieren redistribución de bicicletas
-  o incorporación de nuevas unidades al sistema.
-- 🅿️ **Zonas con estaciones saturadas** → requieren más estaciones de
-  anclaje o ampliación de la red de bicisendas.
-- ⏰ **Franjas críticas identificadas** → permiten planificar operaciones
-  de rebalanceo en los horarios de mayor demanda,
-  diferenciando días de semana de fines de semana.
-- 📍 **Estaciones problemáticas recurrentes** → son candidatas prioritarias
-  para intervención de infraestructura.
-""")
+    st.info("Todavía no hay suficientes datos históricos para construir el perfil funcional de estaciones.")

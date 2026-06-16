@@ -98,7 +98,7 @@ tables:
 
   - schema: gold
     table: fact_ocupacion_por_hora
-    description: Métricas horarias de ocupación y disponibilidad por estación.
+    description: Métricas horarias de disponibilidad de bicicletas y espacios libres por estación.
     primary_key:
       - time_id
       - station_id
@@ -127,26 +127,34 @@ tables:
         type: NUMERIC(10,2)
         nullable: true
         description: Promedio de espacios libres durante la hora.
-      - name: occupancy_pct_promedio
+      - name: free_bikes_pct_promedio
         type: NUMERIC(10,2)
         nullable: true
-        description: Porcentaje promedio de ocupación durante la hora.
-      - name: occupancy_pct_maxima
+        description: Porcentaje promedio de bicicletas disponibles sobre espacios totales durante la hora.
+      - name: free_bikes_pct_maxima
         type: NUMERIC(10,2)
         nullable: true
-        description: Mayor porcentaje de ocupación observado durante la hora.
-      - name: occupancy_pct_minima
+        description: Mayor porcentaje de bicicletas disponibles sobre espacios totales observado durante la hora.
+      - name: free_bikes_pct_minima
         type: NUMERIC(10,2)
         nullable: true
-        description: Menor porcentaje de ocupación observado durante la hora.
+        description: Menor porcentaje de bicicletas disponibles sobre espacios totales observado durante la hora.
       - name: cantidad_observaciones
         type: INTEGER
         nullable: false
         description: Cantidad de observaciones utilizadas para calcular los agregados.
-      - name: porcentaje_tiempo_critico
+      - name: porcentaje_tiempo_devolucion
         type: NUMERIC(10,4)
         nullable: true
-        description: Proporción de observaciones de la hora en las que la estación estuvo en estado crítico.
+        description: Proporción de observaciones de la hora en las que la estación tuvo menos del 40% de bicicletas disponibles.
+      - name: porcentaje_tiempo_equilibrada
+        type: NUMERIC(10,4)
+        nullable: true
+        description: Proporción de observaciones de la hora en las que la estación tuvo entre 40% y 60% de bicicletas disponibles.
+      - name: porcentaje_tiempo_alquiler
+        type: NUMERIC(10,4)
+        nullable: true
+        description: Proporción de observaciones de la hora en las que la estación tuvo más del 60% de bicicletas disponibles.
 
   - schema: gold
     table: fact_estado_actual_estacion
@@ -182,11 +190,15 @@ tables:
         type: INTEGER
         nullable: true
         description: Espacios libres actualmente.
-      - name: occupancy_pct_actual
+      - name: free_bikes_pct_actual
         type: NUMERIC(10,2)
         nullable: true
-        description: Porcentaje actual de ocupación.
+        description: Porcentaje actual de bicicletas disponibles sobre espacios totales.
+      - name: tipo_estacion_actual
+        type: TEXT
+        nullable: true
+        description: "Clasificación actual de la estación según proporción de bicicletas disponibles: devolución, equilibrada o alquiler."
       - name: estado_critico_actual
         type: BOOLEAN
         nullable: false
-        description: Indica si la estación se encuentra actualmente en estado crítico.
+        description: Indica si la estación se encuentra actualmente fuera del rango equilibrado de 40% a 60% de bicicletas disponibles.

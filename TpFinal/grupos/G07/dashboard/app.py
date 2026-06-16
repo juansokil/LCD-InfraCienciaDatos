@@ -85,26 +85,17 @@ with col3:
 
 st.divider()
 
-st.header("📊 Navegación")
-
-st.markdown(
-    """
-    Utilizá el menú lateral para explorar las distintas capas del proyecto:
-
-    - 🥉 **Bronze:** inspección de los datos originales.
-    - 🥈 **Silver:** validación y transformación de los datos.
-    - 🥇 **Gold:** indicadores y dashboard operativo.
-    """
-)
-
-st.divider()
-
 st.header("👥 Equipo")
 
 st.markdown(
     """
-    Trabajo realizado por el **Grupo G07** para la materia
-    **Infraestructura para Ciencia de Datos (UNSAM)**.
+    Trabajo realizado por el **Grupo G07**
+    - Gonzalo Cárdenas (@Zagon22)
+    - Gabriela Gattas (@Gabi6285)
+    - Gastón Rossi (@torino05)
+    - Morena Stolerman (@Morenastolerman)
+    - Camila Vidoni (@camilavidoni7)
+    - Alex Flores (@afloreschoquehuanca-byte)
     """
 )
 
