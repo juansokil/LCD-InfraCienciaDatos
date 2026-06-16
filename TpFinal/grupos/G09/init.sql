@@ -13,4 +13,3 @@ CREATE TABLE IF NOT EXISTS bronze.usgs_earthquakes_raw (
     raw_json JSONB NOT NULL,
     PRIMARY KEY (event_id, snapshot_id)
 );
-

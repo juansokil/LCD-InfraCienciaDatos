@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import json
 import os
 
 from airflow.decorators import dag, task
@@ -10,12 +11,10 @@ FEED_URL = os.getenv(
 SOURCE = "usgs-earthquakes"
 SCHEDULE = "*/15 * * * *"
 DB_URI = (
-    f"postgresql+psycopg2://"
-    f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
-    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@"
-    f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:"
-    f"{os.getenv('SOURCE_DB_PORT', '5432')}/"
-    f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
+    os.getenv("SOURCE_DB_URI")
+    or f"postgresql+psycopg2://{os.getenv('SOURCE_DB_USER', 'admin')}:"
+    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:"
+    f"{os.getenv('SOURCE_DB_PORT', '5432')}/{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
 )
 
 
@@ -47,8 +46,6 @@ def usgs_earthquakes_bronze():
     @task
     def load_raw(payload: dict) -> None:
         import sqlalchemy
-        from sqlalchemy import MetaData, Table
-        from sqlalchemy.dialects.postgresql import insert
 
         now = datetime.utcnow()
         snapshot_id = now.strftime("%Y%m%d%H%M%S")
@@ -66,7 +63,7 @@ def usgs_earthquakes_bronze():
                 "feed_url": FEED_URL,
                 "event_time": _ms_to_dt(props.get("time")),
                 "updated_time": _ms_to_dt(props.get("updated")),
-                "raw_json": f,
+                "raw_json": json.dumps(f),
             })
 
         if not rows:
@@ -90,13 +87,19 @@ def usgs_earthquakes_bronze():
                 )
             """))
 
-        metadata = MetaData(schema="bronze")
-        table = Table("usgs_earthquakes_raw", metadata, autoload_with=engine)
-        stmt = insert(table).values(rows).on_conflict_do_nothing(
-            index_elements=["event_id", "snapshot_id"]
-        )
+        stmt = sqlalchemy.text("""
+            INSERT INTO bronze.usgs_earthquakes_raw (
+                event_id, snapshot_id, ingested_at, source, feed_url,
+                event_time, updated_time, raw_json
+            )
+            VALUES (
+                :event_id, :snapshot_id, :ingested_at, :source, :feed_url,
+                :event_time, :updated_time, CAST(:raw_json AS JSONB)
+            )
+            ON CONFLICT (event_id, snapshot_id) DO NOTHING
+        """)
         with engine.begin() as conn:
-            result = conn.execute(stmt)
+            result = conn.execute(stmt, rows)
         print(f"Bronze: {result.rowcount} filas nuevas (snapshot {snapshot_id})")
 
     load_raw(fetch_feed())

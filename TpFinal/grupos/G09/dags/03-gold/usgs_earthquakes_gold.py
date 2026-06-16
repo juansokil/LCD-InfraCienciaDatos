@@ -3,58 +3,26 @@ import os
 
 from airflow.decorators import dag, task
 
-SCHEDULE = "*/15 * * * *"
+SCHEDULE = "4-59/15 * * * *"
 SOURCE_TABLE = "silver.earthquakes"
 DB_URI = (
-    f"postgresql+psycopg2://"
-    f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
-    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@"
-    f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:"
-    f"{os.getenv('SOURCE_DB_PORT', '5432')}/"
-    f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
+    os.getenv("SOURCE_DB_URI")
+    or f"postgresql+psycopg2://{os.getenv('SOURCE_DB_USER', 'admin')}:"
+    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:"
+    f"{os.getenv('SOURCE_DB_PORT', '5432')}/{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
 )
 
 BUILD_SQL = """
     DROP TABLE IF EXISTS gold.earthquake_risk_summary;
     DROP TABLE IF EXISTS gold.fact_region_daily;
     DROP TABLE IF EXISTS gold.fact_earthquake_events;
-    DROP TABLE IF EXISTS gold.dim_time;
-    DROP TABLE IF EXISTS gold.dim_region;
-
-    CREATE TABLE gold.dim_region AS
-        SELECT
-            dense_rank() OVER (ORDER BY region) AS region_id,
-            region,
-            COUNT(*)  AS total_events,
-            MAX(mag)  AS max_mag,
-            AVG(mag)  AS avg_mag
-        FROM silver.earthquakes
-        WHERE region IS NOT NULL
-        GROUP BY region;
-
-    CREATE TABLE gold.dim_time AS
-        SELECT DISTINCT
-            event_time::date                            AS event_date,
-            to_char(event_time::date, 'YYYYMMDD')::int  AS date_id,
-            EXTRACT(year  FROM event_time)::int         AS year,
-            EXTRACT(month FROM event_time)::int         AS month,
-            EXTRACT(day   FROM event_time)::int         AS day,
-            EXTRACT(hour  FROM event_time)::int         AS hour,
-            trim(to_char(event_time, 'Day'))            AS weekday,
-            CASE
-                WHEN EXTRACT(hour FROM event_time) BETWEEN  6 AND 11 THEN 'manana'
-                WHEN EXTRACT(hour FROM event_time) BETWEEN 12 AND 17 THEN 'tarde'
-                WHEN EXTRACT(hour FROM event_time) BETWEEN 18 AND 22 THEN 'noche'
-                ELSE 'madrugada'
-            END AS franja_horaria
-        FROM silver.earthquakes
-        WHERE event_time IS NOT NULL;
 
     CREATE TABLE gold.fact_earthquake_events AS
         SELECT
             e.event_id,
-            r.region_id,
+            e.region,
             to_char(e.event_time::date, 'YYYYMMDD')::int AS date_id,
+            e.event_time::date AS event_date,
             e.place,
             e.mag,
             e.mag_type,
@@ -72,14 +40,12 @@ BUILD_SQL = """
             e.latency_ingestion_minutes,
             e.event_time,
             e.updated_time,
-            now()                AS _processed_at,
-            'silver.earthquakes' AS _source_table
-        FROM silver.earthquakes e
-        LEFT JOIN gold.dim_region r ON e.region = r.region;
+            now() AS _processed_at
+        FROM silver.earthquakes e;
 
     CREATE TABLE gold.fact_region_daily AS
         SELECT
-            r.region_id,
+            e.region,
             to_char(e.event_time::date, 'YYYYMMDD')::int                              AS date_id,
             e.event_time::date                                                         AS event_date,
             COUNT(*)                                                                   AS events_count,
@@ -91,9 +57,8 @@ BUILD_SQL = """
             SUM(CASE WHEN e.tsunami = 1 THEN 1 ELSE 0 END)                            AS tsunami_events,
             SUM(CASE WHEN e.severity_class IN ('fuerte', 'mayor') THEN 1 ELSE 0 END)  AS severe_events
         FROM silver.earthquakes e
-        LEFT JOIN gold.dim_region r ON e.region = r.region
         WHERE e.event_time IS NOT NULL
-        GROUP BY r.region_id, e.event_time::date;
+        GROUP BY e.region, e.event_time::date;
 
     CREATE TABLE gold.earthquake_risk_summary AS
         SELECT

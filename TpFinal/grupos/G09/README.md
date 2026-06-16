@@ -10,7 +10,8 @@
 - **Nombre**: USGS Earthquake Catalog / Real-time Earthquake Feeds
 - **URL**: https://earthquake.usgs.gov/earthquakes/feed/
 - **Descripcion**: API publica de eventos sismicos en formato GeoJSON. Devuelve terremotos recientes con magnitud, ubicacion, profundidad, tiempo del evento, ultima actualizacion, intensidad reportada/estimada y metadatos de impacto.
-- **Frecuencia del pipeline**: cada 15 minutos (`*/15 * * * *`), para capturar eventos recientes sin sobreconsultar la API.
+- **Refresh**: Tiempo real.
+- **Frecuencia del pipeline**: cada 15 minutos, con offsets entre capas para evitar que Silver o Gold corran antes de que termine la capa anterior.
 
 ## Pregunta de negocio
 
@@ -88,8 +89,6 @@ Columnas previstas:
 
 Modelo orientado al dashboard:
 
-- `gold.dim_region`: regiones derivadas desde `place`.
-- `gold.dim_time`: fecha, hora, dia de semana y franja horaria.
 - `gold.fact_earthquake_events`: hechos por evento con magnitud, profundidad, intensidad y flags de impacto.
 - `gold.fact_region_daily`: agregados diarios por region.
 - `gold.earthquake_risk_summary`: ranking de zonas/eventos por frecuencia y severidad.
@@ -110,6 +109,25 @@ docker compose up -d --build
 - Dashboard Gold: http://localhost:8501
 - Postgres: localhost:5432
 
+## Que mirar en Airflow
+
+1. Entrar a http://localhost:8080.
+2. Verificar que esten activos estos DAGs:
+   - `usgs_earthquakes_bronze`
+   - `usgs_earthquakes_silver`
+   - `usgs_earthquakes_gold`
+3. Ejecutarlos en ese orden si todavia no corrieron.
+4. Confirmar que las ultimas corridas terminen en estado exitoso.
+
+## Que mirar en el dashboard
+
+- KPIs: eventos totales, magnitud maxima, eventos fuertes/mayores, flags de tsunami y latencia promedio.
+- Mapa: ubicacion de eventos por coordenadas, tamanio segun magnitud y color segun severidad.
+- Ranking: regiones con mas eventos y mayor magnitud.
+- Scatter magnitud/profundidad: relacion entre energia del evento y profundidad.
+- Scatter CDI/MMI: intensidad percibida cuando USGS informa esos campos; pueden venir nulos.
+- Eventos prioritarios: eventos fuertes, con tsunami, alerta o significancia alta.
+
 ## Estado actual
 
 - Stack base con Airflow, Postgres warehouse, Postgres metadata y Streamlit.
@@ -117,4 +135,9 @@ docker compose up -d --build
 - DAG Silver: `usgs_earthquakes_silver`.
 - DAG Gold: `usgs_earthquakes_gold`.
 - Dashboard inicial sobre tablas Gold.
-Los tres DAGs tienen `schedule="*/15 * * * *"` e `is_paused_upon_creation=False`.
+
+Schedules:
+
+- Bronze: `*/15 * * * *`
+- Silver: `2-59/15 * * * *`
+- Gold: `4-59/15 * * * *`

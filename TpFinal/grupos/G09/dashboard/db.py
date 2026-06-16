@@ -7,13 +7,10 @@ from sqlalchemy import create_engine, text
 
 
 def _db_uri():
-    return (
-        f"postgresql+psycopg2://"
-        f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
-        f"{os.getenv('SOURCE_DB_PASS', 'admin')}@"
-        f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:"
-        f"{os.getenv('SOURCE_DB_PORT', '5432')}/"
-        f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
+    return os.getenv("SOURCE_DB_URI") or (
+        f"postgresql+psycopg2://{os.getenv('SOURCE_DB_USER', 'admin')}:"
+        f"{os.getenv('SOURCE_DB_PASS', 'admin')}@{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:"
+        f"{os.getenv('SOURCE_DB_PORT', '5432')}/{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
     )
 
 
@@ -25,13 +22,8 @@ def get_engine():
 def table_exists(schema: str, table: str) -> bool:
     with get_engine().connect() as conn:
         return bool(conn.execute(
-            text(
-                "SELECT EXISTS ("
-                "  SELECT 1 FROM information_schema.tables"
-                "  WHERE table_schema = :s AND table_name = :t"
-                ")"
-            ),
-            {"s": schema, "t": table},
+            text("SELECT to_regclass(:name)"),
+            {"name": f"{schema}.{table}"},
         ).scalar())
 
 
