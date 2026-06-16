@@ -15,7 +15,7 @@ pipeline arranca solo.
 
 ## API elegida
 - **CityBikes** — `https://api.citybik.es/v2`
-- Sin autenticación. Rate limit: 300 req/hora. Refresh real: cada 2–5 min.
+- Sin autenticación. **Rate limit: 300 req/hora** — límite oficial documentado (docs.citybik.es/api/), verificable en el header de respuesta `x-ratelimit-limit-hour: 300`. Refresh real: cada 2–5 min.
 - Endpoints usados: `GET /v2/networks/{id}?fields=name,location,stations`.
 - Redes trackeadas (configurable en `.env`): **Latinoamérica Sur** — ~20 redes de bici pública de
   6 países: Argentina (Buenos Aires, Rosario, Nordelta), Brasil (São Paulo, Río, Curitiba…), Chile

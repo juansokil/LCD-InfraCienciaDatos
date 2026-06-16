@@ -49,7 +49,7 @@ Por qué dos Postgres: el de Airflow guarda su propio estado interno (runs, logs
 ## 3. La fuente: API de CityBikes
 
 - **URL base:** `https://api.citybik.es/v2`
-- **Auth:** ninguna. **Rate limit:** ~300 req/hora.
+- **Auth:** ninguna. **Rate limit:** **300 req/hora** — límite **oficial** documentado (docs.citybik.es/api/), verificable en el header de respuesta `x-ratelimit-limit-hour: 300`; se resetea cada hora. (Para más, se pide API key a info@citybik.es o se auto-hostea.)
 - **Refresh real:** la disponibilidad cambia cada **2–5 minutos**.
 - **Endpoint que usamos:** `GET /v2/networks/{id}?fields=name,location,stations`
 - **Redes que trackeamos** (configurable en `.env`, variable `CITYBIKES_NETWORKS`):
