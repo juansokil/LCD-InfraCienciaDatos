@@ -246,7 +246,7 @@ El stack tiene que estar **levantado** (`docker compose up` corriendo). En DBeav
    | Campo | Valor |
    |---|---|
    | **Host** | `localhost` |
-   | **Port** | `5433`  ← ⚠️ **NO 5432**. El warehouse se mapea a 5433 en tu máquina. |
+   | **Port** | `5433`. El warehouse se mapea a 5433 en tu máquina. |
    | **Database** | `citybikes` |
    | **Username** | `cb_user` |
    | **Password** | `changeme` |
