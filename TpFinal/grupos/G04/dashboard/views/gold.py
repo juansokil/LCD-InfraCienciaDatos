@@ -29,18 +29,27 @@ def _fig(fig, h=None, legend=False):
 header("CityBikes · Modelo Gold", "Disponibilidad de bicis públicas",
        "Datos en vivo de la API de CityBikes — qué estaciones se quedan sin bicis o se saturan, y a qué horas.")
 
-# ---------- Filtro: ciudad ----------
-networks = run_query("SELECT network_id, name, city FROM gold.dim_network ORDER BY name")
+# ---------- Filtro: país → ciudad (en cascada) ----------
+networks = run_query("SELECT network_id, name, city, country FROM gold.dim_network ORDER BY country, city")
 if networks.empty:
     st.info("Aún no hay datos en Gold. El pipeline tarda ~15 min en la primera vuelta. Esperá y refrescá.")
     st.stop()
 
 networks["label"] = networks["city"].fillna(networks["name"]).fillna(networks["network_id"])
-opciones = dict(zip(networks["label"], networks["network_id"]))
-labels = list(opciones.keys())
+_PAISES = {"AR": "Argentina", "BR": "Brasil", "CL": "Chile", "CO": "Colombia", "EC": "Ecuador",
+           "PE": "Perú", "MX": "México", "ES": "España", "US": "Estados Unidos"}
+networks["pais"] = networks["country"].map(_PAISES).fillna(networks["country"]).fillna("Otro")
 
-c1, _ = st.columns([2, 3])
+c1, c2, _ = st.columns([1.3, 1.7, 2])
 with c1:
+    with st.container(border=True):
+        pais = st.selectbox("País", ["Todos"] + sorted(networks["pais"].unique().tolist()), index=0)
+
+# las ciudades disponibles dependen del país elegido (en "Todos" aparecen todas)
+filtradas = networks if pais == "Todos" else networks[networks["pais"] == pais]
+opciones = dict(zip(filtradas["label"], filtradas["network_id"]))
+labels = list(opciones.keys())
+with c2:
     with st.container(border=True):
         ciudad = st.selectbox("Ciudad a analizar", labels, index=0)
 ids = [opciones[ciudad]]
