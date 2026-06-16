@@ -5,6 +5,7 @@ import requests
 from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 default_args = {
     'owner': 'grupo03',
@@ -37,18 +38,9 @@ with DAG(
         tiempo_actual = datetime.now()
 
         for ciudad in config["cities"]:
-            # MODIFICADO: Estructuramos los parámetros para traer el bloque actual + 90 días de historial horario
-            variables_clima = [
-                   "temperature_2m",
-                   "wind_speed_10m",
-                   "wind_direction_10m",
-                   "is_day",
-                   "weather_code"
-            ]
             params = {
                 "latitude": ciudad["latitude"],
                 "longitude": ciudad["longitude"],
-                "current": variables_clima,
                 "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code",
                 "current": "temperature_2m,wind_speed_10m,wind_direction_10m,is_day,weather_code",
                 "hourly": "temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code,is_day",
@@ -76,5 +68,14 @@ with DAG(
         cursor.close()
         conn.close()
 
+    trigger_silver = TriggerDagRunOperator(
+        task_id="trigger_weather_silver",
+        trigger_dag_id="weather_silver_pipeline",
+    )
+
+    # --- ACÁ ESTÁ EL CAMBIO SINTÁCTICO LIMPIO ---
     config_datos = cargar_coordenadas()
-    extraer_e_ingresar_bronze(config_datos)
+    extraccion = extraer_e_ingresar_bronze(config_datos)
+    
+    # Enlazamos la tarea de extracción con el gatillo automático
+    extraccion >> trigger_silver

@@ -4,6 +4,7 @@ import pandas as pd
 from airflow import DAG
 from airflow.decorators import task
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
 default_args = {
     'owner': 'grupo03',
@@ -25,7 +26,6 @@ with DAG(
         conn = pg_hook.get_conn()
         cursor = conn.cursor()
 
-        # Extraemos los últimos JSON cargados en Bronze
         query_select = "SELECT ciudad, raw_json FROM bronze.raw_weather_data;"
         cursor.execute(query_select)
         registros = cursor.fetchall()
@@ -40,16 +40,13 @@ with DAG(
         datos_actuales_acumulados = []
         datos_forecast_acumulados = []
 
-        # Recorremos cada JSON depositado en Bronze
         for fila in registros:
             nombre_ciudad = fila[0]
             json_crudo = fila[1]
 
             try:
-                # --- MODIFICADO: Procesar Datos Horarios (Historial + Presente) ---
                 hourly = json_crudo.get("hourly", {})
                 if hourly and "time" in hourly:
-                    # Mapeamos los arrays paralelos que devuelve Open-Meteo
                     for i in range(len(hourly["time"])):
                         datos_actuales_acumulados.append({
                             "ciudad": nombre_ciudad,
@@ -66,7 +63,6 @@ with DAG(
                             "fecha_procesamiento": fecha_proceso_actual
                         })
 
-                # --- Procesar Pronóstico Extendido (7 días futuros) ---
                 daily = json_crudo.get("daily", {})
                 if daily and "time" in daily:
                     for i in range(len(daily["time"])):
@@ -84,7 +80,6 @@ with DAG(
                 print(f"Advertencia: Error procesando {nombre_ciudad}: {str(e)}")
                 continue
 
-        # --- CARGAR EN TABLA WEATHER_CURRENT (Con Upsert manual) ---
         if datos_actuales_acumulados:
             df_current = pd.DataFrame(datos_actuales_acumulados)
             df_current.dropna(subset=["time", "temperature"], inplace=True)
@@ -107,7 +102,6 @@ with DAG(
                         fila["timezone"], fila["fecha_procesamiento"]
                     ))
 
-        # --- CARGAR EN TABLA WEATHER_FORECAST ---
         if datos_forecast_acumulados:
             df_forecast = pd.DataFrame(datos_forecast_acumulados)
             df_forecast.dropna(subset=["fecha_pronostico", "temp_min", "temp_max"], inplace=True)
@@ -134,4 +128,10 @@ with DAG(
         conn.close()
         print("¡Datos históricos y actuales procesados en Silver!")
 
-    orquestar_limpieza_silver()
+    trigger_gold = TriggerDagRunOperator(
+    task_id="trigger_weather_gold",
+    trigger_dag_id="weather_gold_pipeline",
+)
+
+limpieza = orquestar_limpieza_silver()
+limpieza >> trigger_gold

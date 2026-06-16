@@ -18,8 +18,6 @@ CREATE TABLE IF NOT EXISTS bronze.raw_weather_data (
 -- ============================================================================
 -- 3. CAPA SILVER (Datos Limpios y Normalizados)
 -- ============================================================================
-
--- Clima histórico y actual consolidado
 CREATE TABLE IF NOT EXISTS silver.weather_current (
     id SERIAL PRIMARY KEY,
     ciudad VARCHAR(100) NOT NULL, 
@@ -29,15 +27,14 @@ CREATE TABLE IF NOT EXISTS silver.weather_current (
     temperature FLOAT NOT NULL,
     windspeed FLOAT,
     winddirection FLOAT,
-    precipitation FLOAT, -- <--- MODIFICADO: Agregamos la columna para medir lluvia real
+    precipitation FLOAT,
     is_day INTEGER,
     weather_current INTEGER,
     timezone VARCHAR(100) NOT NULL,
     fecha_procesamiento TIMESTAMP NOT NULL DEFAULT NOW(),
-    UNIQUE (ciudad, time) -- Evita duplicados si reprocesamos la misma hora
+    UNIQUE (ciudad, time)
 );
 
--- Pronóstico futuro
 CREATE TABLE IF NOT EXISTS silver.weather_forecast (
     id SERIAL PRIMARY KEY,
     ciudad VARCHAR(100) NOT NULL,
@@ -53,14 +50,12 @@ CREATE TABLE IF NOT EXISTS silver.weather_forecast (
 -- ============================================================================
 -- 4. CAPA GOLD (Modelo Dimensional para Dashboard)
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS gold.dim_ciudad (
-    ciudad_id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
+    id INTEGER PRIMARY KEY,
+    ciudad VARCHAR(100) NOT NULL UNIQUE,
     pais VARCHAR(100),
     latitud NUMERIC,
-    longitud NUMERIC,
-    UNIQUE (nombre, pais)
+    longitud NUMERIC
 );
 
 CREATE TABLE IF NOT EXISTS gold.dim_tiempo (
@@ -68,10 +63,10 @@ CREATE TABLE IF NOT EXISTS gold.dim_tiempo (
     anio INTEGER,
     mes INTEGER,
     dia INTEGER,
-    dia_semana VARCHAR(20)
+    dia_semana VARCHAR(50)
 );
 
-CREATE TABLE IF NOT EXISTS gold.fact_clima_diario (
+CREATE TABLE IF NOT EXISTS gold.fact_clima_real (
     fecha DATE,
     ciudad_id INTEGER,
     temp_promedio NUMERIC,
@@ -80,21 +75,33 @@ CREATE TABLE IF NOT EXISTS gold.fact_clima_diario (
     lluvia_acumulada NUMERIC,
     viento_promedio NUMERIC,
     PRIMARY KEY (fecha, ciudad_id),
-    FOREIGN KEY (ciudad_id) REFERENCES gold.dim_ciudad(ciudad_id),
-    FOREIGN KEY (fecha) REFERENCES gold.dim_tiempo(fecha)
+    FOREIGN KEY (ciudad_id) REFERENCES gold.dim_ciudad(id)
+);
+
+CREATE TABLE IF NOT EXISTS gold.fact_pronostico (
+    fecha_pronostico DATE,
+    ciudad_id INTEGER,
+    temp_min_esperada NUMERIC,
+    temp_max_esperada NUMERIC,
+    prob_lluvia NUMERIC,
+    PRIMARY KEY (fecha_pronostico, ciudad_id),
+    FOREIGN KEY (ciudad_id) REFERENCES gold.dim_ciudad(id)
 );
 
 -- ============================================================================
--- 5. SEMILLAS / POBLADO AUTOMÁTICO (Para el arranque autónomo del stack)
+-- 5. SEMILLAS / POBLADO AUTOMÁTICO
 -- ============================================================================
+INSERT INTO gold.dim_ciudad (id, ciudad, pais, latitud, longitud) VALUES
+(1, 'Buenos Aires', 'Argentina', -34.61315, -58.37723),
+(2, 'Madrid', 'España', 40.4168, -3.7038),
+(3, 'Ciudad de México', 'México', 19.4326, -99.1332),
+(4, 'Bogotá', 'Colombia', 4.7110, -74.0721),
+(5, 'Santiago', 'Chile', -33.4489, -70.6693),
+(6, 'Lima', 'Perú', -12.0464, -77.0428),
+(7, 'Barcelona', 'España', 41.3874, 2.1686),
+(8, 'Berlín', 'Alemania', 52.5200, 13.4050)
+ON CONFLICT (id) DO NOTHING;
 
--- Precarga de las ciudades principales para linkear IDs sin errores
-INSERT INTO gold.dim_ciudad (nombre, pais, latitud, longitud) VALUES
-('Buenos Aires', 'Argentina', -34.61315, -58.37723),
-('San Martin', 'Argentina', -34.57713, -58.53697)
-ON CONFLICT (nombre, pais) DO NOTHING;
-
--- Generación automática del calendario indexado en la dimensión tiempo (2025 al 2027)
 INSERT INTO gold.dim_tiempo (fecha, anio, mes, dia, dia_semana)
 SELECT 
     datum AS fecha,
