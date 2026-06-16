@@ -4,7 +4,7 @@ from datetime import datetime
 import psycopg2
 
 # Configuración de conexión
-DB_CONFIG = "dbname=weather_data user=admin password=admin host=g03_warehouse port=5432"
+DB_CONFIG = "dbname=weather_data user=admin password=admin123 host=g03_warehouse port=5432"
 
 def normalizar_ciudad(columna):
     return f"REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(UPPER(TRIM({columna})), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), 'Ú', 'U')"
