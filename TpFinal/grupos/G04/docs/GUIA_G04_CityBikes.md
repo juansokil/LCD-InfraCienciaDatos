@@ -1,6 +1,6 @@
 # Guía del proyecto — G04 · CityBikes
 
-> Guía de estudio para entender el sistema de punta a punta, ejecutarlo y defenderlo en la presentación.
+> Documentación del proyecto: cómo funciona el sistema de punta a punta y cómo levantarlo.
 > Léela junto al `README.md` (resumen) y al código en `dags/` y `dashboard/`.
 
 ---
@@ -130,11 +130,11 @@ Carpeta `dashboard/`. Estructura (usa `st.navigation`: un router + vistas, por e
 - `views/inicio.py` — inicio: arquitectura + **KPIs en vivo** (totales de todas las ciudades).
 - `views/gold.py` — vistas de negocio: mapa, dona, patrón por hora, estaciones críticas y comparación.
 
-**Regla importante:** el dashboard consume **solo el schema `gold`**. Nunca lee Bronze ni Silver (eso es "backend" del pipeline). Esto es algo que el docente puede preguntar.
+**Regla importante:** el dashboard consume **solo el schema `gold`**. Nunca lee Bronze ni Silver (eso es "backend" del pipeline).
 
 Qué muestra: KPIs en vivo (estaciones, bicis, % vacías/llenas), mapa de disponibilidad por ocupación, patrón de ocupación por hora del día, ranking de estaciones más críticas (sin bicis / saturadas) y comparación entre ciudades. Todo con un filtro por red que afecta todas las vistas.
 
-### Qué cuenta cada gráfico (y cómo lo pensamos) — para defender el dashboard
+### Qué cuenta cada gráfico (y cómo lo pensamos)
 
 Todo el dashboard responde **una** pregunta: *¿qué estaciones se saturan o se quedan sin bicis, y a qué horas?* Cada gráfico ataca una parte:
 
@@ -147,7 +147,7 @@ Todo el dashboard responde **una** pregunta: *¿qué estaciones se saturan o se 
 | **Estaciones más críticas (top 10)** | El *"¿qué estaciones?"* — las 10 que más tiempo pasan sin bicis y las 10 más saturadas | Ranking sobre `fact_station_hourly` por % del tiempo vacía/llena | Pasar de lo general a lo accionable (estaciones con nombre y apellido) |
 | **Comparación entre ciudades** | Ocupación media de cada red — cuál está más crítica/equilibrada | Agregado por `city` sobre `fact_station_hourly` | De acá sale el **hallazgo** (comparar las ~20 ciudades de la región) |
 
-**Narrativa para el oral:** *"Los KPIs dan el estado general; el mapa y la dona muestran **dónde** y **cuánto**; el patrón por hora responde **a qué horas**; las estaciones críticas el **qué estaciones**; y la comparación nos dio el hallazgo entre ciudades."*
+**En resumen:** *"Los KPIs dan el estado general; el mapa y la dona muestran **dónde** y **cuánto**; el patrón por hora responde **a qué horas**; las estaciones críticas el **qué estaciones**; y la comparación nos dio el hallazgo entre ciudades."*
 
 ---
 
@@ -162,7 +162,7 @@ Todo el dashboard responde **una** pregunta: *¿qué estaciones se saturan o se 
 
 ---
 
-## 8. Decisiones técnicas (y por qué) — para la defensa
+## 8. Decisiones técnicas (y por qué)
 
 - **Usamos `ingested_at` como eje temporal, no el `timestamp` de la API.** El `timestamp` venía en formato inconsistente y poco confiable; igual lo guardamos crudo en Bronze.
 - **Transformaciones en SQL sobre JSONB.** Limpieza y agregación se hacen en Postgres (declarativo y eficiente) en vez de traer todo a pandas.
@@ -195,11 +195,13 @@ Dejá la terminal abierta; vas a ver los logs de los 4 servicios.
 
 ### Accesos una vez levantado
 
-| Qué | URL | Notas |
+> **Para ver los datos hay 2 formas:** (1) el **dashboard** (Streamlit), abriendo http://localhost:8501 en cualquier navegador; (2) las **tablas crudas**, conectándote con **DBeaver** al warehouse (pasos detallados abajo).
+
+| Qué | URL / Cómo entrar | Notas |
 |---|---|---|
-| **Airflow UI** | http://localhost:8080 | Usuario `admin`. La contraseña la genera Airflow standalone. |
-| **Dashboard** | http://localhost:8501 | Se va poblando a medida que Gold tiene datos. |
-| **Warehouse** | `localhost:5433` (db `citybikes`) | Para conectarse con DBeaver/psql si querés inspeccionar tablas. |
+| **Dashboard** (Streamlit) | Abrí **http://localhost:8501** en el navegador | Tiene 2 páginas (Inicio + Gold) en el menú izquierdo. Se va poblando con Gold. |
+| **Airflow UI** | Abrí **http://localhost:8080** en el navegador | Usuario `admin`. La contraseña la genera Airflow standalone (ver abajo). |
+| **Warehouse** (Postgres) | `localhost:5433` (db `citybikes`) | Para ver las tablas crudas con **DBeaver**/psql (pasos abajo). |
 
 **Contraseña de Airflow** (en otra terminal):
 ```bash
@@ -260,7 +262,7 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ---
 
-## 10. Preguntas probables del docente (y cómo responder)
+## 10. Cosas a tener en cuenta (decisiones y conceptos clave)
 
 - **¿Por qué arquitectura medallion?** Separa responsabilidades: Bronze guarda crudo (trazabilidad/reproceso), Silver limpia y tipa, Gold modela para consumo. Si cambia la lógica de negocio, reproceso desde Bronze sin volver a pegarle a la API.
 - **¿Por qué el dashboard consume solo Gold?** Gold es el modelo final, pensado para responder preguntas de negocio rápido. Bronze/Silver son etapas internas del pipeline.
@@ -292,21 +294,7 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ---
 
-## 12. Reparto sugerido para exponer (5–6 min, hasta 10)
-
-Como todos tienen que poder responder, conviene que cada uno domine una parte pero entienda el conjunto:
-
-1. **Intro + pregunta de negocio + API** (diapos 1–2)
-2. **Arquitectura medallion + stack** (diapo 3)
-3. **Qué hace cada capa + DAGs** (diapo 4)
-4. **Demo del dashboard en vivo** (diapo 5) — levantado en `localhost:8501`
-5. **Dificultades, decisiones y arranque automático** (diapo 6)
-
-Tip: tengan el stack **ya levantado** antes de empezar para que el dashboard tenga datos durante la demo.
-
----
-
-## 13. Mapa de archivos — qué hace cada uno
+## 12. Mapa de archivos — qué hace cada uno
 
 | Archivo | Qué hace |
 |---|---|
@@ -327,16 +315,14 @@ Tip: tengan el stack **ya levantado** antes de empezar para que el dashboard ten
 | `dashboard/views/gold.py` | Vistas de negocio: mapa, dona, patrón por hora, críticas, comparación. |
 | `dashboard/.streamlit/config.toml` | Tema visual del dashboard (colores, fuente). |
 | `docs/presentacion_G04_CityBikes.{html,pdf}` | La presentación (6 diapositivas). |
-| `docs/GUIA_G04_CityBikes.md` | **Esta guía** (estudio + defensa + paso a paso). |
+| `docs/GUIA_G04_CityBikes.md` | **Esta guía** (cómo funciona el proyecto + cómo levantarlo). |
 | `docs/DISENO_G04_CityBikes.md` | Documento de diseño del proyecto. |
 
 ---
 
-## 14. Checklist 1 minuto antes de exponer
+## 13. Checklist para levantar y probar
 
-- [ ] **Docker Desktop abierto** y el stack **levantado hace ≥20 min** (que Gold tenga datos).
-- [ ] Dashboard abre en http://localhost:8501 (probá **Inicio** y **Gold**).
-- [ ] Tenés a mano la contraseña de Airflow (`docker compose logs airflow | grep -i password`) por si la piden.
-- [ ] La **presentación (PDF)** subida al campus.
-- [ ] El **PR** marcado **"Ready for review"** (la entrega formal).
-- [ ] Cada integrante leyó esta guía y puede responder al menos la sección 10 (Q&A).
+- [ ] **Docker Desktop abierto** y el stack **levantado** (`docker compose up`).
+- [ ] El **dashboard** abre en http://localhost:8501 (probá las páginas **Inicio** y **Gold**).
+- [ ] **Airflow** abre en http://localhost:8080 (los 3 DAGs activos y corriendo en verde).
+- [ ] Para ver las tablas crudas: conectá **DBeaver** al warehouse (`localhost:5433` — ver sección 9).
