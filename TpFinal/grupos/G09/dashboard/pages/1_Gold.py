@@ -143,18 +143,37 @@ if not events.empty:
 st.divider()
 
 if table_exists("gold", "fact_region_daily"):
-    daily = run_query("""
-        SELECT
-            d.region,
-            f.event_date,
-            f.events_count,
-            f.max_mag,
-            f.avg_depth_km,
-            f.severe_events
-        FROM gold.fact_region_daily f
-        LEFT JOIN gold.dim_region d ON f.region_id = d.region_id
-        ORDER BY f.event_date DESC, f.events_count DESC
-    """)
+    daily_cols = set(run_query("""
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'gold'
+          AND table_name = 'fact_region_daily'
+    """)["column_name"])
+    if "region" in daily_cols:
+        daily = run_query("""
+            SELECT
+                region,
+                event_date,
+                events_count,
+                max_mag,
+                avg_depth_km,
+                severe_events
+            FROM gold.fact_region_daily
+            ORDER BY event_date DESC, events_count DESC
+        """)
+    else:
+        daily = run_query("""
+            SELECT
+                d.region,
+                f.event_date,
+                f.events_count,
+                f.max_mag,
+                f.avg_depth_km,
+                f.severe_events
+            FROM gold.fact_region_daily f
+            LEFT JOIN gold.dim_region d ON f.region_id = d.region_id
+            ORDER BY f.event_date DESC, f.events_count DESC
+        """)
     if not daily.empty:
         st.subheader("Eventos diarios por region")
         st.dataframe(daily, use_container_width=True)
