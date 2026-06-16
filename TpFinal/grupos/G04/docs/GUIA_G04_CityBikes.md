@@ -283,6 +283,8 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ### Problemas típicos
 - **Conflicto de puertos:** si tenés el stack del curso u otra cosa usando 8080/8501/5432, apagalo o cambiá los mapeos en `docker-compose.yml`. Por eso el warehouse usa **5433** en el host.
+- **DBeaver dice `Connection to localhost:5432 refused`:** pusiste el puerto **5432**. El warehouse se mapea al **5433** en tu máquina (en `docker-compose.yml`: `"5433:5432"` → el 5432 es interno del contenedor). Cambiá el *Port* de la conexión a **5433** y conecta. (Pasa lo mismo con psql: usá `-p 5433`.)
+- **Una corrida de `citybikes_gold` en rojo justo al levantar el stack:** es normal en **arranque en frío** — gold puede correr un segundo antes de que el warehouse termine de levantar, y da un error de conexión. Los DAGs tienen **`retries=3`** (espera 30 s y reintenta), así que **se pone verde solo** en el reintento o en la corrida siguiente (cada 15 min). No rompe nada: las tareas son idempotentes. Para confirmar que está sano: en el warehouse, `SELECT max(snapshot_at) FROM gold.station_current;` tiene que dar algo reciente.
 - **El dashboard dice "todavía no hay datos":** es normal los primeros minutos. Esperá a que Gold corra (cada 15 min).
 - **Reconstruir tras cambios de código:** `docker compose up --build`.
 
