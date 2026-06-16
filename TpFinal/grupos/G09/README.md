@@ -3,14 +3,13 @@
 ## Integrantes
 
 - Juan Cruz Torrano (@jucruto-ops)
-- Nombre Apellido (@usuario-github)
+
 
 ## API elegida
 
 - **Nombre**: USGS Earthquake Catalog / Real-time Earthquake Feeds
 - **URL**: https://earthquake.usgs.gov/earthquakes/feed/
 - **Descripcion**: API publica de eventos sismicos en formato GeoJSON. Devuelve terremotos recientes con magnitud, ubicacion, profundidad, tiempo del evento, ultima actualizacion, intensidad reportada/estimada y metadatos de impacto.
-- **Refresh**: Tiempo real.
 - **Frecuencia del pipeline**: cada 15 minutos, con offsets entre capas para evitar que Silver o Gold corran antes de que termine la capa anterior.
 
 ## Pregunta de negocio
@@ -26,40 +25,6 @@ Subpreguntas que va a responder el dashboard:
 - Cuanto tarda nuestro pipeline en capturar eventos desde que ocurrieron?
 
 > Nota tecnica: la API no informa "duracion de percepcion". Por eso el analisis se enfoca en intensidad percibida/reportada, profundidad, magnitud y latencias aproximadas.
-
-## Modelo de datos
-
-### Bronze
-
-Tabla cruda: `bronze.usgs_earthquakes_raw`
-
-Grano: una fila por evento sismico por snapshot de ingesta.
-
-Columnas previstas:
-
-- `event_id`: identificador USGS del evento.
-- `snapshot_id`: identificador de la corrida de ingesta.
-- `ingested_at`: timestamp de captura del pipeline.
-- `source`: fuente del dato (`usgs-earthquakes`).
-- `feed_url`: endpoint consultado.
-- `event_time`: timestamp original del evento.
-- `updated_time`: timestamp de ultima actualizacion del evento en USGS.
-- `raw_json`: feature GeoJSON completo tal como llega desde la API.
-
-### Silver
-
-Tabla limpia: `silver.earthquakes`
-
-Transformaciones previstas:
-
-- Parsear GeoJSON a tabla relacional.
-- Extraer longitud, latitud y profundidad desde `geometry.coordinates`.
-- Tipar magnitud, profundidad, timestamps e indicadores numericos.
-- Normalizar `place`, `mag_type`, `status`, `alert` y `type`.
-- Deduplicar por `event_id`, conservando la version mas actualizada.
-- Calcular `latency_update_minutes = updated_time - event_time`.
-- Calcular `latency_ingestion_minutes = ingested_at - event_time`.
-- Clasificar severidad por magnitud: leve, moderado, fuerte, mayor.
 
 Columnas previstas:
 
@@ -85,16 +50,6 @@ Columnas previstas:
 - `latency_update_minutes`
 - `latency_ingestion_minutes`
 
-### Gold
-
-Modelo orientado al dashboard:
-
-- `gold.fact_earthquake_events`: hechos por evento con magnitud, profundidad, intensidad y flags de impacto.
-- `gold.fact_region_daily`: agregados diarios por region.
-- `gold.earthquake_risk_summary`: ranking de zonas/eventos por frecuencia y severidad.
-
-El dashboard Streamlit va a consumir exclusivamente tablas Gold.
-
 ## Como levantar el stack
 
 ```bash
@@ -109,35 +64,4 @@ docker compose up -d --build
 - Dashboard Gold: http://localhost:8501
 - Postgres: localhost:5432
 
-## Que mirar en Airflow
 
-1. Entrar a http://localhost:8080.
-2. Verificar que esten activos estos DAGs:
-   - `usgs_earthquakes_bronze`
-   - `usgs_earthquakes_silver`
-   - `usgs_earthquakes_gold`
-3. Ejecutarlos en ese orden si todavia no corrieron.
-4. Confirmar que las ultimas corridas terminen en estado exitoso.
-
-## Que mirar en el dashboard
-
-- KPIs: eventos totales, magnitud maxima, eventos fuertes/mayores, flags de tsunami y latencia promedio.
-- Mapa: ubicacion de eventos por coordenadas, tamanio segun magnitud y color segun severidad.
-- Ranking: regiones con mas eventos y mayor magnitud.
-- Scatter magnitud/profundidad: relacion entre energia del evento y profundidad.
-- Scatter CDI/MMI: intensidad percibida cuando USGS informa esos campos; pueden venir nulos.
-- Eventos prioritarios: eventos fuertes, con tsunami, alerta o significancia alta.
-
-## Estado actual
-
-- Stack base con Airflow, Postgres warehouse, Postgres metadata y Streamlit.
-- DAG Bronze: `usgs_earthquakes_bronze`.
-- DAG Silver: `usgs_earthquakes_silver`.
-- DAG Gold: `usgs_earthquakes_gold`.
-- Dashboard inicial sobre tablas Gold.
-
-Schedules:
-
-- Bronze: `*/15 * * * *`
-- Silver: `2-59/15 * * * *`
-- Gold: `4-59/15 * * * *`
