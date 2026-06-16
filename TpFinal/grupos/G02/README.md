@@ -120,10 +120,8 @@ El proyecto incluye configuradas todas las variables de entorno necesarias dentr
 
 
 ```bash
-# 1. Navegá hasta la carpeta del grupo
 cd TpFinal/grupos/G02/
 
-# 2. Construí y levantá todo el ecosistema en segundo plano
 docker compose up -d --build
 ```
 
