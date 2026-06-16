@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS gold.dim_station (
 
 -- b. Dimensión Tiempo
 CREATE TABLE IF NOT EXISTS gold.dim_time (
-    time_id INT PRIMARY KEY,
+    time_id BIGINT PRIMARY KEY,
     full_timestamp TIMESTAMP WITH TIME ZONE UNIQUE NOT NULL,
     hour INT NOT NULL,
     minute INT NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS gold.dim_time (
 -- c. Tabla de Hechos (La estrella central)
 CREATE TABLE IF NOT EXISTS gold.fact_station_availability (
     fact_key SERIAL PRIMARY KEY,
-    time_id INT NOT NULL REFERENCES gold.dim_time(time_id),
+    time_id BIGINT NOT NULL REFERENCES gold.dim_time(time_id),
     station_id VARCHAR(50) NOT NULL REFERENCES gold.dim_station(station_id),
     bikes_available INT NOT NULL,
     slots_available INT NOT NULL,
