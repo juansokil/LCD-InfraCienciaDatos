@@ -46,7 +46,7 @@ services:
       # Definición única de la conexión (sin duplicados)
       AIRFLOW_CONN_POSTGRES_DEFAULT: "postgresql://admin:admin123@warehouse:5432/weather_data"
       AIRFLOW__CORE__LOAD_EXAMPLES: "False"
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgres+psycopg2://airflow:airflow123@airflow_db/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql://airflow:airflow123@airflow_db:5432/airflow
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-postgres pandas"
       AIRFLOW__WEBSERVER__SECRET_KEY: supersecretkeyfortpfinalg03
@@ -69,5 +69,17 @@ services:
     volumes:
       - ./dashboard:/app
     working_dir: /app
-    command: sh -c "pip install streamlit psycopg2-binary && streamlit run app.py --server.port=8501 --server.address=0.0.0.0"
+    command: > 
+     bash -c "
+      airflow db migrate && 
+      airflow users create \
+      --username admin \
+      --password admin \
+      --firstname admin \
+      --lastname admin \
+      --role Admin \
+      --email admin@email.com &&
+      airflow webserver &
+      airflow scheduler
+      "
     restart: always
