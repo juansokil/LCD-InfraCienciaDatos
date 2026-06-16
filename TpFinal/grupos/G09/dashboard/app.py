@@ -1,6 +1,6 @@
 import streamlit as st
 
-from db import load_table
+from db import coerce_numeric, load_table
 
 st.set_page_config(
     page_title="G09 - USGS Earthquakes",
@@ -10,7 +10,10 @@ st.set_page_config(
 st.title("G09 - USGS Earthquakes")
 st.caption("Pipeline Bronze → Silver → Gold sobre datos sismicos de la USGS")
 
-summary = load_table("gold", "earthquake_risk_summary")
+summary = coerce_numeric(
+    load_table("gold", "earthquake_risk_summary"),
+    ["events_count", "max_mag", "severe_events"],
+)
 
 if summary.empty:
     st.info("Todavia no hay datos Gold. Ejecuta los DAGs Bronze, Silver y Gold desde Airflow.")

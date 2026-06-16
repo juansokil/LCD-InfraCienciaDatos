@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 
 import pandas as pd
 import streamlit as st
@@ -38,7 +39,15 @@ def table_exists(schema: str, table: str) -> bool:
 def run_query(sql: str) -> pd.DataFrame:
     with get_engine().connect() as conn:
         result = conn.execute(text(sql))
-        return pd.DataFrame(result.fetchall(), columns=list(result.keys()))
+        rows = result.fetchall()
+        cols = list(result.keys())
+    if not rows:
+        return pd.DataFrame(columns=cols)
+    df = pd.DataFrame(rows, columns=cols)
+    for col in df.columns:
+        if df[col].map(lambda v: isinstance(v, Decimal)).any():
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+    return df
 
 
 @st.cache_data(ttl=60)
@@ -46,3 +55,13 @@ def load_table(schema: str, table: str) -> pd.DataFrame:
     if not table_exists(schema, table):
         return pd.DataFrame()
     return run_query(f"SELECT * FROM {schema}.{table}")
+
+
+def coerce_numeric(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
+    if df.empty:
+        return df
+    out = df.copy()
+    for col in cols:
+        if col in out.columns:
+            out[col] = pd.to_numeric(out[col], errors="coerce").astype("float64")
+    return out
