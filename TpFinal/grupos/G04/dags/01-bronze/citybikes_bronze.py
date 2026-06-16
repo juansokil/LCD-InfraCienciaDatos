@@ -49,6 +49,9 @@ INSERT_SQL = text("""
     is_paused_upon_creation=False,
     max_active_runs=1,
     tags=["citybikes", "bronze"],
+    # Reintentos: si el warehouse todavia no esta listo (arranque en frio), reintenta
+    # en vez de quedar en rojo. Las tareas son idempotentes, asi que es seguro.
+    default_args={"retries": 3, "retry_delay": pendulum.duration(seconds=30)},
 )
 def citybikes_bronze():
 

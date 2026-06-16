@@ -174,6 +174,9 @@ GROUP BY station_id, network_id, date_trunc('hour', snapshot_at)
     is_paused_upon_creation=False,
     max_active_runs=1,
     tags=["citybikes", "gold"],
+    # Reintentos: si el warehouse todavia no esta listo (arranque en frio), reintenta
+    # en vez de quedar en rojo. Las tareas son idempotentes, asi que es seguro.
+    default_args={"retries": 3, "retry_delay": pendulum.duration(seconds=30)},
 )
 def citybikes_gold():
 
