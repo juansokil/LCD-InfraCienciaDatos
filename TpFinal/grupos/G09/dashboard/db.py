@@ -47,13 +47,3 @@ def load_table(schema: str, table: str) -> pd.DataFrame:
     if not table_exists(schema, table):
         return pd.DataFrame()
     return run_query(f"SELECT * FROM {schema}.{table}")
-
-
-def coerce_numeric(df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
-    if df.empty:
-        return df
-    out = df.copy()
-    for col in cols:
-        if col in out.columns:
-            out[col] = pd.to_numeric(out[col], errors="coerce").astype("float64")
-    return out

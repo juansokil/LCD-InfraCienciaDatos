@@ -1,6 +1,8 @@
 services:
   airflow:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.airflow
     container_name: g09_airflow
     env_file: .env
     environment:
@@ -50,7 +52,7 @@ services:
   data_warehouse:
     build:
       context: .
-      dockerfile: Dockerfile.postgres
+      dockerfile: docker/Dockerfile.postgres
     image: g09_data_warehouse:custom
     container_name: g09_data_warehouse
     environment:

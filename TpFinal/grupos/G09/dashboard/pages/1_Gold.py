@@ -2,17 +2,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from db import coerce_numeric, load_table, run_query, table_exists
-
-SUMMARY_NUM = [
-    "events_count", "max_mag", "avg_mag", "avg_depth_km",
-    "avg_ingestion_latency_minutes", "severe_events", "tsunami_events", "max_significance",
-]
-EVENTS_NUM = [
-    "mag", "depth_km", "latitude", "longitude", "felt", "cdi", "mmi",
-    "tsunami", "sig", "latency_update_minutes", "latency_ingestion_minutes",
-]
-DAILY_NUM = ["events_count", "max_mag", "avg_depth_km", "severe_events"]
+from db import load_table, run_query, table_exists
 
 SEVERITY_ORDER = ["leve", "moderado", "fuerte", "mayor", "sin_magnitud"]
 SEVERITY_COLORS = {
@@ -30,10 +20,9 @@ if not table_exists("gold", "earthquake_risk_summary"):
     st.info("Todavia no existe la capa Gold. Ejecuta los DAGs Bronze, Silver y Gold.")
     st.stop()
 
-summary = coerce_numeric(load_table("gold", "earthquake_risk_summary"), SUMMARY_NUM)
-events = coerce_numeric(load_table("gold", "fact_earthquake_events"), EVENTS_NUM)
+summary = load_table("gold", "earthquake_risk_summary")
+events = load_table("gold", "fact_earthquake_events")
 
-# --- KPIs ---
 total_events = int(summary["events_count"].sum()) if not summary.empty else 0
 max_mag = float(summary["max_mag"].max()) if not summary.empty else 0.0
 severe_events = int(summary["severe_events"].sum()) if not summary.empty else 0
@@ -49,15 +38,15 @@ k5.metric("Latencia prom. ingesta", f"{avg_latency:.0f} min")
 
 st.divider()
 
-# --- Mapa + ranking ---
 col_map, col_rank = st.columns([2, 1])
 
 with col_map:
     st.subheader("Mapa de eventos")
     if not events.empty and {"latitude", "longitude", "mag"}.issubset(events.columns):
         map_df = events.dropna(subset=["latitude", "longitude", "mag"]).copy()
-        for col in ("mag", "latitude", "longitude"):
-            map_df[col] = pd.to_numeric(map_df[col], errors="coerce")
+        map_df[["mag", "latitude", "longitude"]] = (
+            map_df[["mag", "latitude", "longitude"]].apply(pd.to_numeric, errors="coerce")
+        )
         map_df = map_df.dropna(subset=["latitude", "longitude", "mag"])
         map_df = map_df.loc[map_df["mag"] > 0]
         if not map_df.empty:
@@ -94,7 +83,6 @@ with col_rank:
 
 st.divider()
 
-# --- Magnitud vs profundidad + magnitud vs intensidad percibida ---
 col_depth, col_intensity = st.columns(2)
 
 with col_depth:
@@ -137,7 +125,6 @@ with col_intensity:
 
 st.divider()
 
-# --- Eventos prioritarios ---
 st.subheader("Eventos prioritarios")
 if not events.empty:
     priority = events[
@@ -155,9 +142,8 @@ if not events.empty:
 
 st.divider()
 
-# --- Evolucion diaria por region ---
 if table_exists("gold", "fact_region_daily"):
-    daily = coerce_numeric(run_query("""
+    daily = run_query("""
         SELECT
             d.region,
             f.event_date,
@@ -168,7 +154,7 @@ if table_exists("gold", "fact_region_daily"):
         FROM gold.fact_region_daily f
         LEFT JOIN gold.dim_region d ON f.region_id = d.region_id
         ORDER BY f.event_date DESC, f.events_count DESC
-    """), DAILY_NUM)
+    """)
     if not daily.empty:
         st.subheader("Eventos diarios por region")
         st.dataframe(daily, use_container_width=True)
