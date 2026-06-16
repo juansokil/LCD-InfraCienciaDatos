@@ -290,7 +290,54 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ---
 
-## 10. Cosas a tener en cuenta (decisiones y conceptos clave)
+## 10. Cómo se construyó cada pieza (paso a paso)
+
+El proyecto se arma en este orden: primero el entorno, después la base, después el pipeline, después el dashboard. Cada pieza es un archivo (o un par) con una responsabilidad clara.
+
+### 1) El entorno — Docker Compose + Dockerfiles
+`docker-compose.yml`, `Dockerfile`, `dashboard/Dockerfile`
+
+El esqueleto. El `docker-compose.yml` define los **4 servicios** (`warehouse`, `airflow_db`, `airflow`, `dashboard`), sus puertos, volúmenes y el orden de arranque. Las dos imágenes propias se arman con un `Dockerfile` cada una: la de Airflow parte de `apache/airflow:3.1.5` + `requirements.txt`; la del dashboard parte de `python:3.11-slim` y corre `streamlit run`.
+**Por qué:** un solo `docker compose up` levanta todo, reproducible en cualquier máquina.
+
+### 2) La base de datos — `init.sql`
+`init.sql`
+
+Script SQL que Postgres corre **una sola vez**, solo, la primera vez que arranca el warehouse (montado en `/docker-entrypoint-initdb.d`). Crea los 3 schemas y todas las tablas con sus índices.
+**Por qué acá y no solo en los DAGs:** para que el dashboard nunca falle por "tabla inexistente", aunque lo abras antes de la primera corrida.
+
+### 3) El pipeline — los 3 DAGs de Airflow
+`dags/citybikes_common.py` + `01-bronze/…`, `02-silver/…`, `03-gold/…`
+
+Un archivo Python por capa, con el Task SDK de Airflow 3 (`@dag` / `@task`), y un `citybikes_common.py` compartido (lista de redes + conexión al warehouse).
+- **Bronze** le pega a la API y guarda el JSON crudo, una fila por estación × snapshot.
+- **Silver** lee lo nuevo de Bronze (por watermark) y limpia/tipa/valida **con SQL** sobre el JSONB.
+- **Gold** arma dimensiones + hecho horario + foto actual con upserts idempotentes.
+
+**Por qué:** transformar en SQL (no en pandas) es más eficiente y declarativo; todo idempotente para poder re-correr sin duplicar.
+
+### 4) El dashboard — Streamlit
+`dashboard/app.py`, `ui.py`, `db.py`, `views/inicio.py`, `views/gold.py`
+
+Separado en piezas chicas: `app.py` (router + estilos), `ui.py` (CSS de marca + barra lateral), `db.py` (conexión cacheada + queries) y `views/` (las páginas Inicio y Gold).
+**Por qué:** consume **solo Gold** (el modelo final); nunca toca Bronze/Silver.
+
+### 5) La configuración — `.env` + scripts de arranque
+`.env` / `.env.example`, `run.ps1`, `run.sh`
+
+El `.env` guarda las variables: qué redes trackear (`CITYBIKES_NETWORKS`) y las credenciales del warehouse. Los scripts `run.ps1` (Windows) y `run.sh` (Mac/Linux) crean el `.env` si falta y levantan todo, para no olvidarse ningún paso.
+**Por qué:** cambiar las ciudades = editar el `.env`, sin tocar código.
+
+### 6) Documentación y presentación
+`README.md`, `docs/GUIA_G04_CityBikes.md`, `docs/presentacion_G04_CityBikes.html` (+ `.pdf`)
+
+El README (resumen + cómo levantar), esta guía (detalle) y el deck de la presentación (HTML que exportamos a PDF).
+
+**En una frase:** entorno con Docker → base que se inicializa sola con `init.sql` → Airflow orquesta 3 DAGs (uno por capa) que transforman en SQL → Streamlit muestra el Gold. Todo con `docker compose up`.
+
+---
+
+## 11. Cosas a tener en cuenta (decisiones y conceptos clave)
 
 - **¿Por qué arquitectura medallion?** Separa responsabilidades: Bronze guarda crudo (trazabilidad/reproceso), Silver limpia y tipa, Gold modela para consumo. Si cambia la lógica de negocio, reproceso desde Bronze sin volver a pegarle a la API.
 - **¿Por qué el dashboard consume solo Gold?** Gold es el modelo final, pensado para responder preguntas de negocio rápido. Bronze/Silver son etapas internas del pipeline.
@@ -308,7 +355,7 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ---
 
-## 11. Glosario rápido
+## 12. Glosario rápido
 
 - **Medallion (Bronze/Silver/Gold):** patrón de capas que sube la calidad/estructura del dato en cada paso.
 - **DAG:** *Directed Acyclic Graph*. En Airflow, un flujo de tareas con dependencias; acá, un pipeline por capa.
@@ -322,7 +369,7 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ---
 
-## 12. Mapa de archivos — qué hace cada uno
+## 13. Mapa de archivos — qué hace cada uno
 
 | Archivo | Qué hace |
 |---|---|
@@ -348,7 +395,7 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 
 ---
 
-## 13. Checklist para levantar y probar
+## 14. Checklist para levantar y probar
 
 - [ ] **Docker Desktop abierto** y el stack **levantado** (`docker compose up`).
 - [ ] El **dashboard** abre en http://localhost:8501 (probá las páginas **Inicio** y **Gold**).
