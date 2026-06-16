@@ -133,6 +133,21 @@ Carpeta `dashboard/`. Estructura (usa `st.navigation`: un router + vistas, por e
 
 Qué muestra: KPIs en vivo (estaciones, bicis, % vacías/llenas), mapa de disponibilidad por ocupación, patrón de ocupación por hora del día, ranking de estaciones más críticas (sin bicis / saturadas) y comparación entre ciudades. Todo con un filtro por red que afecta todas las vistas.
 
+### Qué cuenta cada gráfico (y cómo lo pensamos) — para defender el dashboard
+
+Todo el dashboard responde **una** pregunta: *¿qué estaciones se saturan o se quedan sin bicis, y a qué horas?* Cada gráfico ataca una parte:
+
+| Gráfico | Qué cuenta | Cómo se hizo | Por qué lo pusimos |
+|---|---|---|---|
+| **4 KPIs** (estaciones, bicis, % sin bicis, % saturadas) | La foto del estado *ahora*, de un vistazo | Query sobre `gold.station_current` | Arrancar con el "titular" antes del detalle |
+| **Mapa de disponibilidad** | *Dónde* están los problemas — cada punto una estación, color = ocupación, tamaño = capacidad | `st.map` sobre `station_current`, coloreado por `occupancy_rate` | Lo geográfico importa (¿se concentran en el centro?) |
+| **Dona "Estaciones por nivel"** | El *resumen* del mapa en %: cuántas sin bicis / a medias / con bicis | Clasificamos cada estación por `occupancy_rate` en 3 niveles y contamos | El mapa muestra el "dónde", la dona el "cuánto" |
+| **Patrón por hora del día** | El *"¿a qué horas?"* — ocupación media y % de estaciones vacías a lo largo del día, con el peor momento marcado | `gold.fact_station_hourly` agregado por hora | La disponibilidad cambia con la hora (ir/volver del trabajo) |
+| **Estaciones más críticas (top 10)** | El *"¿qué estaciones?"* — las 10 que más tiempo pasan sin bicis y las 10 más saturadas | Ranking sobre `fact_station_hourly` por % del tiempo vacía/llena | Pasar de lo general a lo accionable (estaciones con nombre y apellido) |
+| **Comparación entre ciudades** | Ocupación media de cada red — cuál está más crítica/equilibrada | Agregado por `city` sobre `fact_station_hourly` | De acá sale el **hallazgo** (Chicago vs Barcelona) |
+
+**Narrativa para el oral:** *"Los KPIs dan el estado general; el mapa y la dona muestran **dónde** y **cuánto**; el patrón por hora responde **a qué horas**; las estaciones críticas el **qué estaciones**; y la comparación nos dio el hallazgo entre ciudades."*
+
 ---
 
 ## 7. El flujo completo, paso a paso (qué pasa cuando levantás el stack)
@@ -211,7 +226,7 @@ El stack tiene que estar **levantado** (`docker compose up` corriendo). En DBeav
 4. **Test Connection** → si dice *Connected*, *Finish*.
 5. Para ver las tablas: en el árbol → **citybikes → Schemas → `bronze` / `silver` / `gold` → Tables**.
 
-> 🔴 **El error típico** (el que les pasó) es poner el puerto **5432**. Tiene que ser **5433** (en `docker-compose.yml` dice `"5433:5432"`: el 5432 es interno del contenedor, el 5433 es el de tu máquina). Y la base/usuario/clave salen del `.env` — si nunca lo creaste, corré `run.ps1` o `cp .env.example .env`.
+> 🔴 **El error típico**  es poner el puerto **5432**. Tiene que ser **5433** (en `docker-compose.yml` dice `"5433:5432"`: el 5432 es interno del contenedor, el 5433 es el de tu máquina). Y la base/usuario/clave salen del `.env` — si nunca lo creaste, corré `run.ps1` o `cp .env.example .env`.
 
 Sin DBeaver, con **psql** desde otra terminal:
 ```bash
