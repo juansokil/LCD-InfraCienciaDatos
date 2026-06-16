@@ -6,6 +6,7 @@
 - Marcos Benson (@marcosbenson)
 - Nombre Apellido (@usuario-github)
 - João Baptista Luis Kaniki (@YarkJl90)
+- Olivia Beneitone Marty (@obeneitonem)
 
 ## API elegida
 
