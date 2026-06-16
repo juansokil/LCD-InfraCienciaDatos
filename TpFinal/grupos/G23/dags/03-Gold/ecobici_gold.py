@@ -1,4 +1,5 @@
 """
+
 DAG Gold - Modelo Estrella EcoBici Buenos Aires.
 Transforma y carga datos procesados desde silver.ecobici_stations hacia 
 las dimensiones y tabla de hechos del esquema gold.
