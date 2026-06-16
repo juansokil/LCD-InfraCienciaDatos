@@ -1,0 +1,7 @@
+Apellido: borro
+Nombre: nicolas
+Motor: duckdb
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 9AC731AC10F9
+Fecha: 2026-06-08

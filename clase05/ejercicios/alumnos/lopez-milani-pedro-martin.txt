@@ -1,0 +1,18 @@
+Apellido: Lopez Milani
+Nombre: Pedro Martin
+Motor: duckdb
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=CB01623D
+  G2: OK (10x2) h=025577D7
+  G3: OK (8x4) h=BA070038
+  G4: OK (4x1) h=CAA4DD7C
+  G5: OK (23x2) h=974177DF
+  G6: OK (3x2) h=EA41EE02
+  G7: OK (24x4) h=3863A071
+  G8: OK (8x3) h=106AE272
+Ejercicios con resultado: 8 / 8
+Codigo: 3C65B0B79EC8
+Fecha: 2026-06-09
