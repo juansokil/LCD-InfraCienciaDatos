@@ -203,10 +203,36 @@ Dejá la terminal abierta; vas a ver los logs de los 4 servicios.
 | **Airflow UI** | Abrí **http://localhost:8080** en el navegador | Usuario `admin`. La contraseña la genera Airflow standalone (ver abajo). |
 | **Warehouse** (Postgres) | `localhost:5433` (db `citybikes`) | Para ver las tablas crudas con **DBeaver**/psql (pasos abajo). |
 
-**Contraseña de Airflow** (en otra terminal):
+### Entrar a Airflow (PASO A PASO)
+
+Abrí **http://localhost:8080**. Te aparece un login con dos campos:
+
+| Campo | Valor |
+|---|---|
+| **Username** | `admin` |
+| **Password** | la que generó Airflow (en nuestra corrida: `8vy6cUvuXymmxnbr`) |
+
+Clic en **Sign In** y entrás a la lista de DAGs.
+
+**¿De dónde sale esa contraseña?** No la elegimos nosotros. Airflow corre en modo `standalone`, y la **primera vez** que arranca su *Simple Auth Manager* crea el usuario `admin` y le genera una **contraseña aleatoria** de 16 caracteres. La guarda en dos lados:
+- en los **logs** del contenedor (al arrancar imprime `Password for user 'admin': ...`);
+- en un **archivo** dentro del contenedor: `/opt/airflow/simple_auth_manager_passwords.json.generated` (un JSON tipo `{"admin": "..."}`).
+
+**Para sacarla vos** (en otra terminal, **parado en la carpeta del proyecto** — la de G04, donde está el `docker-compose.yml`):
 ```bash
+# Opción 1 — desde los logs (le pedís a Airflow su "diario" y filtrás la línea de la clave):
 docker compose logs airflow | grep -i password
+
+# Opción 2 — leyendo el archivo directo desde adentro del contenedor:
+docker compose exec airflow cat /opt/airflow/simple_auth_manager_passwords.json.generated
 ```
+Qué hace cada uno:
+- `docker compose logs airflow` muestra **todo lo que imprimió** el contenedor desde que arrancó; `| grep -i password` **filtra** y deja solo las líneas que dicen "password" (el `-i` ignora mayúsculas/minúsculas).
+- `docker compose exec airflow cat <archivo>` ejecuta un comando **adentro** del contenedor y te imprime el archivo donde Airflow dejó anotada la clave (`{"admin": "..."}`).
+
+> ⚠️ Si te dice `no such service: airflow`, es porque **no estás parado en la carpeta del proyecto**. Hacé `cd` a `...\TpFinal\grupos\G04` y volvé a correrlo.
+
+> Se **mantiene** entre reinicios normales (`restart` / `up`). Solo cambia si hacés `docker compose down -v` (borra los volúmenes): ahí Airflow genera una nueva y la volvés a sacar con los comandos de arriba. Por eso el valor de la tabla es el de *nuestra* corrida — en otra máquina puede salir distinto.
 
 ### Conectarse a la base de datos con DBeaver (PASO A PASO)
 
