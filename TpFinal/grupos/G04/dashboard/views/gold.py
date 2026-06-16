@@ -168,7 +168,6 @@ with st.container(border=True):
 # ============================================================
 with st.container(border=True):
     panel("Estaciones más críticas", "Top 10 por porcentaje del tiempo sin bicis y saturadas")
-    col_a, col_b = st.columns(2)
 
     def _tabla(titulo, df, value_col, color):
         filas = ""
@@ -188,27 +187,36 @@ with st.container(border=True):
             f"<tbody>{filas}</tbody></table>"
         )
 
-    vacias = run_query("""
-        SELECT d.station_name AS "Estación",
-               ROUND(100*AVG(f.pct_time_empty),1) AS "% del tiempo SIN bicis"
-        FROM gold.fact_station_hourly f JOIN gold.dim_station d USING (station_id)
-        WHERE f.network_id = ANY(:ids)
-        GROUP BY d.station_name ORDER BY 2 DESC LIMIT 10
-    """, {"ids": ids})
-    with col_a:
-        st.markdown(_tabla("Más tiempo SIN bicis", vacias, "% del tiempo SIN bicis", ROJO),
-                    unsafe_allow_html=True)
+    # guard: con pocas horas de datos el % es binario (0%/100%) y engaña → esperamos a que acumule
+    _h = run_query("SELECT count(DISTINCT hour_bucket) AS h FROM gold.fact_station_hourly WHERE network_id = ANY(:ids)",
+                   {"ids": ids})
+    _horas = int(_h.loc[0, "h"]) if not _h.empty else 0
+    if _horas < 3:
+        st.info(f"Acumulando datos ({_horas} h hasta ahora). Este ranking necesita varias horas para ser "
+                "representativo — se completa solo a medida que el pipeline sigue corriendo.")
+    else:
+        col_a, col_b = st.columns(2)
+        vacias = run_query("""
+            SELECT d.station_name AS "Estación",
+                   ROUND(100*AVG(f.pct_time_empty),1) AS "% del tiempo SIN bicis"
+            FROM gold.fact_station_hourly f JOIN gold.dim_station d USING (station_id)
+            WHERE f.network_id = ANY(:ids)
+            GROUP BY d.station_name ORDER BY 2 DESC LIMIT 10
+        """, {"ids": ids})
+        with col_a:
+            st.markdown(_tabla("Más tiempo SIN bicis", vacias, "% del tiempo SIN bicis", ROJO),
+                        unsafe_allow_html=True)
 
-    llenas = run_query("""
-        SELECT d.station_name AS "Estación",
-               ROUND(100*AVG(f.pct_time_full),1) AS "% del tiempo SATURADA"
-        FROM gold.fact_station_hourly f JOIN gold.dim_station d USING (station_id)
-        WHERE f.network_id = ANY(:ids)
-        GROUP BY d.station_name ORDER BY 2 DESC LIMIT 10
-    """, {"ids": ids})
-    with col_b:
-        st.markdown(_tabla("Más tiempo SATURADAS (sin lugar)", llenas, "% del tiempo SATURADA", AMBAR),
-                    unsafe_allow_html=True)
+        llenas = run_query("""
+            SELECT d.station_name AS "Estación",
+                   ROUND(100*AVG(f.pct_time_full),1) AS "% del tiempo SATURADA"
+            FROM gold.fact_station_hourly f JOIN gold.dim_station d USING (station_id)
+            WHERE f.network_id = ANY(:ids)
+            GROUP BY d.station_name ORDER BY 2 DESC LIMIT 10
+        """, {"ids": ids})
+        with col_b:
+            st.markdown(_tabla("Más tiempo SATURADAS (sin lugar)", llenas, "% del tiempo SATURADA", AMBAR),
+                        unsafe_allow_html=True)
 
 # ============================================================
 # Comparación entre las 3 ciudades
