@@ -214,7 +214,7 @@ with st.container(border=True):
 # Comparación entre las 3 ciudades
 # ============================================================
 with st.container(border=True):
-    panel("Comparación entre las 3 ciudades", "Ocupación media de cada red (cantidad de estaciones en el hover)")
+    panel("Comparación entre ciudades", "Ocupación media de cada red (cantidad de estaciones en el hover)")
     comp = run_query("""
         SELECT n.city AS "Ciudad",
                ROUND(100*AVG(f.avg_occupancy),1)  AS "Ocupación media %",
@@ -224,7 +224,8 @@ with st.container(border=True):
     """)
     if not comp.empty:
         fig_c = px.bar(comp, x="Ciudad", y="Ocupación media %", text="Ocupación media %",
-                       color="Ciudad", color_discrete_sequence=[ROJO, AMBAR, VERDE],
+                       color="Ciudad",
+                       color_discrete_sequence=[ROJO, AMBAR, VERDE, "#5B7DB1", "#B87333", "#7E57C2", "#2B8A8A"],
                        hover_data={"Estaciones": True, "Ciudad": False})
         fig_c.update_traces(texttemplate="%{text}%", textposition="outside", cliponaxis=False)
         fig_c.update_xaxes(title="<b>Ciudad</b>")

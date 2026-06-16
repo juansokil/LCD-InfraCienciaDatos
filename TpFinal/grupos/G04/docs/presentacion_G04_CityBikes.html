@@ -405,7 +405,7 @@
             <path d="M266 138 L286 130 M286 130 L290 137" stroke="#3B2222" stroke-width="5" stroke-linecap="round" fill="none"/>
           </g>
         </svg>
-        <div class="caption">Datos de bici pública,<br><span class="hot">en vivo</span>, de tres ciudades.</div>
+        <div class="caption">Datos de bici pública,<br><span class="hot">en vivo</span>, de toda Sudamérica.</div>
       </div>
     </div>
 
@@ -475,9 +475,12 @@
           <span><i style="background:#D7263D"></i>Saturada / vacía</span>
         </div>
         <div class="netrow">
-          <b><i>EcoBici</i>Cd de México</b>
-          <b><i>Bicing</i>Barcelona</b>
-          <b><i>Divvy</i>Chicago</b>
+          <b><i>AR</i>Argentina</b>
+          <b><i>BR</i>Brasil</b>
+          <b><i>CL</i>Chile</b>
+          <b><i>CO</i>Colombia</b>
+          <b><i>EC</i>Ecuador</b>
+          <b><i>PE</i>Perú</b>
         </div>
       </div>
     </div>
@@ -599,7 +602,7 @@
           <div class="chip" style="margin-top:1rem"><svg class="ic" style="width:18px;height:18px" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Demo en vivo → localhost:8501</div>
           <div class="qcard" style="margin:1.05rem 0 0;padding:.85rem 1.2rem;box-shadow:none">
             <span class="qlabel" style="margin-bottom:.3rem">Lo que encontramos</span>
-            <p style="font-size:1.06rem;line-height:1.4"><strong>Chicago</strong> es la más crítica (<strong style="color:var(--red)">~43% sin bicis</strong>); <strong>Barcelona</strong> la más equilibrada (<strong style="color:var(--ok)">~12%</strong>). El problema dominante: la <strong>falta de bicis</strong>.</p>
+            <p style="font-size:1.06rem;line-height:1.4">Sudamérica está <strong style="color:var(--ok)">bien abastecida</strong> (~8% sin bicis entre 20 ciudades de 6 países). Las más ajustadas hoy: <strong style="color:var(--red)">Vitória (~32%)</strong> y <strong>Medellín (~16%)</strong>.</p>
           </div>
         </div>
       </div>
@@ -615,10 +618,10 @@
             <rect x="106" y="46" width="80" height="48" rx="8" fill="#FBF4F2" stroke="#EFD9DC"/>
             <rect x="196" y="46" width="80" height="48" rx="8" fill="#FBF4F2" stroke="#EFD9DC"/>
             <rect x="286" y="46" width="78" height="48" rx="8" fill="#FBF4F2" stroke="#EFD9DC"/>
-            <text data-count="3228" data-final="3228" x="56" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#D7263D" text-anchor="middle">3228</text>
-            <text data-count="14104" data-fmt="k" data-final="14.1k" x="146" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#2B1B1B" text-anchor="middle">14.1k</text>
-            <text data-count="33" data-fmt="%" data-final="33%" x="236" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#D7263D" text-anchor="middle">33%</text>
-            <text data-count="4" data-fmt="%" data-final="4%" x="325" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#2B1B1B" text-anchor="middle">4%</text>
+            <text data-count="2328" data-final="2328" x="56" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#D7263D" text-anchor="middle">2328</text>
+            <text data-count="16117" data-fmt="k" data-final="16.1k" x="146" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#2B1B1B" text-anchor="middle">16.1k</text>
+            <text data-count="8" data-fmt="%" data-final="8%" x="236" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#D7263D" text-anchor="middle">8%</text>
+            <text data-count="5" data-fmt="%" data-final="5%" x="325" y="76" font-family="Inter,sans-serif" font-size="19" font-weight="700" fill="#2B1B1B" text-anchor="middle">5%</text>
             <text x="56" y="89" font-family="Inter,sans-serif" font-size="8.5" fill="#8A8A8A" text-anchor="middle">ESTACIONES</text>
             <text x="146" y="89" font-family="Inter,sans-serif" font-size="8.5" fill="#8A8A8A" text-anchor="middle">BICIS</text>
             <text x="236" y="89" font-family="Inter,sans-serif" font-size="8.5" fill="#8A8A8A" text-anchor="middle">% VACÍAS</text>
@@ -649,7 +652,7 @@
             </g>
           </g>
         </svg>
-        <div class="caption" style="font-size:1.05rem;margin-top:.7rem">Totales de las <span class="hot">3 ciudades</span> · en vivo · el dashboard filtra por ciudad</div>
+        <div class="caption" style="font-size:1.05rem;margin-top:.7rem">Totales de <span class="hot">Sudamérica</span> · 20 ciudades · en vivo · el dashboard filtra por ciudad</div>
       </div>
     </div>
 
@@ -669,7 +672,7 @@
           <ul>
             <li><code>timestamp</code> de la API inconsistente → usamos nuestro <code>ingested_at</code> como eje temporal.</li>
             <li><code>empty_slots</code> a veces es <code>null</code> → se normaliza en Silver.</li>
-            <li>~560 redes en la API → fijamos 3 para comparar y quedar bajo el rate limit (~36 de 300 req/h).</li>
+            <li>~560 redes en la API → fijamos ~22 (toda Sudamérica) para comparar la región, bajo el rate limit (~264 de 300 req/h).</li>
             <li>Re-correr DAGs sin duplicar → watermark + <code>ON CONFLICT</code>.</li>
           </ul>
         </div>

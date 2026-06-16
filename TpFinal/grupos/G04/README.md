@@ -17,8 +17,9 @@ pipeline arranca solo.
 - **CityBikes** — `https://api.citybik.es/v2`
 - Sin autenticación. Rate limit: 300 req/hora. Refresh real: cada 2–5 min.
 - Endpoints usados: `GET /v2/networks/{id}?fields=name,location,stations`.
-- Redes trackeadas (configurable en `.env`): `ecobici` (Ciudad de México), `bicing` (Barcelona),
-  `divvy` (Chicago).
+- Redes trackeadas (configurable en `.env`): **Latinoamérica Sur** — ~20 redes de bici pública de
+  6 países: Argentina (Buenos Aires, Rosario, Nordelta), Brasil (São Paulo, Río, Curitiba…), Chile
+  (Santiago), Colombia (Bogotá, Medellín), Ecuador (Cuenca) y Perú (Lima).
 
 ## Pregunta de negocio
 **¿Qué estaciones se saturan o se quedan sin bicis, y a qué horas del día?**
@@ -42,14 +43,14 @@ JSON crudo (`station_payload JSONB`) + identificadores y `ingested_at`. Datos ta
 ## Decisiones técnicas
 - **El eje temporal es nuestro `ingested_at`, no el `timestamp` de la API**: ese campo viene en
   formato inconsistente y no es confiable. Lo guardamos en Bronze como dato crudo igual.
-- **Set fijo de redes** (no las ~560 de la API): permite comparar ciudades y mantiene el uso
-  muy por debajo del rate limit (3 redes × 12 corridas/h ≈ 36 req/h de 300).
+- **Set fijo de redes** (no las ~560 de la API): trackeamos las redes de **Sudamérica** para comparar
+  ciudades de la región, quedando bajo el rate limit (~22 redes × 12 corridas/h ≈ 264 req/h de 300).
 - **Procesamiento incremental + idempotente**: Silver y Gold usan watermark / `ON CONFLICT`, así
   re-correr un DAG no duplica datos.
 - **Transformaciones en SQL sobre JSONB**: limpieza y agregación se hacen en Postgres
   (eficiente y declarativo).
 - **`empty_slots` puede ser `null`** → se normaliza en Silver.
-- **Descartamos estaciones inactivas**: Divvy/EcoBici marcan `extra.renting = 0` y Bicing `extra.online = false` cuando no operan (~418 filas en la corrida de prueba). Se filtran en Silver para que las métricas de *sin bicis* / *saturada* reflejen solo estaciones operativas — una estación cerrada no es lo mismo que una que se quedó sin bicis.
+- **Descartamos estaciones inactivas**: varias redes marcan `extra.renting = 0` o `extra.online = false` cuando una estación no opera. Se filtran en Silver para que las métricas de *sin bicis* / *saturada* reflejen solo estaciones operativas — una estación cerrada no es lo mismo que una que se quedó sin bicis.
 
 ## DAGs (Airflow 3.1.5, Task SDK)
 Los tres con `is_paused_upon_creation=False` y `schedule` definido (arrancan solos).

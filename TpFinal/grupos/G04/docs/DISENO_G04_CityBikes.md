@@ -44,12 +44,12 @@ Estructura de cada **station**:
 ### Decisiones que nacen de la API
 1. **Trackear un set fijo de redes**, no las 560. Lo definimos por `.env` (`CITYBIKES_NETWORKS`).
    Recomendado: 2–4 redes para poder comparar ciudades/zonas en el dashboard.
-   Ej: `ecobici` (Ciudad de México), `bicing` (Barcelona), `divvy` (Chicago).
+   Ej: redes de Sudamérica — `ecobici-buenos-aires` (Buenos Aires), `bikesampa` (São Paulo), `bikesantiago` (Santiago), `tembici-bogota` (Bogotá)…
 2. **Eje temporal = nuestro `ingested_at`**, no el `timestamp` de la API (ese campo viene
    con microsegundos sin punto y `Z` después del offset → no parsea limpio). El `timestamp`
    de la API se guarda igual en Bronze como dato crudo, pero no se usa como reloj.
 3. **`empty_slots` puede ser `null`** → se normaliza en Silver.
-4. **Presupuesto de requests:** con 3 redes y schedule `*/5` = 3 req × 12 corridas/h = **36 req/h**
+4. **Presupuesto de requests:** con ~22 redes y schedule `*/5` = ~22 req × 12 corridas/h = **264 req/h**
    (de 300). Holgado.
 
 ---
@@ -301,7 +301,7 @@ WAREHOUSE_HOST=warehouse
 WAREHOUSE_PORT=5432
 
 # Redes a trackear (coma-separadas, ids de /v2/networks)
-CITYBIKES_NETWORKS=ecobici,bicing,divvy
+CITYBIKES_NETWORKS=ecobici-buenos-aires,bikesampa,bikesantiago,tembici-bogota,citybike-lima,...   # toda Sudamérica
 ```
 
 ---

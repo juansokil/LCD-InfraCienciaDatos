@@ -11,7 +11,7 @@ Tomamos datos **en vivo** de la API pública de **CityBikes** (estado de estacio
 
 La pregunta de negocio que respondemos: **¿qué estaciones se saturan o se quedan sin bicis, y a qué horas del día?**
 
-**Nuestro hallazgo (la respuesta):** entre las 3 ciudades, **Chicago es la más crítica** (~43% de sus estaciones se quedan sin bicis), mientras que **Barcelona es la más equilibrada** (~12%). El problema dominante es la **falta de bicis**, no la saturación. *(Son datos en vivo: el número exacto cambia, pero el ranking se mantiene.)*
+**Nuestro hallazgo (la respuesta):** entre las ~20 ciudades de Sudamérica, la región está **bien abastecida** (~8% de estaciones sin bicis en promedio). Las más ajustadas hoy: **Vitória (~32%)** y **Medellín (~16%)**; las más equilibradas: Curitiba, Nordelta, Cuenca (~0%). *(Son datos en vivo: los números cambian, pero el panorama se mantiene.)*
 
 ---
 
@@ -53,13 +53,14 @@ Por qué dos Postgres: el de Airflow guarda su propio estado interno (runs, logs
 - **Refresh real:** la disponibilidad cambia cada **2–5 minutos**.
 - **Endpoint que usamos:** `GET /v2/networks/{id}?fields=name,location,stations`
 - **Redes que trackeamos** (configurable en `.env`, variable `CITYBIKES_NETWORKS`):
-  - `ecobici` → **Ciudad de México** (¡ojo! NO es Buenos Aires — lo confirmamos con los datos reales)
-  - `bicing` → **Barcelona**
-  - `divvy` → **Chicago**
+  - **Latinoamérica Sur** — todas las redes de Sudamérica disponibles en la API (~22 redes):
+  - 🇦🇷 Argentina: Buenos Aires, Rosario, Nordelta
+  - 🇧🇷 Brasil: São Paulo, Río de Janeiro, Curitiba, Porto Alegre, Salvador… (14 ciudades)
+  - 🇨🇱 Chile: Santiago · 🇨🇴 Colombia: Bogotá, Medellín · 🇪🇨 Ecuador: Cuenca · 🇵🇪 Perú: Lima
 
 Cada respuesta trae, por red, la lista de estaciones con: nombre, latitud/longitud, `free_bikes` (bicis disponibles), `empty_slots` (lugares libres) y campos extra.
 
-**Por qué solo 3 redes:** la API tiene ~560. Fijamos 3 para poder comparar ciudades y, sobre todo, para quedar **muy por debajo del rate limit** (3 redes × 12 corridas/hora ≈ 36 req/h de 300).
+**Por qué Sudamérica:** la API tiene ~560 redes del mundo. Trackeamos las de **Sudamérica** (~22) para comparar ciudades de la región (tema relatable), quedando bajo el **rate limit** (~22 × 12 corridas/hora ≈ 264 req/h de 300). Es configurable en el `.env`.
 
 ---
 
@@ -126,7 +127,7 @@ Carpeta `dashboard/`. Estructura (usa `st.navigation`: un router + vistas, por e
 - `app.py` — **router**: inyecta estilos + barra lateral una sola vez y enruta a las vistas.
 - `ui.py` — estilos de marca (CSS), encabezados, tablas y la barra lateral con íconos.
 - `db.py` — conexión reutilizable al warehouse (cachea queries 60s).
-- `views/inicio.py` — inicio: arquitectura + **KPIs en vivo** (totales de las 3 ciudades).
+- `views/inicio.py` — inicio: arquitectura + **KPIs en vivo** (totales de todas las ciudades).
 - `views/gold.py` — vistas de negocio: mapa, dona, patrón por hora, estaciones críticas y comparación.
 
 **Regla importante:** el dashboard consume **solo el schema `gold`**. Nunca lee Bronze ni Silver (eso es "backend" del pipeline). Esto es algo que el docente puede preguntar.
@@ -144,7 +145,7 @@ Todo el dashboard responde **una** pregunta: *¿qué estaciones se saturan o se 
 | **Dona "Estaciones por nivel"** | El *resumen* del mapa en %: cuántas sin bicis / a medias / con bicis | Clasificamos cada estación por `occupancy_rate` en 3 niveles y contamos | El mapa muestra el "dónde", la dona el "cuánto" |
 | **Patrón por hora del día** | El *"¿a qué horas?"* — ocupación media y % de estaciones vacías a lo largo del día, con el peor momento marcado | `gold.fact_station_hourly` agregado por hora | La disponibilidad cambia con la hora (ir/volver del trabajo) |
 | **Estaciones más críticas (top 10)** | El *"¿qué estaciones?"* — las 10 que más tiempo pasan sin bicis y las 10 más saturadas | Ranking sobre `fact_station_hourly` por % del tiempo vacía/llena | Pasar de lo general a lo accionable (estaciones con nombre y apellido) |
-| **Comparación entre ciudades** | Ocupación media de cada red — cuál está más crítica/equilibrada | Agregado por `city` sobre `fact_station_hourly` | De acá sale el **hallazgo** (Chicago vs Barcelona) |
+| **Comparación entre ciudades** | Ocupación media de cada red — cuál está más crítica/equilibrada | Agregado por `city` sobre `fact_station_hourly` | De acá sale el **hallazgo** (comparar las ~20 ciudades de la región) |
 
 **Narrativa para el oral:** *"Los KPIs dan el estado general; el mapa y la dona muestran **dónde** y **cuánto**; el patrón por hora responde **a qué horas**; las estaciones críticas el **qué estaciones**; y la comparación nos dio el hallazgo entre ciudades."*
 
@@ -269,11 +270,11 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 - **¿Por qué dos bases Postgres?** Una para metadatos de Airflow, otra para los datos del negocio: aislamiento y prolijidad.
 - **¿Qué pasa si la API falla o cambia?** Bronze captura un warning por red caída sin romper el DAG; el resto sigue. Como guardamos crudo, podemos reprocesar.
 - **¿Por qué el eje temporal es `ingested_at`?** El `timestamp` de la API era inconsistente; usamos el momento de ingesta, que controlamos nosotros.
-- **¿Qué son EcoBici, Bicing y Divvy?** Tres sistemas de bici pública, uno por ciudad: **EcoBici → Ciudad de México**, **Bicing → Barcelona**, **Divvy → Chicago**. Los tres se consultan por la misma API de CityBikes.
-- **¿Por qué solo 3 ciudades? ¿No les pidieron más?** No nos pidieron un número (la consigna da "ideas orientativas, no requisitos"). Elegimos 3 a propósito: para **comparar** ciudades y para quedar **bajo el rate limit** (300 req/h; con 3 redes usamos ~36).
+- **¿Qué ciudades trackean?** ~20 redes de bici pública de **6 países de Sudamérica**: Argentina (Buenos Aires, Rosario, Nordelta), Brasil (São Paulo, Río…), Chile (Santiago), Colombia (Bogotá, Medellín), Ecuador (Cuenca) y Perú (Lima). Todas por la misma API de CityBikes.
+- **¿Por qué Sudamérica? ¿Por qué esas redes?** La consigna no pide un número ("ideas orientativas, no requisitos"). Elegimos **toda Sudamérica** (~22 redes) para comparar la región, quedando **bajo el rate limit** (300 req/h; usamos ~264). Es configurable en el `.env`.
 - **Si agregaran más ciudades, ¿hay que cambiar el código?** No. El pipeline es **genérico**: las redes salen de la variable `CITYBIKES_NETWORKS` del `.env`, y cada tabla separa las ciudades por la columna `network_id`. Agregar ciudades = cambiar el `.env`, sin tocar capas ni SQL.
 - **¿Los datos son en vivo?** Sí: el **dashboard** consulta la base que el pipeline actualiza cada pocos minutos → los números cambian solos. El **PDF de la presentación** es una foto fija (no se actualiza, es lo normal).
-- **¿Cuál fue el hallazgo?** Chicago es la ciudad más crítica (~43% de estaciones sin bicis); Barcelona la más equilibrada (~12%). El problema dominante es la falta de bicis.
+- **¿Cuál fue el hallazgo?** Sudamérica está mayormente bien abastecida (~8% sin bicis entre 20 ciudades). Las más ajustadas hoy: Vitória (~32%) y Medellín (~16%); las más equilibradas: Curitiba, Nordelta, Cuenca (~0%).
 
 ---
 
@@ -313,7 +314,7 @@ Tip: tengan el stack **ya levantado** antes de empezar para que el dashboard ten
 | `Dockerfile` | Imagen de Airflow (base `apache/airflow:3.1.5` + deps de `requirements.txt`). |
 | `init.sql` | Crea los schemas `bronze`/`silver`/`gold` y **todas las tablas** al arrancar el warehouse. |
 | `requirements.txt` | Dependencias Python de Airflow (pandas, sqlalchemy, requests…). |
-| `.env.example` → `.env` | Variables: credenciales del warehouse + `CITYBIKES_NETWORKS` (las 3 redes). |
+| `.env.example` → `.env` | Variables: credenciales del warehouse + `CITYBIKES_NETWORKS` (las ~22 redes de Sudamérica). |
 | `run.ps1` / `run.sh` | Levantan todo con **un comando** (crean el `.env` si falta + `docker compose up`). |
 | `dags/citybikes_common.py` | Config compartida: lista de redes (del `.env`) + conexión al warehouse. |
 | `dags/01-bronze/citybikes_bronze.py` | **DAG Bronze**: baja el JSON crudo de la API a `bronze` (cada 5 min). |
@@ -322,7 +323,7 @@ Tip: tengan el stack **ya levantado** antes de empezar para que el dashboard ten
 | `dashboard/app.py` | **Router** del dashboard (`st.navigation`) + estilos + barra lateral. |
 | `dashboard/ui.py` | Estilos de marca (CSS), encabezados, tablas y sidebar con íconos. |
 | `dashboard/db.py` | Conexión al warehouse, cacheada (60s). |
-| `dashboard/views/inicio.py` | Inicio: arquitectura + KPIs en vivo (totales de las 3 ciudades). |
+| `dashboard/views/inicio.py` | Inicio: arquitectura + KPIs en vivo (totales de todas las ciudades). |
 | `dashboard/views/gold.py` | Vistas de negocio: mapa, dona, patrón por hora, críticas, comparación. |
 | `dashboard/.streamlit/config.toml` | Tema visual del dashboard (colores, fuente). |
 | `docs/presentacion_G04_CityBikes.{html,pdf}` | La presentación (6 diapositivas). |

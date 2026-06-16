@@ -45,7 +45,7 @@ g.markdown(_capa("#C9A227", "3", "Gold",
 
 # ---------- Estado del sistema EN VIVO (mismos KPIs que la presentación) ----------
 st.write("")
-panel("El estado del sistema, en vivo", "Totales de las 3 ciudades · se actualizan con el pipeline (cada pocos minutos)")
+panel("El estado del sistema, en vivo", "Totales de todas las ciudades trackeadas · se actualizan con el pipeline (cada pocos minutos)")
 try:
     df = run_query("""
         SELECT count(*)                                   AS estaciones,
