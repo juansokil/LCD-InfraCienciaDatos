@@ -74,6 +74,8 @@ services:
       WAREHOUSE_PASSWORD: ${WAREHOUSE_PASSWORD}
       WAREHOUSE_HOST: warehouse
       WAREHOUSE_PORT: 5432
+    volumes:
+      - ./dashboard:/app          # codigo montado: editas y Streamlit recarga solo (sin rebuild)
     ports:
       - "8501:8501"
 

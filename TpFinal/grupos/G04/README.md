@@ -6,15 +6,18 @@ Pipeline de datos end-to-end sobre la **API pública de CityBikes**, con arquite
 pipeline arranca solo.
 
 ## Integrantes
-- Nombre Apellido — @usuario-github
-- Nombre Apellido — @usuario-github
-- _(completar)_
+- Di Lacio, Lautaro — @DiLacio-Lautaro
+- Lust, Tobias — @lust-tobias
+- Melograna, Federico — @Melograma-Federico
+- Quinteros Amicone, Lautaro — @Quinteros-Lautaro
+- Rial, Alejo — @Alejo-Rial
+- Romero, Manuel — @romero-rodrigo
 
 ## API elegida
 - **CityBikes** — `https://api.citybik.es/v2`
 - Sin autenticación. Rate limit: 300 req/hora. Refresh real: cada 2–5 min.
 - Endpoints usados: `GET /v2/networks/{id}?fields=name,location,stations`.
-- Redes trackeadas (configurable en `.env`): `ecobici` (Buenos Aires), `bicing` (Barcelona),
+- Redes trackeadas (configurable en `.env`): `ecobici` (Ciudad de México), `bicing` (Barcelona),
   `divvy` (Chicago).
 
 ## Pregunta de negocio
@@ -27,7 +30,7 @@ comparación entre ciudades, e identifica las estaciones más críticas.
 **Bronze** — `bronze.citybikes_stations_raw`: una fila por estación × snapshot con el objeto
 JSON crudo (`station_payload JSONB`) + identificadores y `ingested_at`. Datos tal como llegan.
 
-**Silver** — `silver.station_status`: aplanado, tipado y validado. Métricas por snapshot:
+**Silver** — `silver.station_status`: aplanado, tipado, validado y filtrado de estaciones inactivas. Métricas por snapshot:
 `free_bikes`, `empty_slots`, `total_slots`, `occupancy_rate`, flags `is_empty`/`is_full`. PK
 `(station_id, snapshot_at)`. Incremental por watermark sobre `ingested_at`.
 
@@ -46,6 +49,7 @@ JSON crudo (`station_payload JSONB`) + identificadores y `ingested_at`. Datos ta
 - **Transformaciones en SQL sobre JSONB**: limpieza y agregación se hacen en Postgres
   (eficiente y declarativo).
 - **`empty_slots` puede ser `null`** → se normaliza en Silver.
+- **Descartamos estaciones inactivas**: Divvy/EcoBici marcan `extra.renting = 0` y Bicing `extra.online = false` cuando no operan (~418 filas en la corrida de prueba). Se filtran en Silver para que las métricas de *sin bicis* / *saturada* reflejen solo estaciones operativas — una estación cerrada no es lo mismo que una que se quedó sin bicis.
 
 ## DAGs (Airflow 3.1.5, Task SDK)
 Los tres con `is_paused_upon_creation=False` y `schedule` definido (arrancan solos).
@@ -58,11 +62,24 @@ Los tres con `is_paused_upon_creation=False` y `schedule` definido (arrancan sol
 
 ## Cómo levantar el stack
 
-```bash
-# 1. Copiar variables de entorno
-cp .env.example .env
+> **Requisito:** tener **Docker Desktop** abierto y corriendo.
 
-# 2. Levantar todo
+**Opción A — un solo comando (recomendado, no hay nada que olvidarse):**
+
+```bash
+# Windows (PowerShell), parado en esta carpeta:
+.\run.ps1
+# Mac / Linux:
+./run.sh
+```
+
+El script crea el `.env` solo (si falta) y levanta todo.
+
+**Opción B — manual (3 pasos):**
+
+```bash
+cd TpFinal/grupos/G04
+cp .env.example .env          # Windows: copy .env.example .env   ← ¡NO te lo saltees!
 docker compose up --build
 ```
 
@@ -79,6 +96,17 @@ Accesos:
 Una vez arriba, los datos empiezan a aparecer en minutos: Bronze a los ~5 min, Silver a los
 ~10 min, Gold a los ~15 min. El dashboard se va poblando a medida que Gold tiene datos.
 
+### Si algo falla
+
+- **`Database is uninitialized ... must specify POSTGRES_PASSWORD`** → falta el archivo `.env`.
+  Corré `cp .env.example .env` (o usá `run.ps1` / `run.sh`) y volvé a levantar.
+- **Puertos ocupados (`8080` / `8501` / `5433`)** → tenés el stack del curso levantado en paralelo.
+  Apagalo, o cambiá los mapeos de puertos en `docker-compose.yml`.
+- **PowerShell bloquea `run.ps1`** (`running scripts is disabled`) →
+  `powershell -ExecutionPolicy Bypass -File .\run.ps1`, o usá la Opción B manual.
+- **Empezar de cero** (borrar los datos y re-crear la DB con `init.sql`) →
+  `docker compose down -v` y después `docker compose up`.
+
 ## Estructura
 ```
 TpFinal/grupos/G04/
@@ -94,10 +122,13 @@ TpFinal/grupos/G04/
 │   └── 03-gold/citybikes_gold.py
 └── dashboard/
     ├── Dockerfile
-    ├── app.py
-    ├── db.py
+    ├── app.py              # router (st.navigation) + estilos + barra lateral
+    ├── ui.py               # estilos de marca (CSS) + header/panel + sidebar
+    ├── db.py               # conexión + queries cacheadas
     ├── requirements.txt
-    └── pages/1_Gold.py
+    └── views/
+        ├── inicio.py       # vista de inicio (arquitectura + pipeline en números)
+        └── gold.py         # vista Gold (KPIs, mapa, patrón, críticas, comparación)
 ```
 
 > Fuente de datos: CityBikes API (https://citybik.es) — capa de display de PyBikes.

@@ -1,7 +1,8 @@
 """
 DAG Silver — CityBikes
 Toma lo nuevo de Bronze (watermark sobre ingested_at), aplana el JSON,
-valida, tipa y calcula metricas por snapshot -> silver.station_status.
+valida, tipa, descarta estaciones inactivas (no operativas) y calcula
+metricas por snapshot -> silver.station_status.
 
 Schedule: cada 10 min. Activo por default. Idempotente (ON CONFLICT DO NOTHING).
 """
@@ -57,6 +58,8 @@ WITH src AS (
         NULLIF(b.station_payload->>'empty_slots','')::int       AS empty_slots,
         NULLIF(b.station_payload->'extra'->>'ebikes','')::int   AS ebikes,
         (b.station_payload->'extra'->>'has_ebikes')::boolean    AS has_ebikes,
+        NULLIF(b.station_payload->'extra'->>'renting','')        AS renting_flag,
+        lower(b.station_payload->'extra'->>'online')            AS online_flag,
         b.ingested_at                                           AS snapshot_at
     FROM bronze.citybikes_stations_raw b
     WHERE b.ingested_at > :watermark
@@ -83,6 +86,10 @@ WHERE free_bikes IS NOT NULL
   AND longitude IS NOT NULL
   AND latitude  BETWEEN -90 AND 90
   AND longitude BETWEEN -180 AND 180
+  -- solo estaciones OPERATIVAS: descarta inactivas (renting=0 en Divvy/EcoBici, online=false en Bicing).
+  -- COALESCE => si la red no reporta el campo, la estacion se conserva.
+  AND COALESCE(renting_flag, '1')   <> '0'
+  AND COALESCE(online_flag, 'true') <> 'false'
 ON CONFLICT (station_id, snapshot_at) DO NOTHING
 """)
 
