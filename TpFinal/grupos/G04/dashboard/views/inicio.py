@@ -43,20 +43,28 @@ g.markdown(_capa("#C9A227", "3", "Gold",
                  "Modelo de <b>negocio</b>: dimensiones + agregados por estación y hora. Es lo único que "
                  "consume el dashboard."), unsafe_allow_html=True)
 
-# ---------- El pipeline en números ----------
+# ---------- Estado del sistema EN VIVO (mismos KPIs que la presentación) ----------
 st.write("")
-panel("El pipeline en números", "Datos reales cargados ahora mismo en las tablas Gold")
+panel("El estado del sistema, en vivo", "Totales de las 3 ciudades · se actualizan con el pipeline (cada pocos minutos)")
 try:
     df = run_query("""
-        SELECT (SELECT count(*) FROM gold.station_current)     AS estaciones,
+        SELECT count(*)                                   AS estaciones,
+               COALESCE(sum(free_bikes), 0)               AS bicis,
+               ROUND(100.0*AVG((free_bikes = 0)::int), 1)  AS pct_vacias,
+               ROUND(100.0*AVG((empty_slots = 0)::int), 1) AS pct_llenas,
                (SELECT count(*) FROM gold.dim_network)         AS redes,
-               (SELECT count(*) FROM gold.fact_station_hourly) AS filas_hora
+               (SELECT count(*) FROM gold.fact_station_hourly) AS filas
+        FROM gold.station_current
     """)
     if not df.empty and int(df.loc[0, "estaciones"]) > 0:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Estaciones", f"{int(df.loc[0, 'estaciones']):,}".replace(",", "."))
-        c2.metric("Redes (ciudades)", int(df.loc[0, "redes"]))
-        c3.metric("Filas estación·hora", f"{int(df.loc[0, 'filas_hora']):,}".replace(",", "."))
+        r = df.loc[0]
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("Estaciones", f"{int(r['estaciones']):,}".replace(",", "."))
+        k2.metric("Bicis disponibles", f"{int(r['bicis']):,}".replace(",", "."))
+        k3.metric("% sin bicis", f"{float(r['pct_vacias']):.0f}%", help="Estaciones con 0 bicis (las 3 ciudades)")
+        k4.metric("% saturadas", f"{float(r['pct_llenas']):.0f}%", help="Estaciones sin ningún lugar libre")
+        st.caption(f"Sobre {int(r['redes'])} redes (ciudades) · "
+                   f"{int(r['filas']):,} filas estación·hora acumuladas".replace(",", "."))
     else:
         st.info("Todavía no hay datos en Gold. El pipeline tarda unos minutos en poblar las tablas. Esperá y refrescá.")
 except Exception as exc:  # noqa: BLE001
