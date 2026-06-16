@@ -80,7 +80,7 @@ El script crea el `.env` solo (si falta) y levanta todo.
 
 ```bash
 cd TpFinal/grupos/G04
-cp .env.example .env          # Windows: copy .env.example .env   ← ¡NO te lo saltees!
+cp .env.example .env          # Windows: copy .env.example .env  
 docker compose up --build
 ```
 
@@ -101,7 +101,7 @@ Una vez arriba, los datos empiezan a aparecer en minutos: Bronze a los ~5 min, S
 
 - **`Database is uninitialized ... must specify POSTGRES_PASSWORD`** → falta el archivo `.env`.
   Corré `cp .env.example .env` (o usá `run.ps1` / `run.sh`) y volvé a levantar.
-- **Puertos ocupados (`8080` / `8501` / `5433`)** → tenés el stack del curso levantado en paralelo.
+- **Puertos ocupados (`8080` / `8501` / `5433`)** →  stack del curso levantado en paralelo.
   Apagalo, o cambiá los mapeos de puertos en `docker-compose.yml`.
 - **PowerShell bloquea `run.ps1`** (`running scripts is disabled`) →
   `powershell -ExecutionPolicy Bypass -File .\run.ps1`, o usá la Opción B manual.
