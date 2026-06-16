@@ -44,7 +44,7 @@ Estructura de cada **station**:
 ### Decisiones que nacen de la API
 1. **Trackear un set fijo de redes**, no las 560. Lo definimos por `.env` (`CITYBIKES_NETWORKS`).
    Recomendado: 2–4 redes para poder comparar ciudades/zonas en el dashboard.
-   Ej: `ecobici` (Buenos Aires), `bicing` (Barcelona), `divvy` (Chicago).
+   Ej: `ecobici` (Ciudad de México), `bicing` (Barcelona), `divvy` (Chicago).
 2. **Eje temporal = nuestro `ingested_at`**, no el `timestamp` de la API (ese campo viene
    con microsegundos sin punto y `Z` después del offset → no parsea limpio). El `timestamp`
    de la API se guarda igual en Bronze como dato crudo, pero no se usa como reloj.

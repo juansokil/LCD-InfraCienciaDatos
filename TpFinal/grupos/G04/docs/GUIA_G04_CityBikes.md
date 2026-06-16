@@ -11,6 +11,8 @@ Tomamos datos **en vivo** de la API pública de **CityBikes** (estado de estacio
 
 La pregunta de negocio que respondemos: **¿qué estaciones se saturan o se quedan sin bicis, y a qué horas del día?**
 
+**Nuestro hallazgo (la respuesta):** entre las 3 ciudades, **Chicago es la más crítica** (~43% de sus estaciones se quedan sin bicis), mientras que **Barcelona es la más equilibrada** (~12%). El problema dominante es la **falta de bicis**, no la saturación. *(Son datos en vivo: el número exacto cambia, pero el ranking se mantiene.)*
+
 ---
 
 ## 2. Arquitectura general
@@ -51,9 +53,9 @@ Por qué dos Postgres: el de Airflow guarda su propio estado interno (runs, logs
 - **Refresh real:** la disponibilidad cambia cada **2–5 minutos**.
 - **Endpoint que usamos:** `GET /v2/networks/{id}?fields=name,location,stations`
 - **Redes que trackeamos** (configurable en `.env`, variable `CITYBIKES_NETWORKS`):
-  - `ecobici` → Buenos Aires
-  - `bicing` → Barcelona
-  - `divvy` → Chicago
+  - `ecobici` → **Ciudad de México** (¡ojo! NO es Buenos Aires — lo confirmamos con los datos reales)
+  - `bicing` → **Barcelona**
+  - `divvy` → **Chicago**
 
 Cada respuesta trae, por red, la lista de estaciones con: nombre, latitud/longitud, `free_bikes` (bicis disponibles), `empty_slots` (lugares libres) y campos extra.
 
@@ -120,10 +122,12 @@ Están en `dags/`, uno por capa. Todos usan el **Task SDK de Airflow 3** (`from 
 
 ## 6. El dashboard (Streamlit)
 
-Carpeta `dashboard/`. Estructura:
-- `app.py` — página de inicio + chequeo de salud (cuántas filas hay en Gold).
+Carpeta `dashboard/`. Estructura (usa `st.navigation`: un router + vistas, por eso las transiciones son suaves):
+- `app.py` — **router**: inyecta estilos + barra lateral una sola vez y enruta a las vistas.
+- `ui.py` — estilos de marca (CSS), encabezados, tablas y la barra lateral con íconos.
 - `db.py` — conexión reutilizable al warehouse (cachea queries 60s).
-- `pages/1_Gold.py` — las vistas de negocio.
+- `views/inicio.py` — inicio: arquitectura + **KPIs en vivo** (totales de las 3 ciudades).
+- `views/gold.py` — vistas de negocio: mapa, dona, patrón por hora, estaciones críticas y comparación.
 
 **Regla importante:** el dashboard consume **solo el schema `gold`**. Nunca lee Bronze ni Silver (eso es "backend" del pipeline). Esto es algo que el docente puede preguntar.
 
@@ -186,6 +190,36 @@ Dejá la terminal abierta; vas a ver los logs de los 4 servicios.
 docker compose logs airflow | grep -i password
 ```
 
+### Conectarse a la base de datos con DBeaver (PASO A PASO)
+
+> Esto es lo que a varios les pidió "usuario y contraseña" y no sabían qué poner. Acá están **los datos exactos**.
+
+El stack tiene que estar **levantado** (`docker compose up` corriendo). En DBeaver:
+
+1. **Database → New Database Connection** → elegí **PostgreSQL** → *Next*.
+2. Completá los campos así (salen del `.env`):
+
+   | Campo | Valor |
+   |---|---|
+   | **Host** | `localhost` |
+   | **Port** | `5433`  ← ⚠️ **NO 5432**. El warehouse se mapea a 5433 en tu máquina. |
+   | **Database** | `citybikes` |
+   | **Username** | `cb_user` |
+   | **Password** | `changeme` |
+
+3. (Opcional) Tildá **"Save password"** para no escribirla cada vez.
+4. **Test Connection** → si dice *Connected*, *Finish*.
+5. Para ver las tablas: en el árbol → **citybikes → Schemas → `bronze` / `silver` / `gold` → Tables**.
+
+> 🔴 **El error típico** (el que les pasó) es poner el puerto **5432**. Tiene que ser **5433** (en `docker-compose.yml` dice `"5433:5432"`: el 5432 es interno del contenedor, el 5433 es el de tu máquina). Y la base/usuario/clave salen del `.env` — si nunca lo creaste, corré `run.ps1` o `cp .env.example .env`.
+
+Sin DBeaver, con **psql** desde otra terminal:
+```bash
+docker compose exec warehouse psql -U cb_user -d citybikes
+# o, si tenés psql instalado en tu máquina:
+psql -h localhost -p 5433 -U cb_user -d citybikes     # password: changeme
+```
+
 ### Verificar que el pipeline funciona
 
 1. Entrá a **Airflow** (8080): deberías ver los 3 DAGs **activos** (no en pausa) y, con el correr de los minutos, corridas en verde.
@@ -220,6 +254,11 @@ docker compose down -v      # además borra los volúmenes (empieza de cero)
 - **¿Por qué dos bases Postgres?** Una para metadatos de Airflow, otra para los datos del negocio: aislamiento y prolijidad.
 - **¿Qué pasa si la API falla o cambia?** Bronze captura un warning por red caída sin romper el DAG; el resto sigue. Como guardamos crudo, podemos reprocesar.
 - **¿Por qué el eje temporal es `ingested_at`?** El `timestamp` de la API era inconsistente; usamos el momento de ingesta, que controlamos nosotros.
+- **¿Qué son EcoBici, Bicing y Divvy?** Tres sistemas de bici pública, uno por ciudad: **EcoBici → Ciudad de México**, **Bicing → Barcelona**, **Divvy → Chicago**. Los tres se consultan por la misma API de CityBikes.
+- **¿Por qué solo 3 ciudades? ¿No les pidieron más?** No nos pidieron un número (la consigna da "ideas orientativas, no requisitos"). Elegimos 3 a propósito: para **comparar** ciudades y para quedar **bajo el rate limit** (300 req/h; con 3 redes usamos ~36).
+- **Si agregaran más ciudades, ¿hay que cambiar el código?** No. El pipeline es **genérico**: las redes salen de la variable `CITYBIKES_NETWORKS` del `.env`, y cada tabla separa las ciudades por la columna `network_id`. Agregar ciudades = cambiar el `.env`, sin tocar capas ni SQL.
+- **¿Los datos son en vivo?** Sí: el **dashboard** consulta la base que el pipeline actualiza cada pocos minutos → los números cambian solos. El **PDF de la presentación** es una foto fija (no se actualiza, es lo normal).
+- **¿Cuál fue el hallazgo?** Chicago es la ciudad más crítica (~43% de estaciones sin bicis); Barcelona la más equilibrada (~12%). El problema dominante es la falta de bicis.
 
 ---
 
@@ -248,3 +287,40 @@ Como todos tienen que poder responder, conviene que cada uno domine una parte pe
 5. **Dificultades, decisiones y arranque automático** (diapo 6)
 
 Tip: tengan el stack **ya levantado** antes de empezar para que el dashboard tenga datos durante la demo.
+
+---
+
+## 13. Mapa de archivos — qué hace cada uno
+
+| Archivo | Qué hace |
+|---|---|
+| `docker-compose.yml` | Define los **4 servicios** (warehouse, airflow_db, airflow, dashboard), puertos y volúmenes. |
+| `Dockerfile` | Imagen de Airflow (base `apache/airflow:3.1.5` + deps de `requirements.txt`). |
+| `init.sql` | Crea los schemas `bronze`/`silver`/`gold` y **todas las tablas** al arrancar el warehouse. |
+| `requirements.txt` | Dependencias Python de Airflow (pandas, sqlalchemy, requests…). |
+| `.env.example` → `.env` | Variables: credenciales del warehouse + `CITYBIKES_NETWORKS` (las 3 redes). |
+| `run.ps1` / `run.sh` | Levantan todo con **un comando** (crean el `.env` si falta + `docker compose up`). |
+| `dags/citybikes_common.py` | Config compartida: lista de redes (del `.env`) + conexión al warehouse. |
+| `dags/01-bronze/citybikes_bronze.py` | **DAG Bronze**: baja el JSON crudo de la API a `bronze` (cada 5 min). |
+| `dags/02-silver/citybikes_silver.py` | **DAG Silver**: aplana/tipa/valida y descarta inactivas → `silver` (cada 10 min). |
+| `dags/03-gold/citybikes_gold.py` | **DAG Gold**: dimensiones + hecho horario + foto actual → `gold` (cada 15 min). |
+| `dashboard/app.py` | **Router** del dashboard (`st.navigation`) + estilos + barra lateral. |
+| `dashboard/ui.py` | Estilos de marca (CSS), encabezados, tablas y sidebar con íconos. |
+| `dashboard/db.py` | Conexión al warehouse, cacheada (60s). |
+| `dashboard/views/inicio.py` | Inicio: arquitectura + KPIs en vivo (totales de las 3 ciudades). |
+| `dashboard/views/gold.py` | Vistas de negocio: mapa, dona, patrón por hora, críticas, comparación. |
+| `dashboard/.streamlit/config.toml` | Tema visual del dashboard (colores, fuente). |
+| `docs/presentacion_G04_CityBikes.{html,pdf}` | La presentación (6 diapositivas). |
+| `docs/GUIA_G04_CityBikes.md` | **Esta guía** (estudio + defensa + paso a paso). |
+| `docs/DISENO_G04_CityBikes.md` | Documento de diseño del proyecto. |
+
+---
+
+## 14. Checklist 1 minuto antes de exponer
+
+- [ ] **Docker Desktop abierto** y el stack **levantado hace ≥20 min** (que Gold tenga datos).
+- [ ] Dashboard abre en http://localhost:8501 (probá **Inicio** y **Gold**).
+- [ ] Tenés a mano la contraseña de Airflow (`docker compose logs airflow | grep -i password`) por si la piden.
+- [ ] La **presentación (PDF)** subida al campus.
+- [ ] El **PR** marcado **"Ready for review"** (la entrega formal).
+- [ ] Cada integrante leyó esta guía y puede responder al menos la sección 10 (Q&A).

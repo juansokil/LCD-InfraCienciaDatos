@@ -24,7 +24,7 @@ TP Final - G04 - CityBikes
 
 **API elegida**
 - CityBikes — https://api.citybik.es/v2 (sin autenticación; refresh cada 2–5 min)
-- Redes trackeadas: EcoBici (Buenos Aires), Bicing (Barcelona), Divvy (Chicago)
+- Redes trackeadas: EcoBici (Ciudad de México), Bicing (Barcelona), Divvy (Chicago)
 
 **Idea Gold (pregunta de negocio)**
 ¿Qué estaciones se saturan o se quedan sin bicis, y a qué horas del día? El dashboard sobre las tablas Gold muestra KPIs en vivo, mapa de disponibilidad, patrón de ocupación por hora, ranking de estaciones críticas y comparación entre ciudades.
