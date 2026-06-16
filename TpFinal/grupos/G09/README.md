@@ -10,8 +10,6 @@
 - **Nombre**: USGS Earthquake Catalog / Real-time Earthquake Feeds
 - **URL**: https://earthquake.usgs.gov/earthquakes/feed/
 - **Descripcion**: API publica de eventos sismicos en formato GeoJSON. Devuelve terremotos recientes con magnitud, ubicacion, profundidad, tiempo del evento, ultima actualizacion, intensidad reportada/estimada y metadatos de impacto.
-- **Auth**: Sin autenticacion.
-- **Refresh**: Tiempo real.
 - **Frecuencia del pipeline**: cada 15 minutos (`*/15 * * * *`), para capturar eventos recientes sin sobreconsultar la API.
 
 ## Pregunta de negocio
@@ -119,13 +117,4 @@ docker compose up -d --build
 - DAG Silver: `usgs_earthquakes_silver`.
 - DAG Gold: `usgs_earthquakes_gold`.
 - Dashboard inicial sobre tablas Gold.
-
 Los tres DAGs tienen `schedule="*/15 * * * *"` e `is_paused_upon_creation=False`.
-
-## Proximo hito
-
-1. Levantar el stack con Docker.
-2. Verificar que Airflow detecte los tres DAGs.
-3. Ejecutar Bronze, Silver y Gold.
-4. Confirmar datos en `bronze.usgs_earthquakes_raw`, `silver.earthquakes` y `gold.earthquake_risk_summary`.
-5. Ajustar visualizaciones del dashboard con datos reales.
