@@ -1,7 +1,6 @@
 services:
   airflow:
     build: .
-    container_name: g09_airflow
     env_file: .env
     environment:
       - AIRFLOW_UID=${AIRFLOW_UID:-0}
@@ -16,7 +15,6 @@ services:
         source: ./dags
         target: /opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
-      - airflow_plugins:/opt/airflow/plugins
     ports:
       - "8080:8080"
     depends_on:
@@ -24,18 +22,13 @@ services:
         condition: service_healthy
       data_warehouse:
         condition: service_healthy
-    restart: "no"
-    networks:
-      - g09_network
 
   airflow_db:
     image: postgres:17-alpine
-    container_name: g09_airflow_db
     environment:
       - POSTGRES_USER=${AF_DB_USER}
       - POSTGRES_PASSWORD=${AF_DB_PASS}
       - POSTGRES_DB=${AF_DB_NAME}
-      - POSTGRES_HOST_AUTH_METHOD=trust
     volumes:
       - airflow_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -43,16 +36,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    restart: "no"
-    networks:
-      - g09_network
 
   data_warehouse:
-    build:
-      context: .
-      dockerfile: Dockerfile.postgres
-    image: g09_data_warehouse:custom
-    container_name: g09_data_warehouse
+    image: postgres:17-alpine
     environment:
       - POSTGRES_USER=${SOURCE_DB_USER}
       - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
@@ -66,35 +52,19 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: "no"
-    networks:
-      - g09_network
 
   dashboard:
     build: ./dashboard
-    container_name: g09_dashboard
     env_file: .env
     environment:
       - SOURCE_DB_HOST=data_warehouse
     ports:
       - "8501:8501"
-    volumes:
-      - ./dashboard/pages:/app/pages
     depends_on:
       data_warehouse:
         condition: service_healthy
-    restart: "no"
-    networks:
-      - g09_network
 
 volumes:
   airflow_db_data:
   airflow_logs:
-  airflow_plugins:
   data_warehouse_data:
-
-networks:
-  g09_network:
-    name: g09_network
-    driver: bridge
-
