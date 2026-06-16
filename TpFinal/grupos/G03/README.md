@@ -1,6 +1,3 @@
-Descargá el archivo actualizado acá:
-
-README_actualizado.md
 # 🌦️ TP Final - Grupo 03
 
 ## Infraestructura para Ciencia de Datos - UNSAM
