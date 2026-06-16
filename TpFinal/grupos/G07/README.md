@@ -49,31 +49,90 @@ En esta capa se aplican estrictas reglas de calidad impulsadas de manera declara
 * **Quarantine Table:** Los registros que violan las reglas de negocio (ej. cantidades negativas de bicicletas o coordenadas anómalas) se aíslan en `silver.quarantine` para no contaminar la capa analítica.
 * **Integridad Físico-Lógica:** Generación dinámica de Claves Primarias (PK) y Foráneas (FK) en PostgreSQL.
 * **Enriquecimiento Geográfico:** Cruce espacial de los datos con el archivo semilla `station_barrios.csv` para anexar barrio y comuna a cada estación.
-* **Métricas Derivadas:** Cálculo del porcentaje de ocupación (`occupancy_pct`) fila a fila para cada snapshot.
+* **Métricas Derivadas:** Cálculo del porcentaje de disponibilidad (`free_bikes_pct`) fila a fila para cada snapshot.
+* **Historicidad:** Implementación de SCD de tipo 2 para preservar registros del pasado (relevantes para entender la evolución de la red en el tiempo).
+* **Evolución del contrato:** Las nuevas columnas definidas en el contrato se incorporan automáticamente sin necesidad de recrear tablas.
 
-* **Evolución del contrato:** las nuevas columnas definidas en el contrato se incorporan automáticamente sin necesidad de recrear tablas.
-  
+**Diagrama Entidad Relación.**
+
+```mermaid 
+erDiagram
+    NETWORKS ||--|{ STATIONS : "Tiene"
+    STATIONS ||--|{ STATION_AVAILABILITY : "Registra"
+    SNAPSHOTS ||--|{ NETWORKS : "Contiene"
+    NETWORKS ||--|{ STATION_AVAILABILITY : "Tiene"
+
+    STATIONS {
+        string station_id PK
+        string ds PK
+        string network_id FK
+        string name
+        float latitude
+        float longitude
+        string barrio
+        int comuna
+        string ingested_at
+    }
+
+    NETWORKS {
+        string network_id PK
+        string ds PK
+        string name
+        string city
+        string country
+        float latitude
+        float longitude
+        string href
+        string ingested_at
+    }
+
+    STATION_AVAILABILITY {
+        string ts PK
+        string station_id FK
+        string network_id FK
+        int free_bikes
+        int empty_slots
+        float free_bikes_pct
+        string ds
+        string ingested_at
+    }
+
+    SNAPSHOTS {
+        string snapshot_id PK
+        string ts PK
+        string network_id
+        string endpoint
+        int status_code
+        string ingested_at
+        string ds
+    }
+```
+
 ### Gold
 
-La capa Gold expone un modelo dimensional (Esquema Estrella) estructurado específicamente para alimentar el dashboard en Streamlit, definido mediante `gold_contracts.yaml`. 
+La capa Gold expone un modelo dimensional (Esquema Estrella) estructurado específicamente para alimentar el dashboard en Streamlit, definido mediante `gold_contracts.yaml`. ([Ver contrato Gold](./data/contracts/gold_contracts.yaml)).
 
 **Modelo Dimensional:**
 * **Dimensiones:** `dim_time` (desglose temporal granular), `dim_zona` (barrio y comuna) y `dim_estacion` (atributos estáticos y ubicación).
-* **Hechos (Facts):**
-    * `fact_estado_actual_estacion`: Tabla de última milla (último snapshot) para monitoreo operativo y mapas en tiempo real.
-    * `fact_ocupacion_por_hora`: Tabla histórica agregada por hora que evalúa promedios y calcula el % de tiempo en "estado crítico" (saturación o desabastecimiento).
 * **Métricas principales expuestas por las tablas de hechos:**
     * Bicicletas promedio disponibles por hora.
     * Slots promedio disponibles por hora.
-    * Ocupación promedio.
-    * Porcentaje de tiempo en estado crítico.
-    * Frecuencia de saturación y desabastecimiento.
+    * Disponibilidad promedio de bicicletas (%).
+    * Porcentaje de tiempo flageada como: 1) "devolución" (más slots libres); 2) "alquiler" (más bicicletas disponibles); 3) "equilibrada" (biciletas disponibles ~= slots libres).
+* **Hechos (Facts):**
+    * `fact_estado_actual_estacion`: Tabla de "última milla" (último snapshot) para monitoreo operativo y mapas en tiempo real.
+    * `fact_ocupacion_por_hora`: Tabla histórica agregada por: 
+      * las cantidades promedio de bicicletas y de slots por estación (`free_bikes_promedio` y `empty_slots_promedio`); 
+      * los porcentajes promedio, máximo y mínimo de disponibilidad de bicicletas (`free_bikes_pct_promedio`, `free_bikes_pct_maxima` y `free_bikes_pct_minimo`); 
+      * y los porcentajes en que cada estación fue "flageada" como "devolución", "equilibrada" y "alquiler" (`porcentaje_tiempo_devolucion`, `porcentaje_tiempo_equilibrada` y `porcentaje_tiempo_alquiler`).
+
 
 **Preguntas de negocio que responde el Dashboard:**
-1.  **¿Cuál es el estado operativo actual de la red?** (Bicicletas libres, slots vacíos y estaciones monitoreadas).
+1.  **¿Cuál es el estado operativo actual de la red?** (Bicicletas disponibles, slots libres y estaciones monitoreadas).
 2.  **¿En qué momentos del día varía la disponibilidad?** (Patrón horario de ocupación promedio).
-3.  **¿Qué zonas de la ciudad requieren más atención?** (Ocupación y estaciones críticas agrupadas por barrio/comuna).
-4.  **¿Qué estaciones presentan fallas recurrentes?** (Ranking Top 10 de "puntos ciegos" con problemas crónicos de saturación o vaciado).
+3.  **¿Qué zonas tienen más disponibilidad de bicicletas?** (Ranking discriminado por "Barrio" o "Comuna").
+4.  **¿Cuál es el perfil funcional de cada estación?** (Ranking Top 10 de estaciones que tengan un perfil funcional más consistente en el tiempo).
+
 
 ---
 
@@ -86,7 +145,7 @@ docker compose up -d --build
 # Esperar ~30s a que Airflow termine de inicializar
 ```
 **Accesos**:
-- Airflow UI: http://localhost:8080 (`admin` / `admin`)
+- Airflow UI: http://localhost:8081 (`admin` / `admin`)
 - Dashboard (Gold): http://localhost:8501
 - Postgres: `localhost:5432` (user/pass en `.env`)
 
@@ -98,5 +157,5 @@ docker compose down -v         # apaga y BORRA volumenes (cuidado)
 
 ## Estructura del proyecto
 
-Ver la seccion **"Esqueleto de entrega"** en [`TpFinal/README.md`](../../README.md)
+Ver la sección **"Esqueleto de entrega"** en [`TpFinal/grupos/README.md`](../README.md)
 
