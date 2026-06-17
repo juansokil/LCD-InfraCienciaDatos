@@ -1,0 +1,7 @@
+Apellido: Romero
+Nombre: Elias
+Motor: duckdb
+Tabla Bronze: bronze.crypto_markets_demo
+Filas cargadas: 50
+Codigo: 44209C195CEB
+Fecha: 2026-06-11

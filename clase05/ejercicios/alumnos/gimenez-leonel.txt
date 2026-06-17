@@ -1,0 +1,18 @@
+Apellido: Gimenez
+Nombre: Leonel
+Motor: postgres
+Northwind: 0/8 tablas
+Customers: 0 filas
+Orders: 0 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=8D5395BC
+  G2: OK (10x2) h=AB306873
+  G3: OK (8x4) h=20BF7E42
+  G4: OK (4x2) h=C1895248
+  G5: OK (23x2) h=5408459C
+  G6: OK (3x2) h=3F892DEB
+  G7: ERROR:ProgrammingError (0x0) h=-
+  G8: OK (8x3) h=BE19C4D8
+Ejercicios con resultado: 7 / 8
+Codigo: 99B58F5998D0
+Fecha: 2026-06-11
