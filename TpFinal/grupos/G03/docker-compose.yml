@@ -36,7 +36,7 @@ services:
 
   # 🔹 Airflow Webserver (UI)
   airflow:
-    image: apache/airflow:3.0.0
+    image: apache/airflow:2.9.3
     container_name: g03_airflow
     depends_on:
       airflow_db:
@@ -61,7 +61,7 @@ services:
 
   # 🔹 Airflow Scheduler
   airflow_scheduler:
-    image: apache/airflow:3.0.0
+    image: apache/airflow:2.9.3
     container_name: g03_airflow_scheduler
     depends_on:
       airflow_db:
