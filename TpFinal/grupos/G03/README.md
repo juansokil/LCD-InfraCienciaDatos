@@ -857,12 +857,7 @@ FROM gold.dim_tiempo;
 
 ```sql
 SELECT COUNT(*)
-FROM gold.fact_clima_real;
-```
-
-```sql
-SELECT COUNT(*)
-FROM gold.fact_pronostico;
+FROM gold.fact_clima_diario;
 ```
 
 Estado real:
