@@ -1,7 +1,7 @@
 # TP Final - G10 
 ## Integrantes
 
-- Alejo Trenti (@alejotrenti)
+- Alejo Trenti 
 - Abigail Lezcano Garcia
 - Nicolas Ezequiel Lombisano
 - Thiago Daian Sosa Elizaincin
@@ -18,66 +18,75 @@
 
 ## Modelo de datos
 
-### Bronze
+---
 
-Tabla: `weather_raw`
+## 🥉 Bronze Layer
 
-Se almacenan los datos obtenidos directamente desde la API sin realizar modificaciones.
+**Tabla:** `bronze.weather_raw`
 
-Columnas principales:
+Se almacenan los datos crudos tal como llegan desde la API.
 
-* city
-* api_response (JSON completo)
-* ingested_at
+**Campos:**
+- city
+- api_response (JSON completo)
+- ingested_at
 
-Objetivo: conservar una copia de los datos originales para auditoría y trazabilidad.
+**Objetivo:**  
+Tener trazabilidad completa de los datos originales.
 
-### Silver
+---
 
-Tabla: `weather`
+## 🥈 Silver Layer
 
-Se realiza la limpieza y transformación de los datos obtenidos en Bronze.
+**Tabla:** `silver.weather`
 
-Columnas principales:
+Se realiza limpieza y estructuración del JSON.
 
-* city
-* observation_time
-* temperature
-* humidity
-* wind_speed
-* ingested_at
+**Campos principales:**
+- city
+- temperature
+- precipitation
+- windspeed
+- timestamp
+- ingested_at
 
-Transformaciones aplicadas:
+**Transformaciones:**
+- Parseo del JSON
+- Conversión de tipos
+- Eliminación de valores nulos
+- Normalización de estructura
 
-* Extracción de los datos relevantes desde el JSON.
-* Conversión de fechas al formato timestamp.
-* Validación de tipos de datos.
-* Eliminación de registros incompletos.
+---
 
-Objetivo: disponer de datos limpios y estructurados para análisis.
+## 🥇 Gold Layer
 
-### Gold
+**Tabla:** `gold.weather_summary`
 
-Tabla de hechos: `fact_clima_diario`
+Tabla agregada por ciudad para análisis.
 
-Dimensiones:
+**Columnas:**
 
-* `dim_ciudad`
-* `dim_tiempo`
+- city  
+- avg_temp_max  
+- avg_temp_min  
+- max_temp_max  
+- min_temp_min  
+- total_precipitation  
+- rainy_days  
 
-Métricas principales:
+---
 
-* temperatura_promedio
-* temperatura_maxima
-* temperatura_minima
-* humedad_promedio
-* velocidad_viento_promedio
+## 📊 Pregunta de negocio
 
-Pregunta de negocio:
+> ¿Cómo varían las condiciones climáticas entre distintas ciudades argentinas?
 
-¿Cómo varían las condiciones climáticas entre distintas ciudades argentinas a lo largo del tiempo?
+El objetivo del dashboard es comparar:
+- temperaturas promedio
+- extremos térmicos
+- precipitaciones
+- cantidad de días lluviosos
 
-El dashboard permitirá comparar temperaturas, humedad y velocidad del viento entre ciudades mediante gráficos y métricas resumidas.
+---
 
 ## Como levantar el stack
 
@@ -91,12 +100,12 @@ docker compose up -d --build
 **Accesos**:
 - Airflow UI: http://localhost:8080 (`admin` / `admin`)
 - Dashboard (Gold): http://localhost:8501
-- Postgres: `localhost:5432` (user/pass en `.env`)
+- Postgres: `localhost:5432`
 
 **Apagar**:
 ```bash
 docker compose down            # apaga, conserva datos
-docker compose down -v         # apaga y BORRA volumenes (cuidado)
+docker compose down -v         # apaga y elimina volúmenes
 ```
 
 ## Estructura del proyecto
