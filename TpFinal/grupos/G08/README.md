@@ -29,7 +29,7 @@ Open-Meteo API -> Bronze -> Silver -> Gold -> Dashboard Streamlit
 
 ### Bronze
 
-Se guardaran respuestas crudas de la API de Open-Meteo para un conjunto de ciudades seleccionadas, junto con metadatos de auditoria como fecha de ingesta, ciudad, coordenadas y fuente.
+El DAG `g08_openmeteo_bronze` consulta Open-Meteo cada hora para Buenos Aires, Cordoba y Mendoza. Guarda la respuesta cruda en `bronze.weather_raw` con ciudad, coordenadas, JSON original e instante de ingesta.
 
 ### Silver
 
