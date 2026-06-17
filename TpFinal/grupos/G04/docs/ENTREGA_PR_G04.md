@@ -15,12 +15,12 @@ TP Final - G04 - CityBikes
 ## 2. Body del PR (copiar y pegar)
 
 **Integrantes**
-- Di Lacio, Lautaro — @DiLacio-Lautaro
-- Lust, Tobias — @lust-tobias
-- Melograna, Federico — @Melograma-Federico
-- Quinteros Amicone, Lautaro — @Quinteros-Lautaro
+- Di Lacio, Lautaro — @DiLacioLautaro
+- Lust, Tobias — @TobiasLust
+- Melograna, Federico — @fmelograna
+- Quinteros Amicone, Lautaro — @lauti1603
 - Rial, Alejo — @Alejo-Rial
-- Romero, Manuel — @romero-rodrigo
+- Romero, Manuel — @manuelrtec
 
 **API elegida**
 - CityBikes — https://api.citybik.es/v2 (sin autenticación; refresh cada 2–5 min)

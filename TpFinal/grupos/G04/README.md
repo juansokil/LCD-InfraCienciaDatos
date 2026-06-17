@@ -6,12 +6,12 @@ Pipeline de datos end-to-end sobre la **API pública de CityBikes**, con arquite
 pipeline arranca solo.
 
 ## Integrantes
-- Di Lacio, Lautaro — @DiLacio-Lautaro
-- Lust, Tobias — @lust-tobias
-- Melograna, Federico — @Melograma-Federico
-- Quinteros Amicone, Lautaro — @Quinteros-Lautaro
+- Di Lacio, Lautaro — @DiLacioLautaro
+- Lust, Tobias — @TobiasLust
+- Melograna, Federico — @fmelograna
+- Quinteros Amicone, Lautaro — @lauti1603
 - Rial, Alejo — @Alejo-Rial
-- Romero, Manuel — @romero-rodrigo
+- Romero, Manuel — @manuelrtec
 
 ## API elegida
 - **CityBikes** — `https://api.citybik.es/v2`
