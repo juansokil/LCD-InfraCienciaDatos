@@ -45,4 +45,41 @@ El dashboard de Streamlit consumira tablas Gold y mostrara indicadores como temp
 
 ## Como levantar el stack
 
-La implementacion del stack Docker, DAGs de Airflow y dashboard se agregara en los proximos commits.
+```bash
+cd TpFinal/grupos/G08
+cp .env.example .env
+docker compose up -d --build
+```
+
+## Accesos
+
+- Airflow UI: http://localhost:8080
+- Dashboard Streamlit: http://localhost:8501
+- PostgreSQL warehouse: `localhost:5433`
+
+## Conexion desde DBeaver
+
+Crear una conexion PostgreSQL con estos valores:
+
+- Host: `localhost`
+- Port: `5433`
+- Database: `TpFinal`
+- Username: `admin`
+- Password: `admin`
+
+Importante: `TpFinal` es el nombre de la base de datos, no el usuario. Si se usa `TpFinal` como username, Postgres rechaza la conexion porque ese rol no existe.
+
+Los schemas `bronze`, `silver` y `gold` se crean dentro de la base `TpFinal`. Si en DBeaver se conecta a la base `postgres`, es normal ver solamente `public`.
+
+
+
+## Infraestructura
+
+Esta etapa deja creada la infraestructura base del TP:
+
+- Docker Compose con Airflow, PostgreSQL para metadatos, PostgreSQL para el data warehouse y Streamlit.
+- Schemas `bronze`, `silver` y `gold` creados automaticamente por `init.sql`.
+- Carpetas de DAGs separadas por capa medallion.
+- Dashboard placeholder sin graficos reales.
+
+La logica real de Open-Meteo, Bronze, Silver, Gold y visualizaciones se implementara en proximos commits.
