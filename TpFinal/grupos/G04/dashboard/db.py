@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, text
 @st.cache_resource
 def get_engine():
     user = os.environ.get("WAREHOUSE_USER", "cb_user")
-    pwd = os.environ.get("WAREHOUSE_PASSWORD", "changeme")
+    pwd = os.environ["WAREHOUSE_PASSWORD"]  # desde el entorno; no se hardcodea
     host = os.environ.get("WAREHOUSE_HOST", "warehouse")
     port = os.environ.get("WAREHOUSE_PORT", "5432")
     db = os.environ.get("WAREHOUSE_DB", "citybikes")
