@@ -101,6 +101,7 @@ docker compose down -v         # apaga y BORRA volumenes (cuidado)
 
 ## Estructura del proyecto
 
+```
 TpFinal/grupos/G10/
 ├── README.md
 ├── docker-compose.yml
@@ -131,3 +132,4 @@ TpFinal/grupos/G10/
     ├── requirements.txt
     └── pages/
         └── 1_Gold.py
+```
