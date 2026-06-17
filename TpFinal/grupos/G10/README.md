@@ -18,9 +18,7 @@
 
 ## Modelo de datos
 
----
-
-## 🥉 Bronze Layer
+### Bronze 
 
 **Tabla:** `bronze.weather_raw`
 
@@ -36,7 +34,7 @@ Tener trazabilidad completa de los datos originales.
 
 ---
 
-## 🥈 Silver Layer
+### Silver 
 
 **Tabla:** `silver.weather`
 
@@ -58,7 +56,7 @@ Se realiza limpieza y estructuración del JSON.
 
 ---
 
-## 🥇 Gold Layer
+### Gold 
 
 **Tabla:** `gold.weather_summary`
 
