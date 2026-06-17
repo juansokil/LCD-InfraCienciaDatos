@@ -858,14 +858,19 @@ FROM gold.dim_tiempo;
 
 ```sql
 SELECT COUNT(*)
-FROM gold.fact_clima_diario;
+FROM gold.fact_clima_real;
+```
+
+```sql
+SELECT COUNT(*)
+FROM gold.fact_pronostico;
 ```
 
 Estado real:
 
 ```text
-Gold tiene estructura definida en base de datos.
-No se validó carga funcional de Gold porque no se visualizó un DAG Gold en Airflow.
+La capa Gold se encuentra 100% funcional. El DAG weather_gold_pipeline procesa las métricas analíticas e impacta
+correctamente los modelos dimensionales de hechos y dimensiones en PostgreSQL, quedando listos para el consumo del dashboard.
 ```
 
 ---
