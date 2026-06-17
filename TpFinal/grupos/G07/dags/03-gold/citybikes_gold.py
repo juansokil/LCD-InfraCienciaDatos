@@ -111,7 +111,7 @@ def construir_create_table_sql(table_contract: dict) -> str:
     dag_id="gold_citybikes",
     description="Construcción de tablas Gold para dashboard operativo de CityBikes/EcoBici",
     start_date=datetime(2024, 1, 1),
-    schedule="*/5 * * * *",
+    schedule="2-59/5 * * * *",
     is_paused_upon_creation=False,
     catchup=False,
     tags=["citybikes", "gold", "dashboard", "streamlit"],

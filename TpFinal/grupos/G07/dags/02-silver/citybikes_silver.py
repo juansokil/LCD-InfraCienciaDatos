@@ -267,7 +267,7 @@ def build_drop_constraint_sql(schema, table, constraint):
 @dag(
     dag_id="silver_citybikes",
     start_date=datetime(2024, 1, 1),
-    schedule="*/5 * * * *",
+    schedule="1-59/5 * * * *",
     catchup=False,
     is_paused_upon_creation=False,
     default_args={
