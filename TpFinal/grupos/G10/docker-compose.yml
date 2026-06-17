@@ -1,7 +1,6 @@
 version: '3.8'
 
-x-airflow-common:
-  &airflow-common
+x-airflow-common: &airflow-common
   image: apache/airflow:2.9.1-python3.11
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
@@ -10,10 +9,11 @@ x-airflow-common:
     - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=False
   volumes:
     - ./dags:/opt/airflow/dags
-    - ./requirements.txt:/requirements.txt
+    - ./requirements-airflow.txt:/requirements.txt
   user: "${AIRFLOW_UID:-50000}:0"
 
 services:
+
   postgres:
     image: postgres:15-alpine
     environment:
@@ -53,7 +53,8 @@ services:
 
   dashboard:
     image: python:3.11-slim
-    command: bash -c "pip install streamlit pandas sqlalchemy psycopg2-binary plotly && streamlit run /app/pages/1_Gold.py --server.port=8501 --server.address=0.0.0.0"
+    working_dir: /app
+    command: bash -c "pip install --no-cache-dir -r requirements-dashboard.txt && streamlit run pages/1_Gold.py --server.port=8501 --server.address=0.0.0.0"
     ports:
       - "8501:8501"
     volumes:
