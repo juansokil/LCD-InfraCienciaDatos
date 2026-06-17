@@ -64,6 +64,7 @@ def openmeteo_bronze():
                         "temperature_2m,relative_humidity_2m,"
                         "apparent_temperature,precipitation,wind_speed_10m"
                     ),
+                    "hourly": "temperature_2m,precipitation,wind_speed_10m",
                     "daily": (
                         "temperature_2m_max,temperature_2m_min,"
                         "precipitation_sum"

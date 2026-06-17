@@ -33,7 +33,7 @@ El DAG `g08_openmeteo_bronze` consulta Open-Meteo cada hora para Buenos Aires, C
 
 ### Silver
 
-Se parsearan los JSON crudos, se tiparan fechas y variables meteorologicas, se normalizaran unidades y se separaran mediciones actuales de pronosticos diarios.
+El DAG `g08_openmeteo_silver` lee `bronze.weather_raw`, desanida el bloque `hourly` del JSON y guarda una tabla limpia en `silver.weather_hourly`. La tabla tiene una fila por ciudad y hora pronosticada, con temperatura, precipitacion, viento, fecha de pronostico e instante de ingesta.
 
 ### Gold
 
