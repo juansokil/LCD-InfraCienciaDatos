@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
 
-  # 🔹 Data Warehouse
+  #Data Warehouse
   warehouse:
     image: postgres:17-alpine
     container_name: g03_warehouse
@@ -20,7 +20,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 🔹 Airflow DB (Metadatos)
+  #Airflow DB (Metadatos)
   airflow_db:
     image: postgres:15-alpine
     container_name: g03_airflow_db
@@ -34,7 +34,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # 🔹 Airflow Init (Migración de Base de Datos y creación de usuario administrador)
+  #Airflow Init (Migración de Base de Datos y creación de usuario administrador)
+  
   airflow_init:
     image: apache/airflow:2.9.3
     container_name: g03_airflow_init
@@ -43,26 +44,18 @@ services:
         condition: service_healthy
     environment:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow123@airflow_db:5432/airflow
-      # Inyectamos las credenciales nativas para que las cree el migrador
+      # Esto ya corre el "db migrate/init" de forma nativa antes de ejecutar el command:
       _AIRFLOW_DB_MIGRATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: "admin"
       _AIRFLOW_WWW_USER_PASSWORD: "admin123"
     
+    
     command: >
-      bash -c "
-       airflow db init &&
-       airflow users create \
-       --username admin \
-       --firstname Admin \
-       --lastname User \
-       --role Admin \
-       --email admin@example.com \
-       --password admin123
-      "
+      bash -c "airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin123"
 
     user: "${AIRFLOW_UID:-50000}:0"
 
-  # 🔹 Airflow Webserver (UI)
+  #Airflow Webserver (UI)
   airflow:
     image: apache/airflow:2.9.3
     container_name: g03_airflow
@@ -88,7 +81,7 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     command: webserver
 
-  # 🔹 Airflow Scheduler
+  #Airflow Scheduler
   airflow_scheduler:
     image: apache/airflow:2.9.3
     container_name: g03_airflow_scheduler
@@ -112,7 +105,7 @@ services:
     user: "${AIRFLOW_UID:-50000}:0"
     command: scheduler
 
-  # 🔹 Streamlit Dashboard
+  #Streamlit Dashboard
   dashboard:
     image: python:3.11-slim
     container_name: g03_dashboard
