@@ -15,7 +15,7 @@ default_args = {
 with DAG(
     dag_id='weather_silver_pipeline',
     default_args=default_args,
-    schedule_interval='@hourly',
+    schedule='@hourly',
     is_paused_upon_creation=False,
     catchup=False
 ) as dag:
