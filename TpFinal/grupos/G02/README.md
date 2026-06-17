@@ -102,9 +102,8 @@ El dashboard esta implementado con Streamlit y se divide en dos secciones de nav
 
 **Detalles de implementacion actuales:**
 
-* Los nombres de monedas se muestran en espanol, no como codigos ISO, usando `Babel` con fallback manual para algunos casos frecuentes.
+* Los nombres de monedas se muestran en español, no como codigos ISO, usando `Babel` con fallback manual para algunos casos frecuentes.
 * El grafico de monedas mas caras muestra un **top 5** fijo.
-* El grafico de variacion muestra porcentajes con un maximo de **2 decimales**.
 * El filtro lateral disponible actualmente es el umbral de alertas por variacion.
 
 ---
@@ -118,11 +117,6 @@ cd TpFinal/grupos/G02
 docker compose up -d --build
 ```
 
-Si solo queres reconstruir el dashboard luego de cambios en Streamlit:
-
-```bash
-docker compose up -d --build dashboard
-```
 
 ### Accesos esperados
 
@@ -161,8 +155,3 @@ TpFinal/grupos/G02/
 ```
 
 ---
-
-## Notas
-
-* La carpeta `dashboard/pages/` ya no contiene la implementacion principal del dashboard; la navegacion actual usa `app.py`, `home_page.py` y `dashboard_page.py`.
-* Si cambias codigo del dashboard, recorda reconstruir la imagen para ver los cambios en Docker.
