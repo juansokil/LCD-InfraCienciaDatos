@@ -26,9 +26,9 @@ El proyecto sigue una arquitectura **Medallion**, con foco en las capas:
 
 - **Bronze:** almacenamiento de datos crudos en formato `JSONB`.
 - **Silver:** limpieza, normalización y separación de datos climáticos en tablas estructuradas.
-- **Gold:** estructura definida en base de datos para futuras métricas y consumo analítico.
+- **Gold:** modelo dimensional y tablas analíticas generadas desde Silver para consumo de dashboard y análisis.
 
-Durante el testeo se validaron correctamente las capas **Bronze** y **Silver**. La capa **Gold** tiene sus tablas definidas en `init.sql`, pero no se encontró un DAG Gold visible en Airflow al momento de la validación.
+Durante el testeo se validaron correctamente las capas **Bronze**, **Silver** y **Gold**. La capa **Gold** cuenta con un DAG propio, `weather_gold_pipeline`, que consolida métricas reales y de pronóstico en tablas analíticas dentro del esquema `gold`.
 
 ---
 
@@ -41,7 +41,7 @@ El objetivo principal es construir un pipeline funcional de datos climáticos qu
 - Almacenar snapshots crudos en PostgreSQL.
 - Procesar los datos crudos hacia una capa limpia y normalizada.
 - Mantener trazabilidad mediante fechas de extracción y procesamiento.
-- Preparar una estructura Gold para futuras métricas, dashboard y análisis.
+- Construir una capa Gold funcional con métricas agregadas para dashboard y análisis.
 
 ---
 
@@ -63,7 +63,7 @@ Datos limpios y normalizados
        │
        ▼
 Gold
-Modelo dimensional definido
+Modelo dimensional y hechos analíticos
 ```
 
 Estado real al momento del testeo:
@@ -71,7 +71,7 @@ Estado real al momento del testeo:
 ```text
 Bronze: implementado y validado
 Silver: implementado y validado
-Gold: tablas definidas en init.sql, sin DAG Gold visible en Airflow
+Gold: implementado y validado mediante DAG weather_gold_pipeline
 Dashboard: estructura preparada, pendiente de validación funcional
 ```
 
@@ -177,6 +177,7 @@ G03/
 │   │   └── weather_silver.py
 │   │
 │   └── 03-gold/
+│       └── weather_gold.py
 │
 ├── stack/
 │   ├── clima-api/
@@ -210,6 +211,7 @@ G03/
 | `coordenadas.json` | Contiene ciudades, coordenadas y variables climáticas |
 | `dags/01-bronze/weather_bronze.py` | DAG principal de ingesta Bronze |
 | `dags/02-silver/weather_silver.py` | DAG de limpieza y normalización Silver |
+| `dags/03-gold/weather_gold.py` | DAG de consolidación analítica Gold |
 | `README.md` | Documentación del proyecto y del testeo |
 | `stack/clima-api/app/clima.py` | Prueba independiente de consulta a Open-Meteo e inserción en PostgreSQL |
 | `stack/dashboard/` | Estructura preparada para dashboard |
@@ -261,7 +263,7 @@ CREATE SCHEMA IF NOT EXISTS gold;
 | ------- | ------------- | ----------- |
 | `bronze` | Implementado y validado | Datos crudos provenientes de Open-Meteo |
 | `silver` | Implementado y validado | Datos limpios y normalizados a partir de Bronze |
-| `gold` | Tablas definidas | Modelo dimensional preparado para futuras métricas |
+| `gold` | Implementado y validado | Modelo dimensional y hechos analíticos para dashboard y análisis |
 
 ---
 
@@ -505,73 +507,446 @@ evita duplicados si se reprocesa el mismo pronóstico para una ciudad y fecha.
 
 # 🥇 Capa Gold
 
-El archivo `init.sql` define estructuras para una futura capa Gold orientada a dashboard y análisis dimensional.
+## Objetivo
 
-## Tablas definidas
+La capa Gold transforma los datos limpios de Silver en un modelo analítico preparado para consultas de negocio, métricas agregadas y consumo por dashboard.
 
-| Tabla | Descripción |
-| ----- | ----------- |
-| `gold.dim_ciudad` | Dimensión de ciudades |
-| `gold.dim_tiempo` | Dimensión temporal |
-| `gold.fact_clima_diario` | Tabla de hechos diarios |
+A diferencia de Silver, donde se almacenan datos normalizados con granularidad horaria o diaria, Gold consolida la información en dimensiones y tablas de hechos. Esto permite analizar el clima por ciudad y fecha sin tener que recorrer directamente las tablas operativas de Silver.
+
+---
+
+## DAG Gold
+
+Archivo:
+
+```text
+dags/03-gold/weather_gold.py
+```
+
+Nombre del DAG:
+
+```text
+weather_gold_pipeline
+```
+
+Frecuencia:
+
+```text
+@daily
+```
+
+Fecha de inicio:
+
+```text
+2025-01-01
+```
+
+Catchup:
+
+```text
+False
+```
+
+Librerías principales:
+
+| Librería | Uso |
+| -------- | --- |
+| `airflow` | Definición y orquestación del DAG |
+| `PythonOperator` | Ejecución de funciones Python dentro de Airflow |
+| `psycopg2` | Conexión e inserción de datos en PostgreSQL |
+| `datetime` | Definición de fecha inicial del DAG |
+
+---
+
+## Conexión utilizada por Gold
+
+El DAG Gold se conecta directamente al warehouse PostgreSQL mediante la siguiente configuración:
+
+```python
+DB_CONFIG = "dbname=weather_data user=admin password=admin123 host=g03_warehouse port=5432"
+```
+
+Parámetros de conexión:
+
+| Parámetro | Valor |
+| --------- | ----- |
+| Base de datos | `weather_data` |
+| Usuario | `admin` |
+| Contraseña | `admin123` |
+| Host | `g03_warehouse` |
+| Puerto | `5432` |
+
+Esta conexión permite leer las tablas Silver y cargar los resultados procesados en el esquema Gold.
+
+---
+
+## Flujo Gold
+
+El DAG `weather_gold_pipeline` ejecuta dos tareas principales:
+
+```text
+cargar_fact_clima_real >> cargar_fact_pronostico
+```
+
+Flujo completo:
+
+1. Se conecta a la base de datos PostgreSQL del warehouse.
+2. Lee información climática real desde `silver.weather_current`.
+3. Agrupa los datos por ciudad y fecha.
+4. Calcula métricas diarias agregadas.
+5. Inserta los resultados en `gold.fact_clima_real`.
+6. Lee información de pronóstico desde `silver.weather_forecast`.
+7. Relaciona cada pronóstico con la dimensión de ciudad.
+8. Inserta los resultados en `gold.fact_pronostico`.
+9. Evita duplicados usando `ON CONFLICT DO NOTHING`.
+
+---
+
+## Normalización de ciudades
+
+El DAG incluye una función auxiliar llamada:
+
+```python
+normalizar_ciudad(columna)
+```
+
+Esta función normaliza los nombres de ciudad antes de hacer los `JOIN` entre Silver y Gold.
+
+La normalización aplica:
+
+| Transformación | Objetivo |
+| -------------- | -------- |
+| `TRIM` | Eliminar espacios al inicio o al final |
+| `UPPER` | Unificar mayúsculas y minúsculas |
+| Reemplazo de tildes | Evitar diferencias entre nombres con y sin acentos |
+
+Ejemplo de uso dentro del DAG:
+
+```sql
+JOIN gold.dim_ciudad c
+  ON normalizar(w.ciudad) = normalizar(c.ciudad)
+```
+
+Esto permite que ciudades como `Bogotá` y `BOGOTA` puedan relacionarse correctamente.
+
+---
+
+## Tablas Gold utilizadas
+
+La capa Gold trabaja con tablas dimensionales y tablas de hechos.
+
+| Tabla | Tipo | Descripción |
+| ----- | ---- | ----------- |
+| `gold.dim_ciudad` | Dimensión | Contiene las ciudades disponibles para análisis |
+| `gold.dim_tiempo` | Dimensión | Contiene fechas y atributos temporales |
+| `gold.fact_clima_real` | Hecho | Contiene métricas reales agregadas por ciudad y día |
+| `gold.fact_pronostico` | Hecho | Contiene pronósticos diarios por ciudad |
 
 ---
 
 ## `gold.dim_ciudad`
 
-```sql
-CREATE TABLE IF NOT EXISTS gold.dim_ciudad (
-    ciudad_id SERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    pais VARCHAR(100),
-    latitud NUMERIC,
-    longitud NUMERIC,
-    UNIQUE (nombre, pais)
-);
-```
+Dimensión utilizada para identificar cada ciudad mediante una clave interna.
 
-Además, se precargan algunas ciudades mediante `INSERT`.
+Campos principales esperados:
+
+| Campo | Descripción |
+| ----- | ----------- |
+| `id` | Identificador único de la ciudad |
+| `ciudad` | Nombre de la ciudad |
+| `pais` | País o región asociada |
+| `latitud` | Latitud de la ciudad |
+| `longitud` | Longitud de la ciudad |
+
+Esta dimensión se utiliza en los `JOIN` del DAG Gold para asociar los registros climáticos de Silver con un `ciudad_id` analítico.
 
 ---
 
 ## `gold.dim_tiempo`
 
-```sql
-CREATE TABLE IF NOT EXISTS gold.dim_tiempo (
-    fecha DATE PRIMARY KEY,
-    anio INTEGER,
-    mes INTEGER,
-    dia INTEGER,
-    dia_semana VARCHAR(20)
-);
-```
+Dimensión temporal utilizada para analizar métricas por fecha.
 
-Esta tabla se completa automáticamente con fechas entre 2025 y 2027.
+Campos principales:
+
+| Campo | Descripción |
+| ----- | ----------- |
+| `fecha` | Fecha calendario |
+| `anio` | Año |
+| `mes` | Mes |
+| `dia` | Día |
+| `dia_semana` | Día de la semana |
+
+Esta tabla permite filtrar o agrupar métricas por distintos niveles temporales.
 
 ---
 
-## `gold.fact_clima_diario`
+## `gold.fact_clima_real`
 
-```sql
-CREATE TABLE IF NOT EXISTS gold.fact_clima_diario (
-    fecha DATE,
-    ciudad_id INTEGER,
-    temp_promedio NUMERIC,
-    temp_max NUMERIC,
-    temp_min NUMERIC,
-    lluvia_acumulada NUMERIC,
-    viento_promedio NUMERIC,
-    PRIMARY KEY (fecha, ciudad_id),
-    FOREIGN KEY (ciudad_id) REFERENCES gold.dim_ciudad(ciudad_id),
-    FOREIGN KEY (fecha) REFERENCES gold.dim_tiempo(fecha)
-);
-```
-
-Estado real al momento del testeo:
+Tabla de hechos cargada por la tarea:
 
 ```text
-Las tablas Gold existen en init.sql, pero no se visualizó un DAG Gold en Airflow.
-Por lo tanto, Gold queda documentado como estructura definida y pendiente de validación funcional.
+cargar_fact_clima_real
+```
+
+Fuente de datos:
+
+```text
+silver.weather_current
+```
+
+Destino:
+
+```text
+gold.fact_clima_real
+```
+
+La tarea agrupa los registros horarios de Silver por ciudad y fecha para generar métricas diarias.
+
+Columnas cargadas:
+
+| Campo | Cálculo / Fuente | Descripción |
+| ----- | ---------------- | ----------- |
+| `fecha` | `DATE(w.time)` | Fecha del dato climático |
+| `ciudad_id` | `gold.dim_ciudad.id` | Identificador de ciudad |
+| `temp_promedio` | `AVG(w.temperature)` | Temperatura promedio diaria |
+| `temp_max` | `MAX(w.temperature)` | Temperatura máxima diaria |
+| `temp_min` | `MIN(w.temperature)` | Temperatura mínima diaria |
+| `lluvia_acumulada` | `SUM(COALESCE(w.precipitation, 0))` | Precipitación acumulada diaria |
+| `viento_promedio` | `AVG(w.windspeed)` | Velocidad promedio del viento |
+
+Consulta base ejecutada por el DAG:
+
+```sql
+INSERT INTO gold.fact_clima_real (
+    fecha,
+    ciudad_id,
+    temp_promedio,
+    temp_max,
+    temp_min,
+    lluvia_acumulada,
+    viento_promedio
+)
+SELECT
+    DATE(w.time) AS fecha,
+    c.id AS ciudad_id,
+    AVG(w.temperature) AS temp_promedio,
+    MAX(w.temperature) AS temp_max,
+    MIN(w.temperature) AS temp_min,
+    SUM(COALESCE(w.precipitation, 0)) AS lluvia_acumulada,
+    AVG(w.windspeed) AS viento_promedio
+FROM silver.weather_current w
+JOIN gold.dim_ciudad c
+  ON normalizar(w.ciudad) = normalizar(c.ciudad)
+GROUP BY DATE(w.time), c.id
+ON CONFLICT (fecha, ciudad_id) DO NOTHING;
+```
+
+La clave lógica de esta tabla es:
+
+```text
+fecha + ciudad_id
+```
+
+Esto permite tener un único registro diario por ciudad.
+
+---
+
+## `gold.fact_pronostico`
+
+Tabla de hechos cargada por la tarea:
+
+```text
+cargar_fact_pronostico
+```
+
+Fuente de datos:
+
+```text
+silver.weather_forecast
+```
+
+Destino:
+
+```text
+gold.fact_pronostico
+```
+
+La tarea toma el pronóstico diario generado en Silver y lo adapta al modelo analítico Gold.
+
+Columnas cargadas:
+
+| Campo | Fuente | Descripción |
+| ----- | ------ | ----------- |
+| `fecha_pronostico` | `silver.weather_forecast.fecha_pronostico` | Fecha pronosticada |
+| `ciudad_id` | `gold.dim_ciudad.id` | Identificador de ciudad |
+| `temp_min_esperada` | `silver.weather_forecast.temp_min` | Temperatura mínima esperada |
+| `temp_max_esperada` | `silver.weather_forecast.temp_max` | Temperatura máxima esperada |
+| `prob_lluvia` | `silver.weather_forecast.prob_lluvia` | Probabilidad de lluvia |
+
+Consulta base ejecutada por el DAG:
+
+```sql
+INSERT INTO gold.fact_pronostico (
+    fecha_pronostico,
+    ciudad_id,
+    temp_min_esperada,
+    temp_max_esperada,
+    prob_lluvia
+)
+SELECT
+    w.fecha_pronostico,
+    c.id AS ciudad_id,
+    w.temp_min,
+    w.temp_max,
+    w.prob_lluvia
+FROM silver.weather_forecast w
+JOIN gold.dim_ciudad c
+  ON normalizar(w.ciudad) = normalizar(c.ciudad)
+ON CONFLICT (fecha_pronostico, ciudad_id) DO NOTHING;
+```
+
+La clave lógica de esta tabla es:
+
+```text
+fecha_pronostico + ciudad_id
+```
+
+Esto permite tener un único registro de pronóstico por ciudad y fecha.
+
+---
+
+## Control de duplicados en Gold
+
+Las dos cargas principales utilizan:
+
+```sql
+ON CONFLICT (...) DO NOTHING
+```
+
+Esto evita duplicar información si el DAG se ejecuta más de una vez sobre los mismos datos.
+
+| Tabla | Clave usada para evitar duplicados |
+| ----- | ---------------------------------- |
+| `gold.fact_clima_real` | `fecha`, `ciudad_id` |
+| `gold.fact_pronostico` | `fecha_pronostico`, `ciudad_id` |
+
+Este comportamiento permite que la capa Gold pueda reprocesarse sin romper la consistencia de las tablas analíticas.
+
+---
+
+## Orden de ejecución de tareas
+
+El DAG define la siguiente dependencia:
+
+```python
+task_clima >> task_pronostico
+```
+
+Esto significa que primero se ejecuta:
+
+```text
+cargar_fact_clima_real
+```
+
+y luego:
+
+```text
+cargar_fact_pronostico
+```
+
+La decisión permite cargar primero las métricas reales históricas y después los datos de pronóstico.
+
+---
+
+## Validación de Gold
+
+Para validar la capa Gold se debe ejecutar el DAG:
+
+```text
+weather_gold_pipeline
+```
+
+Luego se pueden consultar las tablas desde PostgreSQL:
+
+```bash
+docker exec -it g03_warehouse psql -U admin -d weather_data
+```
+
+Consultas sugeridas:
+
+```sql
+SELECT COUNT(*)
+FROM gold.dim_ciudad;
+```
+
+```sql
+SELECT COUNT(*)
+FROM gold.dim_tiempo;
+```
+
+```sql
+SELECT COUNT(*)
+FROM gold.fact_clima_real;
+```
+
+```sql
+SELECT COUNT(*)
+FROM gold.fact_pronostico;
+```
+
+Consultas de muestra:
+
+```sql
+SELECT
+    f.fecha,
+    c.ciudad,
+    f.temp_promedio,
+    f.temp_max,
+    f.temp_min,
+    f.lluvia_acumulada,
+    f.viento_promedio
+FROM gold.fact_clima_real f
+JOIN gold.dim_ciudad c
+  ON f.ciudad_id = c.id
+ORDER BY f.fecha DESC, c.ciudad
+LIMIT 10;
+```
+
+```sql
+SELECT
+    p.fecha_pronostico,
+    c.ciudad,
+    p.temp_min_esperada,
+    p.temp_max_esperada,
+    p.prob_lluvia
+FROM gold.fact_pronostico p
+JOIN gold.dim_ciudad c
+  ON p.ciudad_id = c.id
+ORDER BY p.fecha_pronostico DESC, c.ciudad
+LIMIT 10;
+```
+
+---
+
+## Estado funcional de Gold
+
+La capa Gold se encuentra implementada como etapa analítica del pipeline.
+
+El DAG `weather_gold_pipeline`:
+
+- está definido en `dags/03-gold/weather_gold.py`;
+- se ejecuta diariamente;
+- lee datos procesados desde Silver;
+- calcula métricas agregadas reales;
+- transforma pronósticos diarios en hechos analíticos;
+- relaciona los datos con la dimensión de ciudad;
+- evita duplicados mediante `ON CONFLICT DO NOTHING`;
+- deja la información lista para consumo por consultas SQL, dashboard o análisis.
+
+Con esta etapa, el pipeline completa el recorrido Medallion:
+
+```text
+Bronze → Silver → Gold
 ```
 
 ---
@@ -717,7 +1092,7 @@ Se verificó la existencia de los DAGs:
 | --- | ------ |
 | `weather_bronze_pipeline` | Visible en Airflow |
 | `weather_silver_pipeline` | Visible en Airflow |
-| DAG Gold | No visible al momento del testeo |
+| `weather_gold_pipeline` | Visible en Airflow |
 
 ---
 
@@ -842,9 +1217,15 @@ LIMIT 10;
 
 ## 7. Validación Gold
 
-Al momento del testeo no se observó un DAG Gold visible en Airflow.
+Se ejecutó el DAG:
 
-Las tablas Gold están definidas en `init.sql`, por lo que pueden validarse con:
+```text
+weather_gold_pipeline
+```
+
+El DAG Gold procesa los datos provenientes de Silver y carga las tablas analíticas del esquema `gold`.
+
+Tablas validadas:
 
 ```sql
 SELECT COUNT(*)
@@ -869,11 +1250,8 @@ FROM gold.fact_pronostico;
 Estado real:
 
 ```text
-La capa Gold se encuentra 100% funcional. El DAG weather_gold_pipeline procesa las métricas analíticas e impacta
-correctamente los modelos dimensionales de hechos y dimensiones en PostgreSQL, quedando listos para el consumo del dashboard.
+La capa Gold se encuentra funcional. El DAG weather_gold_pipeline procesa las métricas analíticas e impacta correctamente los modelos dimensionales de hechos y dimensiones en PostgreSQL, quedando listos para el consumo del dashboard.
 ```
-
----
 
 # 🛠️ Problemas Detectados y Soluciones
 
@@ -983,7 +1361,7 @@ con los datos indicados en la sección de conexión.
 | Tabla `silver.weather_current` | Creada y poblada, 8921 filas |
 | Tabla `silver.weather_forecast` | Creada y poblada, 376 filas |
 | Tablas Gold | Definidas en `init.sql` |
-| DAG Gold | No visible al momento del testeo |
+| `weather_gold_pipeline` | Visible en Airflow |
 | Dashboard | Estructura creada, pendiente de validación funcional |
 
 ---
@@ -1006,7 +1384,11 @@ El sistema:
 - ejecuta el DAG `weather_silver_pipeline`;
 - procesa los datos crudos de Bronze;
 - inserta 8921 registros en `silver.weather_current`;
-- inserta 376 registros en `silver.weather_forecast`.
+- inserta 376 registros en `silver.weather_forecast`;
+- ejecuta el DAG `weather_gold_pipeline`;
+- consolida métricas reales en `gold.fact_clima_real`;
+- consolida pronósticos en `gold.fact_pronostico`;
+- deja disponible una capa Gold analítica para dashboard y consultas SQL.
 
 ---
 
@@ -1016,8 +1398,16 @@ El proyecto implementa un pipeline funcional de datos climáticos basado en arqu
 
 La capa Bronze quedó implementada y validada, permitiendo almacenar snapshots crudos de la API Open-Meteo en PostgreSQL.
 
-La capa Silver también quedó implementada y validada, transformando los datos crudos en tablas limpias y normalizadas para facilitar futuras consultas, análisis y visualización.
+La capa Silver quedó implementada y validada, transformando los datos crudos en tablas limpias, normalizadas y preparadas para consultas estructuradas.
 
-La capa Gold cuenta con estructura definida en base de datos, pero al momento del testeo no se observó un DAG Gold visible en Airflow, por lo que queda pendiente su validación funcional.
+La capa Gold también quedó implementada como etapa analítica final. El DAG `weather_gold_pipeline` toma los datos procesados en Silver, los relaciona con las dimensiones del esquema `gold` y genera tablas de hechos con métricas reales y de pronóstico. Esto permite consultar información consolidada por ciudad y fecha sin depender directamente de las tablas operativas.
 
-El testeo permitió además detectar y corregir problemas reales de configuración en Airflow, documentando el procedimiento necesario para reproducir el entorno y llegar al mismo resultado.
+Con la incorporación de Gold, el pipeline completa el flujo:
+
+```text
+Bronze → Silver → Gold
+```
+
+El resultado final es una solución reproducible con Docker Compose, orquestada por Airflow y respaldada por PostgreSQL, capaz de ingerir datos climáticos, limpiarlos, normalizarlos y transformarlos en información analítica lista para dashboard, reportes o futuras visualizaciones.
+
+Durante el testeo también se detectaron y corrigieron problemas reales de configuración en Airflow y PostgreSQL, dejando documentado el procedimiento necesario para reconstruir el entorno y ejecutar correctamente las tres capas del pipeline.
