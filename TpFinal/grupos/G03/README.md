@@ -562,8 +562,7 @@ CREATE TABLE IF NOT EXISTS gold.fact_clima_diario (
     lluvia_acumulada NUMERIC,
     viento_promedio NUMERIC,
     PRIMARY KEY (fecha, ciudad_id),
-    FOREIGN KEY (ciudad_id) REFERENCES gold.dim_ciudad(ciudad_id),
-    FOREIGN KEY (fecha) REFERENCES gold.dim_tiempo(fecha)
+    FOREIGN KEY (ciudad_id) REFERENCES gold.dim_ciudad(id) -- <- Apuntando a 'id'
 );
 ```
 
