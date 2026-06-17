@@ -8,7 +8,6 @@ pipeline arranca solo.
 ## Integrantes
 - Di Lacio, Lautaro — @DiLacioLautaro
 - Lust, Tobias — @TobiasLust
-- Melograna, Federico — @fmelograna
 - Quinteros Amicone, Lautaro — @lauti1603
 - Rial, Alejo — @Alejo-Rial
 - Romero, Manuel — @manuelrtec
