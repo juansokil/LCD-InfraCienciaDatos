@@ -12,7 +12,7 @@ API_BASE = "https://api.citybik.es/v2"
 # Redes a trackear (ids de /v2/networks). Configurable por entorno.
 NETWORKS = [
     n.strip()
-    for n in os.environ.get("CITYBIKES_NETWORKS", "ecobici,bicing,divvy").split(",")
+    for n in os.environ.get("CITYBIKES_NETWORKS", "ecobici-buenos-aires,mibicitubici,bikesampa").split(",")
     if n.strip()
 ]
 
