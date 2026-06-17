@@ -1,7 +1,12 @@
 import streamlit as st
 import pandas as pd
 import psycopg2
+
 import plotly.express as px
+
+# Zona horaria en la que se interpretan los indicadores horarios del dashboard.
+# Los timestamps de la API vienen en UTC; para otras redes puede cambiarse este valor.
+LOCAL_TIMEZONE = "America/Argentina/Buenos_Aires"
 
 # ──────────────────────────────────────────────────────────────
 # Configuración
@@ -42,6 +47,41 @@ def run_query(sql):
     conn = get_connection()
     df = pd.read_sql(sql, conn)
     conn.close()
+    return df
+
+
+# ──────────────────────────────────────────────────────────────
+# Utilidades de zona horaria
+# ──────────────────────────────────────────────────────────────
+def aplicar_horario_local(df, time_id_col="time_id", timezone=LOCAL_TIMEZONE):
+    """Convierte un time_id generado en UTC (YYYYMMDDHH) a hora local para visualización."""
+    if df.empty or time_id_col not in df.columns:
+        return df
+
+    df = df.copy()
+    time_id_str = df[time_id_col].astype("Int64").astype(str)
+    datetime_local = pd.to_datetime(
+        time_id_str,
+        format="%Y%m%d%H",
+        errors="coerce",
+        utc=True,
+    ).dt.tz_convert(timezone)
+
+    df["datetime_local"] = datetime_local
+    df["hora"] = datetime_local.dt.hour
+    df["dia_semana"] = datetime_local.dt.isocalendar().day.astype("Int64")
+
+    nombres_dia = {
+        1: "Lunes",
+        2: "Martes",
+        3: "Miércoles",
+        4: "Jueves",
+        5: "Viernes",
+        6: "Sábado",
+        7: "Domingo",
+    }
+    df["nombre_dia"] = df["dia_semana"].map(nombres_dia)
+
     return df
 
 # ──────────────────────────────────────────────────────────────
@@ -93,6 +133,10 @@ df_hora = run_query("""
     WHERE t.hora IS NOT NULL
 """)
 
+# Ajuste de zona horaria para visualización.
+# Gold conserva time_id como hora UTC; el dashboard lo interpreta en horario local.
+df_hora = aplicar_horario_local(df_hora)
+
 # Perfil funcional histórico de estaciones
 df_perfil_estaciones = run_query("""
     SELECT
@@ -119,7 +163,7 @@ st.header("📊 Estado operativo actual")
 # Timestamp de la última actualización
 if not df_estado.empty and "ts" in df_estado.columns:
     ts_ultimo = df_estado["ts"].max()
-    st.caption(f"📅 Último snapshot registrado: **{ts_ultimo}**")
+    st.caption(f"📅 Último snapshot registrado: **{ts_ultimo}** · Zona horaria visualizada: **{LOCAL_TIMEZONE}**")
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("🚲 Bicis disponibles",
@@ -177,7 +221,7 @@ if not df_mapa.empty:
     st.caption("Clasificación: devolución (<40% bicis), equilibrada (40–60%), alquiler (>60%).")
 
 # ══════════════════════════════════════════════════════════════
-# 2. VARIACIÓN HORARIA
+# 2. VARIACIÓN HORARIA, POR BARRIO O COMUNA
 # ══════════════════════════════════════════════════════════════
 st.divider()
 st.header("⏰ Variación horaria de disponibilidad")
