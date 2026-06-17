@@ -337,21 +337,32 @@ El README (resumen + cómo levantar), esta guía (detalle) y el deck de la prese
 
 ---
 
-## 11. Cosas a tener en cuenta (decisiones y conceptos clave)
+## 11. Cosas a tener en cuenta (conceptos y decisiones)
 
-- **¿Por qué arquitectura medallion?** Separa responsabilidades: Bronze guarda crudo (trazabilidad/reproceso), Silver limpia y tipa, Gold modela para consumo. Si cambia la lógica de negocio, reproceso desde Bronze sin volver a pegarle a la API.
-- **¿Por qué el dashboard consume solo Gold?** Gold es el modelo final, pensado para responder preguntas de negocio rápido. Bronze/Silver son etapas internas del pipeline.
-- **¿Cómo evitan duplicados si un DAG corre dos veces?** Idempotencia: watermark en Silver + `ON CONFLICT DO NOTHING`; upsert en las dimensiones de Gold; el hecho se borra y recalcula por ventana de horas.
-- **¿Por qué Airflow y no un cron?** Orquestación con dependencias entre tareas, reintentos, visibilidad de corridas, scheduling declarativo y backfill si hiciera falta.
-- **¿Cómo arranca solo?** `init.sql` crea schemas/tablas; DAGs despausados (`is_paused_upon_creation=False`) con schedule; el dashboard se conecta y muestra Gold.
-- **¿Por qué dos bases Postgres?** Una para metadatos de Airflow, otra para los datos del negocio: aislamiento y prolijidad.
-- **¿Qué pasa si la API falla o cambia?** Bronze captura un warning por red caída sin romper el DAG; el resto sigue. Como guardamos crudo, podemos reprocesar.
-- **¿Por qué el eje temporal es `ingested_at`?** El `timestamp` de la API era inconsistente; usamos el momento de ingesta, que controlamos nosotros.
-- **¿Qué ciudades trackean?** ~20 redes de bici pública de **6 países de Sudamérica**: Argentina (Buenos Aires, Rosario, Nordelta), Brasil (São Paulo, Río…), Chile (Santiago), Colombia (Bogotá, Medellín), Ecuador (Cuenca) y Perú (Lima). Todas por la misma API de CityBikes.
-- **¿Por qué Sudamérica? ¿Por qué esas redes?** La consigna no pide un número ("ideas orientativas, no requisitos"). Elegimos **toda Sudamérica** (~22 redes) para comparar la región, quedando **bajo el rate limit** (300 req/h; usamos ~264). Es configurable en el `.env`.
-- **Si agregaran más ciudades, ¿hay que cambiar el código?** No. El pipeline es **genérico**: las redes salen de la variable `CITYBIKES_NETWORKS` del `.env`, y cada tabla separa las ciudades por la columna `network_id`. Agregar ciudades = cambiar el `.env`, sin tocar capas ni SQL.
-- **¿Los datos son en vivo?** Sí: el **dashboard** consulta la base que el pipeline actualiza cada pocos minutos → los números cambian solos. El **PDF de la presentación** es una foto fija (no se actualiza, es lo normal).
-- **¿Cuál fue el hallazgo?** Sudamérica está mayormente bien abastecida (~8% sin bicis entre 20 ciudades). Las más ajustadas hoy: Vitória (~32%) y Medellín (~16%); las más equilibradas: Curitiba, Nordelta, Cuenca (~0%).
+> Distinción útil para la defensa: una cosa son los **conceptos que el TP pide / vimos en clase** (que aplicamos), y otra las **decisiones propias** que tomamos dentro de eso.
+
+### Conceptos que aplicamos (parte de la consigna / lo visto en clase)
+Esto **no lo elegimos nosotros**: es lo que pide el TP o lo que vimos en clase. Lo importante es saber **por qué se usa**.
+
+- **Arquitectura medallion (Bronze → Silver → Gold):** separa responsabilidades — Bronze guarda crudo (trazabilidad y reproceso), Silver limpia y tipa, Gold modela para consumo. Si cambia la lógica, se reprocesa desde Bronze sin volver a pegarle a la API.
+- **Orquestación con Airflow:** un DAG por capa, con su schedule. Arrancan despausados (`is_paused_upon_creation=False`), así el pipeline **corre solo** sin tocar nada. Son **idempotentes** (correr dos veces no duplica): watermark + `ON CONFLICT DO NOTHING` en Silver, upsert en las dimensiones de Gold, y recálculo por ventana de horas en el hecho.
+- **Containerización con Docker:** los 4 servicios se levantan con un solo `docker compose up`; reproducible en cualquier máquina.
+- **Dos Postgres separados:** Airflow necesita su propia base de metadatos (runs, logs); la dejamos aparte de los datos del negocio por aislamiento y prolijidad.
+- **El dashboard consume solo la capa Gold:** Gold es el modelo final de consumo; Bronze/Silver son etapas internas. (Es la lógica del propio modelo medallion.)
+
+### Decisiones que tomamos nosotros (dentro de lo que pide la consigna)
+Acá sí elegimos, y conviene poder defender el porqué.
+
+- **La API: CityBikes.** La consigna deja elegir la fuente; tomamos una pública, sin auth y con estado en vivo (justifica acumular snapshots con Airflow).
+- **Las redes: toda Sudamérica (~22).** Para comparar ciudades de la región (tema relatable), quedando **bajo el rate limit** (300 req/h; usamos ~264). Son Argentina (Buenos Aires, Rosario, Nordelta), Brasil (São Paulo, Río, Curitiba…), Chile (Santiago), Colombia (Bogotá, Medellín), Ecuador (Cuenca) y Perú (Lima).
+- **El eje temporal es `ingested_at`, no el `timestamp` de la API.** El de la API venía inconsistente; usamos el momento de ingesta, que controlamos nosotros.
+- **Pipeline genérico:** las redes salen de `CITYBIKES_NETWORKS` (`.env`) y cada tabla separa por `network_id`. Agregar o quitar ciudades = editar el `.env`, sin tocar capas ni SQL.
+- **Descartar estaciones inactivas** en Silver (las que marcan `renting=0` u `online=false`), para que "sin bicis" / "saturada" reflejen solo estaciones que realmente operan.
+- **Manejo de red caída:** si una red falla, Bronze loguea un warning y sigue con las demás; no rompe el DAG. Como guardamos el crudo, podemos reprocesar.
+
+### Datos y resultado
+- **¿Los datos son en vivo?** Sí: el dashboard consulta la base que el pipeline actualiza cada pocos minutos → los números cambian solos. El **PDF** de la presentación es una foto fija (es lo normal).
+- **El hallazgo (la respuesta a la pregunta):** Sudamérica está mayormente bien abastecida (~8% sin bicis entre 20 ciudades). Las más ajustadas hoy: Vitória (~32%) y Medellín (~16%); las más equilibradas: Curitiba, Nordelta, Cuenca (~0%).
 
 ---
 
