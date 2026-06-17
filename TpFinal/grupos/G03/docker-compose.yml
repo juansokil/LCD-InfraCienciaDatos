@@ -36,7 +36,7 @@ services:
 
   # 🔹 Airflow Init (Migración de Base de Datos y creación de usuario administrador)
   airflow_init:
-    image: apache/airflow:3.0.0
+    image: apache/airflow:2.9.3
     container_name: g03_airflow_init
     depends_on:
       airflow_db:
