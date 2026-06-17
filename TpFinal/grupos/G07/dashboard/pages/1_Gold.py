@@ -451,38 +451,36 @@ if not df_perfil_estaciones.empty:
     ])
 
     with tab_devolucion:
-        st.subheader("Top 10 estaciones aptas para devolución")
+        st.subheader("Top 10 estaciones más aptas para devolución")
         st.markdown("Estaciones que estuvieron mayor proporción del tiempo con menos del 40% de bicicletas disponibles. Suelen tener más espacios libres para devolver que bicicletas para alquilar.")
-        df_devolucion = df_perfil_estaciones.nlargest(10, "pct_tiempo_devolucion")
+        df_devolucion = df_perfil_estaciones.nlargest(10, "pct_tiempo_devolucion").drop(
+            columns=["pct_tiempo_devolucion", "pct_tiempo_equilibrada", "pct_tiempo_alquiler", "avg_free_bikes"],
+            errors="ignore",
+        )
         st.dataframe(
             df_devolucion.rename(columns={
                 "station_name": "Estación",
                 "barrio": "Barrio",
                 "comuna": "Comuna",
-                "pct_tiempo_devolucion": "% tiempo devolución",
-                "pct_tiempo_equilibrada": "% tiempo equilibrada",
-                "pct_tiempo_alquiler": "% tiempo alquiler",
-                "avg_free_bikes": "Bicis promedio",
-                "avg_free_bikes_pct": "Bicis disponibles promedio %",
+                "avg_free_bikes_pct": "Bicis disponibles promedio %",         
             }),
             use_container_width=True,
             hide_index=True,
         )
 
     with tab_alquiler:
-        st.subheader("Top 10 estaciones aptas para alquiler")
+        st.subheader("Top 10 estaciones más aptas para alquiler")
         st.markdown("Estaciones que estuvieron mayor proporción del tiempo con más del 60% de bicicletas disponibles. Suelen tener más bicicletas para alquilar que espacios libres para devolución.")
-        df_alquiler = df_perfil_estaciones.nlargest(10, "pct_tiempo_alquiler")
+        df_alquiler = df_perfil_estaciones.nlargest(10, "pct_tiempo_alquiler").drop(
+            columns=["pct_tiempo_devolucion", "pct_tiempo_equilibrada", "pct_tiempo_alquiler", "avg_free_bikes"],
+            errors="ignore",
+        )
         st.dataframe(
             df_alquiler.rename(columns={
                 "station_name": "Estación",
                 "barrio": "Barrio",
                 "comuna": "Comuna",
-                "pct_tiempo_devolucion": "% tiempo devolución",
-                "pct_tiempo_equilibrada": "% tiempo equilibrada",
-                "pct_tiempo_alquiler": "% tiempo alquiler",
-                "avg_free_bikes": "Bicis promedio",
-                "avg_free_bikes_pct": "Bicis disponibles promedio %",
+                "avg_free_bikes_pct": "Bicis disponibles promedio %",         
             }),
             use_container_width=True,
             hide_index=True,
@@ -491,17 +489,16 @@ if not df_perfil_estaciones.empty:
     with tab_equilibrada:
         st.subheader("Top 10 estaciones más equilibradas")
         st.markdown("Estaciones que estuvieron mayor proporción del tiempo entre 40% y 60% de bicicletas disponibles.")
-        df_equilibrada = df_perfil_estaciones.nlargest(10, "pct_tiempo_equilibrada")
+        df_equilibrada = df_perfil_estaciones.nlargest(10, "pct_tiempo_equilibrada").drop(
+            columns=["pct_tiempo_devolucion", "pct_tiempo_equilibrada", "pct_tiempo_alquiler", "avg_free_bikes"],
+            errors="ignore",
+        )
         st.dataframe(
             df_equilibrada.rename(columns={
                 "station_name": "Estación",
                 "barrio": "Barrio",
                 "comuna": "Comuna",
-                "pct_tiempo_devolucion": "% tiempo devolución",
-                "pct_tiempo_equilibrada": "% tiempo equilibrada",
-                "pct_tiempo_alquiler": "% tiempo alquiler",
-                "avg_free_bikes": "Bicis promedio",
-                "avg_free_bikes_pct": "Bicis disponibles promedio %",
+                "avg_free_bikes_pct": "Bicis disponibles promedio %",         
             }),
             use_container_width=True,
             hide_index=True,
