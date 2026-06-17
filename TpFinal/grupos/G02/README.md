@@ -19,7 +19,7 @@
 | **Autenticacion** | API Key gratuita |
 | **Frecuencia de actualizacion** | Cada 1 hora (`@hourly`) |
 
-> **Descripcion:** API de tipos de cambio que devuelve un snapshot con cotizaciones de multiples monedas respecto de una moneda base (`USD`). En este proyecto consumimos el endpoint `latest.json`, que provee un timestamp Unix, la moneda base y un objeto anidado `rates` con pares `codigo_moneda -> cotizacion`.
+> **Descripción:** API de tipos de cambio que devuelve un snapshot con cotizaciones de multiples monedas respecto de una moneda base (`USD`). En este proyecto consumimos el endpoint `latest.json`, que provee un timestamp Unix, la moneda base y un objeto anidado `rates` con pares `codigo_moneda -> cotizacion`.
 
 ---
 
@@ -69,42 +69,42 @@ Aplica limpieza, tipado y normalizacion. El DAG `02_silver_exchange_rates` desan
 ```
 
 ### Capa Gold
-Esta orientada al analisis del comportamiento del peso argentino (`ARS`) frente al resto de las monedas disponibles. Como la API cotiza de forma nativa contra `USD`, el proyecto deriva tipos de cambio cruzados contra ARS.
+Está orientada al análisis del comportamiento del peso argentino (`ARS`) frente al resto de las monedas disponibles. Como la API cotiza de forma nativa contra `USD`, el proyecto deriva tipos de cambio cruzados contra ARS.
 
 **Tablas del esquema Gold:**
 
-* `gold.dim_time`: dimension temporal con desagregacion por fecha y hora.
-* `gold.dim_currency`: dimension de monedas con vigencia de registros.
-* `gold.fact_ars_exchange_rates`: tabla de hechos con equivalencias cruzadas y variacion porcentual contra el snapshot anterior.
+* `gold.dim_time`: dimensión temporal con desagregación por fecha y hora.
+* `gold.dim_currency`: dimensión de monedas con vigencia de registros.
+* `gold.fact_ars_exchange_rates`: tabla de hechos con equivalencias cruzadas y variación porcentual contra el snapshot anterior.
 
-**Metricas principales visualizadas en el dashboard:**
+**M+etricas principales visualizadas en el dashboard:**
 
-* Ultimo snapshot disponible.
+* Último snapshot disponible.
 * Cantidad de monedas disponibles.
 * Valor de `1 USD` en `ARS`.
 * Valor de `1 EUR` en `ARS`.
 * Top 5 de monedas mas caras en ARS.
-* Ranking de monedas con mayor variacion relativa.
-* Alertas por variacion porcentual configurable.
-* Comparacion historica de monedas seleccionadas.
+* Ranking de monedas con mayor variación relativa.
+* Alertas por variación porcentual configurable.
+* Comparación hist+orica de monedas seleccionadas.
 
 > **Pregunta de negocio del dashboard:**
-> ?Cuantos pesos argentinos se necesitan para comprar 1 unidad de cada moneda y cuales muestran mayor variacion relativa entre snapshots de la API?
+> ¿Cuántos pesos argentinos se necesitan para comprar 1 unidad de cada moneda y cuáles muestran mayor variacion relativa entre snapshots de la API?
 
 ---
 
 ## Dashboard
 
-El dashboard esta implementado con Streamlit y se divide en dos secciones de navegacion:
+El dashboard está implementado con Streamlit y se divide en dos secciones de navegación:
 
 * **Inicio**: portada del proyecto y contexto funcional.
-* **Dashboard**: visualizacion de metricas, rankings, alertas, tabla general y comparacion historica.
+* **Dashboard**: visualizacion de métricas, rankings, alertas, tabla general y comparación histórica.
 
 **Detalles de implementacion actuales:**
 
 * Los nombres de monedas se muestran en español, no como codigos ISO, usando `Babel` con fallback manual para algunos casos frecuentes.
-* El grafico de monedas mas caras muestra un **top 5** fijo.
-* El filtro lateral disponible actualmente es el umbral de alertas por variacion.
+* El gráfico de monedas más caras muestra un **top 5** fijo.
+* El filtro lateral disponible actualmente es el umbral de alertas por variación.
 
 ---
 
