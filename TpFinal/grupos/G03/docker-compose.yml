@@ -116,7 +116,7 @@ services:
     working_dir: /app
     command: >
       bash -c "
-        pip install streamlit psycopg2-binary &&
+        pip install streamlit psycopg2-binary plotly &&
         python -m streamlit run app.py --server.port=8501 --server.address=0.0.0.0
       "
     restart: always
