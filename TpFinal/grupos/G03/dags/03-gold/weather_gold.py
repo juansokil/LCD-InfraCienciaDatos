@@ -59,7 +59,12 @@ def cargar_fact_pronostico():
     conn.close()
 
 # Definición del DAG con el nombre nuevo
-with DAG('weather_gold_pipeline', start_date=datetime(2025, 1, 1), schedule='@daily', catchup=False) as dag:
+with DAG(
+    'weather_gold_pipeline',
+    start_date=datetime(2025, 1, 1),
+    schedule='@daily',
+    catchup=False,
+    is_paused_upon_creation=False) as dag:
     
     task_clima = PythonOperator(
         task_id='cargar_fact_clima_real',
