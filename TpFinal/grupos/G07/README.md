@@ -131,11 +131,28 @@ La capa Gold expone un modelo dimensional (Esquema Estrella) estructurado espec�
 1.  **¿Cuál es el estado operativo actual de la red?** (KPIs de bicis, slots y estaciones, complementado con un mapa interactivo que clasifica las estaciones según su perfil funcional en el último snapshot).
 2.  **¿En qué momentos del día varía la disponibilidad?** (Franjas horarias y se destacan las horas pico con menor cantidad de bicis o slots).
 3.  **¿Qué zonas tienen más disponibilidad de bicicletas?** (Ranking discriminado por "Barrio" o "Comuna").
-4.  **¿Cuál es el perfil funcional de cada estación?** (Cada estación se clasifica como devolución, alquiler o equilibrada, mostrando los Top 10 más consistentes en cada categoría).
+4.  **¿Cuál es el perfil funcional de cada estación?** (Cada estación se clasifica como "devolución", "alquiler" o "equilibrada", mostrando los diez más consistentes por cada categoría).
 
----
+## Cómo levantar el stack
 
-# Estructura del Proyecto
+```bash
+cd TpFinal/grupos/G07/
+cp .env.example .env
+docker compose up -d --build
+# Esperar ~30s a que Airflow termine de inicializar
+```
+**Accesos**:
+- Airflow UI: http://localhost:8081 (`admin` / `admin`)
+- Dashboard (Gold): http://localhost:8501
+- Postgres: `localhost:5432` (user/pass en `.env`)
+
+**Apagar**:
+```bash
+docker compose down            # apaga, conserva datos
+docker compose down -v         # apaga y BORRA volumenes (cuidado)
+```
+
+## Estructura del proyecto
 
 ```
 TpFinal/grupos/G07/
@@ -176,29 +193,3 @@ TpFinal/grupos/G07/
 └── notebooks/
     └── generar_stations_barrios.ipynb
 ```
-
----
-
-## Como levantar el stack
-
-```bash
-cd TpFinal/grupos/G07/
-cp .env.example .env
-docker compose up -d --build
-# Esperar ~30s a que Airflow termine de inicializar
-```
-**Accesos**:
-- Airflow UI: http://localhost:8081 (`admin` / `admin`)
-- Dashboard (Gold): http://localhost:8501
-- Postgres: `localhost:5432` (user/pass en `.env`)
-
-**Apagar**:
-```bash
-docker compose down            # apaga, conserva datos
-docker compose down -v         # apaga y BORRA volumenes (cuidado)
-```
-
-## Estructura del proyecto
-
-Ver la sección **"Esqueleto de entrega"** en [`TpFinal/grupos/README.md`](../README.md)
-
