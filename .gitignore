@@ -10,6 +10,8 @@ __pycache__/
 venv/
 ENV/
 # .env
+.env
+!TpFinal/grupos/G02/.env
 
 # --- Jupyter Notebooks ---
 .ipynb_checkpoints

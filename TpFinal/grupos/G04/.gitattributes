@@ -1,0 +1,3 @@
+# Los scripts .sh se guardan SIEMPRE con saltos de linea LF.
+# Si no, al clonarlos en Mac/Linux fallan con "bad interpreter: ...^M".
+*.sh text eol=lf

@@ -1,0 +1,18 @@
+Apellido: Ortmann
+Nombre: Lorenzo
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (24x3) h=F9977B80
+  E2: OK (1x1) h=A252CACC
+  E3: OK (1x2) h=D4731E56
+  E4: OK (1x1) h=C292C083
+  E5: OK (91x3) h=4AB1DE89
+  E6: OK (7x2) h=11760A18
+  E7: OK (77x4) h=DC26BA58
+  E8: OK (20x3) h=41F90B3A
+Ejercicios con resultado: 8 / 8
+Codigo: 107984D12776
+Fecha: 2026-06-04

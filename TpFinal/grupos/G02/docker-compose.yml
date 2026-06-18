@@ -1,0 +1,66 @@
+version: '3.8'
+
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.8.1
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres_airflow/airflow
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    # Pasamos las variables del .env para que Airflow pueda usarlas
+    - POSTGRES_USER=${POSTGRES_USER}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    - POSTGRES_DB=${POSTGRES_DB}
+    - API_KEY=${API_KEY}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./requirements.txt:/requirements.txt
+  # Instala las librerias de requirements.txt antes de arrancar Airflow
+  command: bash -c "pip install -r /requirements.txt && airflow standalone"
+
+services:
+  # 1. Base de datos interna para Airflow
+  postgres_airflow:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5433:5432"
+
+  # 2. Orquestador (Airflow UI y Scheduler)
+  airflow:
+    <<: *airflow-common
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres_airflow
+      - data_warehouse
+
+  # 3. Nuestro Data Warehouse (Postgres principal para Bronze, Silver y Gold)
+  data_warehouse:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      # Ejecuta automáticamente el init.sql para crear los esquemas al nacer
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  # 4. Dashboard de Streamlit
+  dashboard:
+    build: 
+      context: ./dashboard
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_HOST=data_warehouse
+    ports:
+      - "8501:8501"
+    depends_on:
+      - data_warehouse

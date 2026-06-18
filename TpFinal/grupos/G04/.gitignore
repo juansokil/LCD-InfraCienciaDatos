@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+.DS_Store
+logs/
+credentials/
+# temporales de Office/SO
+~$*
+*.tmp
+Thumbs.db

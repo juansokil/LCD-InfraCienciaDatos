@@ -1,0 +1,15 @@
+# Tema del dashboard — paleta CityBikes G04 (papel + rojo, igual que la presentación)
+[theme]
+base = "light"
+primaryColor = "#D7263D"
+backgroundColor = "#FBFAF9"
+secondaryBackgroundColor = "#F2EBE7"
+textColor = "#2B1B1B"
+font = "sans serif"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+# Menos elementos en la barra superior durante la carga (se aplica a nivel tema, sin flash)
+toolbarMode = "minimal"
