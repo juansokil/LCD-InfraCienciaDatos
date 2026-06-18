@@ -1,2 +1,0 @@
-# Federico Raiteri
-@RaiteriFederico

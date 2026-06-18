@@ -1,5 +1,0 @@
-Apellido: stacchino
-Nombre: tiziano
-Nivel alcanzado: 3 / 3
-Codigo: 1EC7090C5A10
-Fecha: 2026-05-25

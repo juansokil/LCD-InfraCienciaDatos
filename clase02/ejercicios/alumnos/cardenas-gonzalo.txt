@@ -1,5 +1,0 @@
-Apellido: cardenas
-Nombre: gonzalo
-Nivel alcanzado: 3 / 3
-Codigo: AFF8BBC0538C
-Fecha: 2026-05-14

@@ -1,2 +1,0 @@
-# Nicolas Lombisano
-@Lombi21

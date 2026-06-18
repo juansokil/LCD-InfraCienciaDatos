@@ -1,7 +1,0 @@
-Apellido: stacchino
-Nombre: tiziano
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: E76D58044A63
-Fecha: 2026-05-27

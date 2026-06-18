@@ -1,5 +1,0 @@
-Apellido: Ortmann
-Nombre: Lorenzo
-Nivel alcanzado: 3 / 3
-Codigo: C1F4CADA7EF1
-Fecha: 2026-05-20

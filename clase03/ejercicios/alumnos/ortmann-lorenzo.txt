@@ -1,7 +1,0 @@
-Apellido: ortmann
-Nombre: lorenzo
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: 31621F23306B
-Fecha: 2026-05-26

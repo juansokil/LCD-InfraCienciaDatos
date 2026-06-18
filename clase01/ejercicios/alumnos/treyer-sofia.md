@@ -1,2 +1,0 @@
-# Sofía Treyer
-@sofiatreyer

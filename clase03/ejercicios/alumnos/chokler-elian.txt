@@ -1,7 +1,0 @@
-Apellido: Chokler
-Nombre: Elian
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: D682DB39AD1E
-Fecha: 2026-05-21

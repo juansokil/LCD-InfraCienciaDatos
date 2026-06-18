@@ -1,7 +1,0 @@
-Apellido: Treyer
-Nombre: Sofía
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: BD433899D6EA
-Fecha: 2026-06-02

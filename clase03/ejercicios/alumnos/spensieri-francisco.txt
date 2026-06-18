@@ -1,7 +1,0 @@
-Apellido: Spensieri
-Nombre: Francisco
-Motor: duckdb
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: 84F2C26E283C
-Fecha: 2026-05-26

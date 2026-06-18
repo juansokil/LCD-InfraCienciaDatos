@@ -1,7 +1,0 @@
-Apellido: Stolerman
-Nombre: Morena
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: 1689E2FE1DCE
-Fecha: 2026-05-21

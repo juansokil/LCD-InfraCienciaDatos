@@ -1,5 +1,0 @@
-Apellido: Rodriguez
-Nombre: Juan Ignacio
-Nivel alcanzado: 2 / 3
-Codigo: 8C677266D708
-Fecha: 2026-05-26

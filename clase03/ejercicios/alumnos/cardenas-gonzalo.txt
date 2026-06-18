@@ -1,7 +1,0 @@
-Apellido: cardenas
-Nombre: gonzalo
-Motor: postgres
-Tabla Bronze: bronze.crypto_markets_demo
-Filas cargadas: 50
-Codigo: BCE909CB4BA0
-Fecha: 2026-05-26
