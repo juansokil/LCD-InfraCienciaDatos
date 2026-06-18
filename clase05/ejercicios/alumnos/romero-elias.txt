@@ -1,0 +1,18 @@
+Apellido: romero
+Nombre: elias
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  G1: OK (8x2) h=8D5395BC
+  G2: OK (10x2) h=AB306873
+  G3: OK (8x4) h=0412D78D
+  G4: OK (4x2) h=C1895248
+  G5: OK (23x2) h=52E697DD
+  G6: OK (3x2) h=307081AE
+  G7: OK (77x4) h=CFF36D45
+  G8: OK (8x3) h=BE19C4D8
+Ejercicios con resultado: 8 / 8
+Codigo: E0C5EBAFB8EA
+Fecha: 2026-06-18
