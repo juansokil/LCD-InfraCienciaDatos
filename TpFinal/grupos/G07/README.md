@@ -128,10 +128,10 @@ La capa Gold expone un modelo dimensional (Esquema Estrella) estructurado espec�
 
 
 **Preguntas de negocio que responde el Dashboard:**
-1.  **¿Cuál es el estado operativo actual de la red?** (Bicicletas disponibles, slots libres y estaciones monitoreadas).
-2.  **¿En qué momentos del día varía la disponibilidad?** (Patrón horario de ocupación promedio).
+1.  **¿Cuál es el estado operativo actual de la red?** (KPIs de bicis, slots y estaciones, complementado con un mapa interactivo que clasifica las estaciones según su perfil funcional en el último snapshot).
+2.  **¿En qué momentos del día varía la disponibilidad?** (Franjas horarias y se destacan las horas pico con menor cantidad de bicis o slots).
 3.  **¿Qué zonas tienen más disponibilidad de bicicletas?** (Ranking discriminado por "Barrio" o "Comuna").
-4.  **¿Cuál es el perfil funcional de cada estación?** (Ranking Top 10 de estaciones que tengan un perfil funcional más consistente en el tiempo).
+4.  **¿Cuál es el perfil funcional de cada estación?** (Cada estación se clasifica como devolución, alquiler o equilibrada, mostrando los Top 10 más consistentes en cada categoría).
 
 
 ---
