@@ -82,7 +82,7 @@ Datos **aplanados, tipados y validados**. Acá se "abre" el JSON de Bronze y se 
 
 Columnas clave: `free_bikes`, `empty_slots`, `total_slots` (= free + empty), `occupancy_rate` (ocupación 0–1), flags `is_empty` / `is_full`, `snapshot_at`. **PK:** `(station_id, snapshot_at)`.
 
-Qué limpieza hace: descarta filas con `free_bikes` nulo o negativo, valida lat/long dentro de rango, normaliza `empty_slots` nulo. Es **incremental**: solo procesa lo nuevo desde Bronze usando un **watermark** (la última `snapshot_at` ya procesada).
+Qué limpieza hace: descarta filas con `free_bikes` nulo o negativo (y con `empty_slots` negativo — dato roto que mandan algunas redes, que rompía el cálculo de ocupación), valida lat/long dentro de rango, normaliza `empty_slots` nulo. Es **incremental**: solo procesa lo nuevo desde Bronze usando un **watermark** (la última `snapshot_at` ya procesada).
 
 ### 🥇 Gold — modelo dimensional para consumo
 

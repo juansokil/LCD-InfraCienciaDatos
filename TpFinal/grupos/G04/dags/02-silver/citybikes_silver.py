@@ -82,6 +82,7 @@ SELECT
 FROM src
 WHERE free_bikes IS NOT NULL
   AND free_bikes >= 0
+  AND COALESCE(empty_slots, 0) >= 0   -- descarta empty_slots negativo (dato roto de la API, p.ej. encicla) -> evita overflow de occupancy_rate
   AND latitude  IS NOT NULL
   AND longitude IS NOT NULL
   AND latitude  BETWEEN -90 AND 90
