@@ -393,11 +393,11 @@ agrupacion_zona = st.radio(
 if agrupacion_zona == "Barrio":
     columna_agrupacion = "barrio"
     etiqueta_eje = "Barrio"
-    titulo_grafico = "Promedio de bicis disponibles por barrio (de mayor a menor)"
+    titulo_grafico = "Promedio de bicis disponibles por barrio (de menor a mayor)"
 else:
     columna_agrupacion = "comuna"
     etiqueta_eje = "Comuna"
-    titulo_grafico = "Promedio de bicis disponibles por comuna (de mayor a menor)"
+    titulo_grafico = "Promedio de bicis disponibles por comuna (de menor a mayor)"
 
 df_zona = (
     df_estado.dropna(subset=[columna_agrupacion])
