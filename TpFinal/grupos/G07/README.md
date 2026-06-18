@@ -21,7 +21,7 @@
 
 ## Modelo de datos
 
-El proyecto implementa una arquitectura analítica basada en la **Arquitectura Medallón**, diseñada para monitorear el sistema EcoBici del Gobierno de la Ciudad de Buenos Aires (GCBA).
+El proyecto implementa una arquitectura analítica basada en la **Arquitectura Medallion**, diseñada para monitorear el sistema EcoBici del Gobierno de la Ciudad de Buenos Aires (GCBA).
 
 ### Bronze
 
