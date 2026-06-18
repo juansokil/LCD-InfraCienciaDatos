@@ -133,6 +133,49 @@ La capa Gold expone un modelo dimensional (Esquema Estrella) estructurado espec�
 3.  **¿Qué zonas tienen más disponibilidad de bicicletas?** (Ranking discriminado por "Barrio" o "Comuna").
 4.  **¿Cuál es el perfil funcional de cada estación?** (Cada estación se clasifica como devolución, alquiler o equilibrada, mostrando los Top 10 más consistentes en cada categoría).
 
+---
+
+# Estructura del Proyecto
+
+```
+TpFinal/grupos/G07/
+├── README.md                       # API elegida + modelo de datos + como levantar el stack
+├── docker-compose.yml              # 4 servicios: warehouse + airflow_db + airflow + dashboard
+├── Dockerfile                      # imagen Airflow custom (basada en apache/airflow:3.1.5)
+├── Dockerfile.postgres             # opcional: si quieren pre-cargar init.sql en la imagen
+├── init.sql                        # CREATE SCHEMA bronze, silver, gold
+├── requirements.txt                # deps Python para Airflow (pandas, sqlalchemy, requests, etc.)
+├── .env.example                    # variables de entorno (cada uno copia a .env)
+├── .gitignore                      # ignorar .env, credentials/, __pycache__, etc.
+├── dags/
+│   ├── 01-bronze/
+│   │   ├── citybikes_bronze.py         # ingesta cruda de la API a schema bronze
+│   │   └── tablas-bronze_estructura/
+│   │       ├── bronze.networks.csv
+│   │       ├── bronze.snapshots.csv
+│   │       └── bronze.stations.csv
+│   ├── 02-silver/
+│   │   └── citybikes_silver.py         # limpieza, validacion, tipos
+│   └── 03-gold/
+│       └── citybikes_gold.py           # agregaciones, modelo dimensional (fact/dim)
+├── dashboard/
+│   ├── Dockerfile                   # imagen del dashboard (basada en python:3.11-slim)
+│   ├── app.py                       # entrypoint Streamlit (st.set_page_config + intro)
+│   ├── db.py                        # conexion a Postgres (reusable desde todas las paginas)
+│   ├── requirements.txt             # streamlit, pandas, sqlalchemy, plotly, etc.
+│   └── pages/                       # vistas adicionales sobre tablas GOLD
+│       └── 1_Gold.py                # dashboard de KPIs / vistas de negocio sobre el modelo final
+├── data/
+│   ├── contracts/
+│   │   ├── silver_contracts.yaml
+│   │   └── gold_contracts.yaml
+│   ├── landing/
+│   ├── processed/
+│   └── seeds/
+│       └── station_barrios.csv
+└── notebooks/
+    └── generar_stations_barrios.ipynb
+```
 
 ---
 
