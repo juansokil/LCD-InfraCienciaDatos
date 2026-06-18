@@ -52,11 +52,8 @@ services:
       - airflow-init
 
   dashboard:
-    image: python:3.11-slim
-    command: bash -c "pip install streamlit pandas sqlalchemy psycopg2-binary plotly && streamlit run /app/pages/1_Gold.py --server.port=8501 --server.address=0.0.0.0"
+    build: ./dashboard
     ports:
       - "8501:8501"
-    volumes:
-      - ./dashboard:/app
     depends_on:
       - postgres
