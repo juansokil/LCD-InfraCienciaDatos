@@ -60,25 +60,24 @@ def aplicar_horario_local(df, time_id_col="time_id", timezone=LOCAL_TIMEZONE):
 
     df = df.copy()
     time_id_str = df[time_id_col].astype("Int64").astype(str)
-    datetime_local = pd.to_datetime(
+    datetime_utc = pd.to_datetime(
         time_id_str,
         format="%Y%m%d%H",
         errors="coerce",
-        utc=True,
-    ).dt.tz_convert(timezone)
+    )
+    datetime_local = (
+        datetime_utc
+        .dt.tz_localize("UTC")
+        .dt.tz_convert(timezone)
+    )
 
     df["datetime_local"] = datetime_local
-    df["hora"] = datetime_local.dt.hour
+    df["hora"] = datetime_local.dt.hour          # hora local, sobreescribe la UTC de dim_time
     df["dia_semana"] = datetime_local.dt.isocalendar().day.astype("Int64")
 
     nombres_dia = {
-        1: "Lunes",
-        2: "Martes",
-        3: "Miércoles",
-        4: "Jueves",
-        5: "Viernes",
-        6: "Sábado",
-        7: "Domingo",
+        1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves",
+        5: "Viernes", 6: "Sábado", 7: "Domingo",
     }
     df["nombre_dia"] = df["dia_semana"].map(nombres_dia)
 
@@ -162,7 +161,12 @@ st.header("📊 Estado operativo actual")
 
 # Timestamp de la última actualización
 if not df_estado.empty and "ts" in df_estado.columns:
-    ts_ultimo = df_estado["ts"].max()
+    ts_ultimo = (
+    pd.to_datetime(df_estado["ts"], utc=True)
+        .max()
+        .tz_convert(LOCAL_TIMEZONE)
+        .strftime("%Y-%m-%d %H:%M:%S")
+    )
     st.caption(f"📅 Último snapshot registrado: **{ts_ultimo}** · Zona horaria visualizada: **{LOCAL_TIMEZONE}**")
 
 col1, col2, col3, col4 = st.columns(4)
