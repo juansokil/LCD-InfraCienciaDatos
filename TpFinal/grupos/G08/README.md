@@ -37,7 +37,9 @@ El DAG `g08_openmeteo_silver` lee `bronze.weather_raw`, desanida el bloque `hour
 
 ### Gold
 
-Se construiran tablas analiticas para comparar clima entre ciudades, detectar alertas meteorologicas y alimentar el dashboard final.
+El DAG `g08_openmeteo_gold` lee `silver.weather_hourly` y agrega los datos por ciudad y dia en `gold.weather_daily_summary`. Gold aporta una vista analitica lista para consumo: resume temperatura promedio, maxima, minima, amplitud termica, precipitacion total, horas con lluvia, viento promedio y maximo.
+
+Ademas clasifica cada dia con `weather_category`, calcula un `outdoor_score` de 0 a 100 y genera una `outdoor_recommendation`. Esto diferencia Gold de Silver: Silver guarda datos horarios limpios; Gold responde preguntas de analisis y dashboard, por ejemplo si un dia es recomendable para actividades al aire libre.
 
 ## Dashboard
 
