@@ -55,12 +55,12 @@ Transformaciones previstas:
 - Parsear `station_timestamp`, `last_updated` e `ingested_at` como timestamps.
 - Tipar `latitude`, `longitude`, `free_bikes`, `empty_slots`, `slots` y `normal_bikes` como numericos.
 - Normalizar `station_name` y `address` quitando espacios extra.
-- Extraer campos utiles desde `extra_json`: `uid`, `renting`, `returning`, `last_updated`, `address`, `slots`, `normal_bikes`, `virtual`.
+- Extraer campos utiles desde `extra_json`: `uid`, `is_renting`, `is_returning`, `last_updated`, `address`, `slots`, `normal_bikes`, `virtual`.
 - Validar que `free_bikes`, `empty_slots`, `slots` y `normal_bikes` no sean negativos.
 - Validar coordenadas dentro de un rango razonable para Buenos Aires.
 - Deduplicar por `snapshot_id` + `station_id`.
 - Crear metricas tecnicas como `total_capacity` y `occupancy_ratio`.
-- Enviar a cuarentena registros con datos invalidos o incompletos criticos.
+- Enviar a `silver.ecobici_stations_quarantine` registros con datos invalidos o incompletos criticos, registrando el motivo en `quarantine_reason`.
 
 ### Gold
 

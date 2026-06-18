@@ -15,8 +15,10 @@ from sqlalchemy import text
 
 # URI de conexión al Data Warehouse Postgres mapeado en Docker
 DB_URI = (
-    "postgresql+psycopg2://"
-    "admin:admin@data_warehouse:5432/InfraCienciaDatos"
+    f"postgresql+psycopg2://"
+    f"{os.getenv('SOURCE_DB_USER', 'admin')}:{os.getenv('SOURCE_DB_PASS', 'admin')}"
+    f"@{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:5432/"
+    f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
 )
 
 @dag(
@@ -28,6 +30,44 @@ DB_URI = (
     tags=["prod", "gold", "modelado_dimensional", "ecobici"],
 )
 def gold_ecobici_pipeline():
+
+    @task()
+    def ensure_gold_tables():
+        """Crea el esquema y las tablas Gold si el volumen de Postgres ya existia."""
+        engine = sqlalchemy.create_engine(DB_URI)
+        with engine.begin() as conn:
+            conn.execute(text("CREATE SCHEMA IF NOT EXISTS gold;"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gold.dim_station (
+                    station_id VARCHAR(80) PRIMARY KEY,
+                    station_name VARCHAR(255) NOT NULL,
+                    address TEXT,
+                    total_capacity INT NOT NULL,
+                    latitude DOUBLE PRECISION NOT NULL,
+                    longitude DOUBLE PRECISION NOT NULL
+                );
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gold.dim_time (
+                    time_id BIGINT PRIMARY KEY,
+                    full_timestamp TIMESTAMP WITH TIME ZONE UNIQUE NOT NULL,
+                    hour INT NOT NULL,
+                    minute INT NOT NULL,
+                    day_of_week VARCHAR(20) NOT NULL,
+                    is_weekend BOOLEAN NOT NULL
+                );
+            """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gold.fact_station_availability (
+                    fact_key SERIAL PRIMARY KEY,
+                    time_id BIGINT NOT NULL REFERENCES gold.dim_time(time_id),
+                    station_id VARCHAR(80) NOT NULL REFERENCES gold.dim_station(station_id),
+                    bikes_available INT NOT NULL,
+                    slots_available INT NOT NULL,
+                    occupancy_ratio DOUBLE PRECISION NOT NULL,
+                    CONSTRAINT unique_snapshot_station UNIQUE (time_id, station_id)
+                );
+            """))
 
     @task()
     def extract_silver_data() -> str:
@@ -170,6 +210,7 @@ def gold_ecobici_pipeline():
                 )
 
     # Definición explícita del flujo de control del Grafo Dirigido (DAG)
+    gold_tables = ensure_gold_tables()
     raw_silver_data = extract_silver_data()
     
     task_station = load_dim_station(raw_silver_data)
@@ -177,6 +218,6 @@ def gold_ecobici_pipeline():
     task_fact = load_fact_availability(raw_silver_data)
     
     # Las dimensiones se deben cargar SI o SI antes que la tabla de hechos para no romper las Foreign Keys de Postgres
-    [task_station, task_time] >> task_fact
+    gold_tables >> [task_station, task_time] >> task_fact
 
 gold_ecobici_dag = gold_ecobici_pipeline()
