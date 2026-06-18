@@ -10,11 +10,16 @@ from db import run_query
 
 st.set_page_config(page_title="Gold Analytics", layout="centered")
 
-st.title("🏆 Gold Layer Analytics - Weather Summary")
+st.title("Análisis Climático de Ciudades Argentinas")
 
-# ----------------------------
+st.markdown("""
+Este dashboard presenta información climática procesada mediante un pipeline de ingeniería de datos.
+
+Los datos fueron obtenidos desde la API Open-Meteo, almacenados en PostgreSQL y transformados a través de Apache Airflow siguiendo la arquitectura Bronze → Silver → Gold.
+""")
+
 # CARGA DE DATOS
-# ----------------------------
+
 @st.cache_data
 def load_data():
     query = "SELECT * FROM gold.weather_summary"
@@ -25,9 +30,6 @@ df = load_data()
 st.subheader("📊 Datos Gold")
 st.dataframe(df)
 
-# ----------------------------
-# KPI BÁSICOS (ARREGLADOS)
-# ----------------------------
 st.subheader("📌 KPIs generales")
 
 col1, col2, col3 = st.columns(3)
@@ -50,9 +52,9 @@ col3.metric(
     df['city'].nunique()
 )
 
-# ----------------------------
+
 # KPI EXTRA (valor agregado)
-# ----------------------------
+
 st.subheader("📌 Insights adicionales")
 
 col4, col5 = st.columns(2)
