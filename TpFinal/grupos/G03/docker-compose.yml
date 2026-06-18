@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+
+  #Data Warehouse
+  warehouse:
+    image: postgres:17-alpine
+    container_name: g03_warehouse
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: weather_data
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d weather_data"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  #Airflow DB (Metadatos)
+  airflow_db:
+    image: postgres:15-alpine
+    container_name: g03_airflow_db
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow123
+      POSTGRES_DB: airflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  #Airflow Init (Migración de Base de Datos y creación de usuario administrador)
+  
+  airflow_init:
+    image: apache/airflow:2.9.3
+    container_name: g03_airflow_init
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow123@airflow_db:5432/airflow
+      # Esto ya corre el "db migrate/init" de forma nativa antes de ejecutar el command:
+      _AIRFLOW_DB_MIGRATE: "true"
+      _AIRFLOW_WWW_USER_USERNAME: "admin"
+      _AIRFLOW_WWW_USER_PASSWORD: "admin123"
+    
+    
+    command: >
+      bash -c "airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin123"
+
+    user: "${AIRFLOW_UID:-50000}:0"
+
+  #Airflow Webserver (UI)
+  airflow:
+    image: apache/airflow:2.9.3
+    container_name: g03_airflow
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+      airflow_init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW_CONN_POSTGRES_DEFAULT: "postgresql://admin:admin123@warehouse:5432/weather_data"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow123@airflow_db:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-postgres pandas"
+      AIRFLOW__WEBSERVER__SECRET_KEY: supersecretkeyfortpfinalg03
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./coordenadas.json:/opt/airflow/coordenadas.json
+    user: "${AIRFLOW_UID:-50000}:0"
+    command: webserver
+
+  #Airflow Scheduler
+  airflow_scheduler:
+    image: apache/airflow:2.9.3
+    container_name: g03_airflow_scheduler
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+      airflow_init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW_CONN_POSTGRES_DEFAULT: "postgresql://admin:admin123@warehouse:5432/weather_data"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow123@airflow_db:5432/airflow
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-postgres pandas"
+      AIRFLOW__WEBSERVER__SECRET_KEY: supersecretkeyfortpfinalg03
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./coordenadas.json:/opt/airflow/coordenadas.json
+    user: "${AIRFLOW_UID:-50000}:0"
+    command: scheduler
+
+  #Streamlit Dashboard
+  dashboard:
+    image: python:3.11-slim
+    container_name: g03_dashboard
+    ports:
+      - "8502:8501"
+    volumes:
+      - ./dashboard:/app
+    working_dir: /app
+    command: >
+      bash -c "
+        pip install streamlit psycopg2-binary plotly &&
+        python -m streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+      "
+    restart: always
