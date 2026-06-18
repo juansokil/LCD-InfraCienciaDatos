@@ -1,0 +1,135 @@
+services:
+
+  # ORQUESTADOR 
+  airflow:
+    build: .
+    container_name: weather_airflow
+    env_file: .env
+    environment:
+      - AIRFLOW_UID=${AIRFLOW_UID:-0}
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
+      - AIRFLOW__API__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
+      - AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=10
+      - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=10
+      - SOURCE_DB_HOST=data_warehouse
+      # Variables del warehouse disponibles en los DAGs (para construir la conn string)
+      - SOURCE_DB_USER=${SOURCE_DB_USER}
+      - SOURCE_DB_PASS=${SOURCE_DB_PASS}
+      - SOURCE_DB_NAME=${SOURCE_DB_NAME}
+    volumes:
+      - type: bind
+        source: ./dags
+        target: /opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    ports:
+
+      - "8080:8080"
+      # si 8080 está ocupado
+      # - "8081:8080"
+
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - weather_network
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+          cpus: '2.0'
+
+  # METADATOS DE AIRFLOW
+
+  airflow_db:
+    image: postgres:17-alpine
+    container_name: weather_airflow_db
+    environment:
+      - POSTGRES_USER=${AF_DB_USER}
+      - POSTGRES_PASSWORD=${AF_DB_PASS}
+      - POSTGRES_DB=${AF_DB_NAME}
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AF_DB_USER} -d ${AF_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - weather_network
+    deploy:
+      resources:
+        limits:
+          memory: 2048M
+
+  # DATA WAREHOUSE 
+
+  data_warehouse:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    image: weather_warehouse:custom
+    container_name: weather_warehouse
+    environment:
+      - POSTGRES_USER=${SOURCE_DB_USER}
+      - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
+      - POSTGRES_DB=${SOURCE_DB_NAME}
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    ports:
+      # OPCION A (default): localhost:5432
+      - "5432:5432"
+      # OPCION B: si 5432 está ocupado → localhost:5433
+      # - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - weather_network
+
+  # DASHBOARD
+
+  dashboard:
+    build: ./dashboard
+    container_name: weather_dashboard
+    env_file: .env
+    environment:
+      - SOURCE_DB_HOST=data_warehouse
+      - SOURCE_DB_USER=${SOURCE_DB_USER}
+      - SOURCE_DB_PASS=${SOURCE_DB_PASS}
+      - SOURCE_DB_NAME=${SOURCE_DB_NAME}
+    ports:
+      - "8501:8501"
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - weather_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+# VOLÚMENES
+
+volumes:
+  airflow_db_data:
+  airflow_logs:
+  airflow_plugins:
+  warehouse_data:
+
+# RED INTERNA
+
+networks:
+  weather_network:
+    name: weather_network
+    driver: bridge
