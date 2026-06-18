@@ -1,10 +1,7 @@
 import streamlit as st
 import pandas as pd
-from sqlalchemy import create_engine
 import plotly.express as px
-
-# 1. Configuración principal de la página
-st.set_page_config(page_title="Dashboard Climático - G05", page_icon="🌤️", layout="wide")
+from db import get_engine
 
 st.title("🌤️ Pronóstico y Alertas Climáticas (Próximos 7 Días)")
 st.markdown("Análisis comparativo de temperaturas extremas y precipitaciones para 4 puntos geográficos de Argentina.")
@@ -12,8 +9,7 @@ st.markdown("Análisis comparativo de temperaturas extremas y precipitaciones pa
 # 2. Función para conectarnos a nuestra base de datos Postgres y traer la tabla Gold
 @st.cache_data
 def cargar_datos():
-    engine = create_engine('postgresql+psycopg2://airflow:airflow@postgres:5432/airflow_db')
-    df = pd.read_sql("SELECT * FROM gold.clima_kpis", engine)
+    df = pd.read_sql("SELECT * FROM gold.clima_kpis", get_engine())
     return df
 
 try:
