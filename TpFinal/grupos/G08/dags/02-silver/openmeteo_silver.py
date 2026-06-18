@@ -26,6 +26,18 @@ def _get_value(values, idx):
     return values[idx]
 
 
+def _is_valid_row(row):
+    if not row["city"] or not row["forecast_time"]:
+        return False
+    if row["precipitation"] is not None and row["precipitation"] < 0:
+        return False
+    if row["wind_speed_10m"] is not None and row["wind_speed_10m"] < 0:
+        return False
+    if row["temperature_2m"] is not None and not (-80 <= row["temperature_2m"] <= 60):
+        return False
+    return True
+
+
 def _hourly_rows(row):
     payload = _parse_payload(row.raw_json)
     hourly = payload.get("hourly") or {}
@@ -75,8 +87,49 @@ def openmeteo_silver():
                         wind_speed_10m DOUBLE PRECISION,
                         ingested_at TIMESTAMPTZ NOT NULL,
                         source_raw_id BIGINT NOT NULL,
-                        PRIMARY KEY (city, forecast_time)
+                        PRIMARY KEY (city, forecast_time),
+                        CONSTRAINT weather_hourly_precipitation_chk
+                            CHECK (precipitation IS NULL OR precipitation >= 0),
+                        CONSTRAINT weather_hourly_wind_speed_chk
+                            CHECK (wind_speed_10m IS NULL OR wind_speed_10m >= 0),
+                        CONSTRAINT weather_hourly_temperature_chk
+                            CHECK (temperature_2m IS NULL OR temperature_2m BETWEEN -80 AND 60)
                     );
+                    """
+                )
+            )
+            conn.execute(
+                sqlalchemy.text(
+                    """
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint
+                            WHERE conname = 'weather_hourly_precipitation_chk'
+                        ) THEN
+                            ALTER TABLE silver.weather_hourly
+                            ADD CONSTRAINT weather_hourly_precipitation_chk
+                            CHECK (precipitation IS NULL OR precipitation >= 0) NOT VALID;
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint
+                            WHERE conname = 'weather_hourly_wind_speed_chk'
+                        ) THEN
+                            ALTER TABLE silver.weather_hourly
+                            ADD CONSTRAINT weather_hourly_wind_speed_chk
+                            CHECK (wind_speed_10m IS NULL OR wind_speed_10m >= 0) NOT VALID;
+                        END IF;
+
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint
+                            WHERE conname = 'weather_hourly_temperature_chk'
+                        ) THEN
+                            ALTER TABLE silver.weather_hourly
+                            ADD CONSTRAINT weather_hourly_temperature_chk
+                            CHECK (temperature_2m IS NULL OR temperature_2m BETWEEN -80 AND 60) NOT VALID;
+                        END IF;
+                    END $$;
                     """
                 )
             )
@@ -124,11 +177,14 @@ def openmeteo_silver():
                     precipitation = EXCLUDED.precipitation,
                     wind_speed_10m = EXCLUDED.wind_speed_10m,
                     ingested_at = EXCLUDED.ingested_at,
-                    source_raw_id = EXCLUDED.source_raw_id;
+                    source_raw_id = EXCLUDED.source_raw_id
+                WHERE silver.weather_hourly.ingested_at <= EXCLUDED.ingested_at;
                 """
             )
 
-            total_rows = 0
+            processed_rows = 0
+            affected_rows = 0
+            invalid_rows = 0
             skipped_rows = 0
             for row in bronze_rows:
                 rows = _hourly_rows(row)
@@ -136,12 +192,20 @@ def openmeteo_silver():
                     skipped_rows += 1
                     continue
 
-                conn.execute(insert_sql, rows)
-                total_rows += len(rows)
+                for hourly_row in rows:
+                    processed_rows += 1
+                    if not _is_valid_row(hourly_row):
+                        invalid_rows += 1
+                        continue
+
+                    result = conn.execute(insert_sql, hourly_row)
+                    affected_rows += result.rowcount
 
         print(
             "Silver Open-Meteo: "
-            f"{total_rows} filas horarias procesadas, "
+            f"{processed_rows} filas procesadas, "
+            f"{affected_rows} filas insertadas/actualizadas, "
+            f"{invalid_rows} filas omitidas por datos invalidos, "
             f"{skipped_rows} registros Bronze sin datos hourly."
         )
 
