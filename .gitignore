@@ -9,9 +9,7 @@ __pycache__/
 .venv
 venv/
 ENV/
-# .env
 .env
-!TpFinal/grupos/G02/.env
 
 # --- Jupyter Notebooks ---
 .ipynb_checkpoints
@@ -24,7 +22,7 @@ ENV/
 *.sqlite
 *.duckdb
 *.wal
-# *.csv
+*.csv
 *.xlsx
 *.parquet
 
@@ -50,7 +48,6 @@ Thumbs.db
 
 # --- Uso Interno del Profe (no subir a GitHub) ---
 MANTENIMIENTO.md
-**/_docente_soluciones/
 
 # --- Logs & Performance ---
 *.log
@@ -62,11 +59,9 @@ plugins/
 *.pptx
 *.pdf
 
-# --- Data runtime outputs (regenerados por DAGs/seed, no committear) ---
-stack/data/landing/**
+# --- Data runtime outputs (regenerados por DAGs, no committear) ---
 stack/data/processed/**
 stack/data/quarantine/**
-!stack/data/landing/.gitkeep
 !stack/data/processed/.gitkeep
 !stack/data/quarantine/.gitkeep
 
@@ -77,12 +72,3 @@ stack/credentials/*.key
 # --- Excepcion: el .env del stack del laboratorio si se versiona ---
 # Son credenciales locales-only (admin/admin) sin info sensible real.
 !stack/.env
-**/soluciones/
-
-# Carpetas de las clases
-clase01/
-clase02/
-clase03/
-clase04/
-clase05/
-clase06/
