@@ -64,4 +64,38 @@ docker compose up -d --build
 - Dashboard Gold: http://localhost:8501
 - Postgres: localhost:5432
 
+## Ejecucion del pipeline
 
+Los DAGs se ejecutan cada 15 minutos con offsets entre capas:
+
+- `usgs_earthquakes_bronze`: ingesta el feed GeoJSON de USGS y guarda snapshots crudos en `bronze.usgs_earthquakes_raw`.
+- `usgs_earthquakes_silver`: toma el ultimo estado de cada evento, normaliza campos y carga `silver.earthquakes`.
+- `usgs_earthquakes_gold`: reconstruye las tablas analiticas `gold.fact_earthquake_events`, `gold.fact_region_daily` y `gold.earthquake_risk_summary`.
+
+Si se ejecutan manualmente desde Airflow, correrlos en este orden:
+
+1. `usgs_earthquakes_bronze`
+2. `usgs_earthquakes_silver`
+3. `usgs_earthquakes_gold`
+
+## Validacion
+
+Consulta de control en Postgres:
+
+```sql
+SELECT 'bronze.usgs_earthquakes_raw' AS tabla, count(*) AS filas FROM bronze.usgs_earthquakes_raw
+UNION ALL SELECT 'silver.earthquakes', count(*) FROM silver.earthquakes
+UNION ALL SELECT 'gold.fact_earthquake_events', count(*) FROM gold.fact_earthquake_events
+UNION ALL SELECT 'gold.fact_region_daily', count(*) FROM gold.fact_region_daily
+UNION ALL SELECT 'gold.earthquake_risk_summary', count(*) FROM gold.earthquake_risk_summary;
+```
+
+Resultado de una corrida validada:
+
+- `bronze.usgs_earthquakes_raw`: 3391 filas
+- `silver.earthquakes`: 589 filas
+- `gold.fact_earthquake_events`: 589 filas
+- `gold.fact_region_daily`: 324 filas
+- `gold.earthquake_risk_summary`: 230 filas
+
+El dashboard Streamlit consume la capa Gold y permite analizar distribucion geografica, ranking de regiones, magnitud versus profundidad, intensidad percibida y eventos prioritarios.
