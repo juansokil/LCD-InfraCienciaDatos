@@ -7,19 +7,21 @@ st.set_page_config(
 )
 
 st.title("TP Final G08 - Open-Meteo")
-st.caption("Infraestructura base del proyecto")
+st.caption("Dashboard sobre la capa Gold")
 
-st.info(
-    "Dashboard placeholder. Las visualizaciones reales sobre tablas Gold "
-    "se agregaran en una proxima etapa."
-)
+st.markdown("Pipeline de datos meteorologicos con arquitectura medallion.")
 
 st.markdown(
     """
-    Stack base disponible:
+    Este dashboard consume exclusivamente tablas del schema `gold`.
 
-    - Airflow para orquestar DAGs.
-    - PostgreSQL con schemas Bronze, Silver y Gold.
-    - Streamlit para el dashboard final.
+    Tabla principal:
+
+    - `gold.weather_daily_summary`
+
+    La pagina **Gold Clima** muestra KPIs, evolucion diaria y comparaciones
+    por ciudad a partir de datos agregados por dia.
     """
 )
+
+st.info("Abrir la pagina Gold Clima desde el menu lateral.")

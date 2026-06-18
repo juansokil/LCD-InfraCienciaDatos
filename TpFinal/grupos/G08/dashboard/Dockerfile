@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY app.py /app/app.py
 COPY db.py /app/db.py
+COPY pages /app/pages
 
 EXPOSE 8501
 
