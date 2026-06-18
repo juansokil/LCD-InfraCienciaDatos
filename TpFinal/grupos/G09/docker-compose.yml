@@ -83,6 +83,8 @@ services:
     volumes:
       - ./dashboard/app.py:/app/app.py
       - ./dashboard/db.py:/app/db.py
+      - ./dashboard/constants.py:/app/constants.py
+      - ./dashboard/data.py:/app/data.py
       - ./dashboard/pages:/app/pages
     depends_on:
       data_warehouse:
