@@ -4,9 +4,10 @@
 
 - Facundo Pellicori (@FacundoPellicori)
 - Marcos Benson (@marcosbenson)
-- Nombre Apellido (@usuario-github)
+- Pedro Martin Lopez Milani (@PETLMM)
 - João Baptista Luis Kaniki (@YarkJl90)
 - Olivia Beneitone Marty (@obeneitonem)
+- Felipe Borre (@felipeborre)
 
 ## API elegida
 
