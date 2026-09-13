@@ -59,6 +59,13 @@ MANTENIMIENTO.md
 **/_docente_soluciones/
 **/soluciones/
 
+# Herramientas del docente para Claude Code: el agente revisor de PRs y las
+# skills. `evaluar-tp-final/SKILL.md` lleva la logica de calificacion y las
+# anclas de nota -- material de calibracion interno, no para el estudiante.
+# Estaba sin trackear Y sin ignorar, la combinacion que no se ve venir: no
+# aparece en `git status` como pendiente, pero un `git add -A` se lo lleva.
+.claude/
+
 # --- Archivo de cuatrimestres cerrados (DATOS DE ESTUDIANTES - repo publico) ---
 # Contiene entregas de grupos, evaluaciones con notas por grupo, planilla de
 # notas finales y los .env de cada grupo. Las reglas de arriba cubren .env y
