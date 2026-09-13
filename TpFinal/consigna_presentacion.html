@@ -222,12 +222,23 @@
     <li><strong>La API y la pregunta:</strong> qué datos devuelve la API y cada cuánto se actualizan; qué pregunta de negocio quieren responder.</li>
     <li><strong>Arquitectura:</strong> el diagrama medallion + el stack (Airflow, Postgres, Streamlit, Docker).</li>
     <li><strong>Qué hicieron en cada capa:</strong> limpieza, tipos, agregaciones (Bronze → Silver → Gold).</li>
+    <li><strong>Que arranca solo:</strong> es el criterio más pesado del TP y el que menos se cree en una captura. Si pueden, muéstrenlo en vivo: un <code>docker compose up</code> en limpio, o disparen Bronze a mano y muestren cómo Silver y Gold salen atrás <strong>sin tocar nada</strong>.</li>
     <li><strong>El dashboard</strong> (Gold) funcionando y qué cuentan las visualizaciones.</li>
+    <li><strong>Una decisión técnica que hayan tomado</strong> y por qué: el grano de las tablas, cómo resolvieron el encadenado, qué hacen con los datos que no pasan la validación. Una decisión bien explicada vale más que cinco features enumeradas.</li>
     <li><strong>Cómo mostrarlo:</strong> pueden incluir <strong>prints / capturas</strong> de los DAGs en Airflow y del dashboard, o hacer una <strong>prueba en vivo (realtime)</strong>. Lo que les resulte más seguro.</li>
     <li><strong>Dificultades</strong> que tuvieron y cómo las resolvieron.</li>
   </ul>
 
-  <h2><span class="num">3</span> Tips</h2>
+  <h2><span class="num">3</span> Si hicieron algún bonus, muéstrenlo</h2>
+  <p class="sub" style="margin-top:0">Ninguno es obligatorio y no hacerlos no resta — pero si los hicieron, es lo que más se luce en 10 minutos.</p>
+  <ul>
+    <li><strong>Encadenado por Assets:</strong> un solo cron en Bronze y las otras dos capas disparadas por el dato. Se ve en un <code>run_id</code> que empieza con <code>asset_triggered__</code>.</li>
+    <li><strong>Calidad de datos:</strong> el contrato, las reglas corriendo, y sobre todo <strong>la cuarentena con algo adentro</strong>. Un registro rechazado concreto, y por qué se rechazó, cuenta más que el diagrama de arquitectura entero.</li>
+    <li><strong>Capa semántica:</strong> las vistas <code>gold.v_*</code> y por qué el dashboard no repite SQL.</li>
+    <li><strong>Un modelo con MLflow</strong> (lo más optativo de todo): el experimento y el alias <code>@champion</code>.</li>
+  </ul>
+
+  <h2><span class="num">4</span> Tips</h2>
   <ul>
     <li>Que sea <strong>dinámico</strong>.</li>
     <li><strong>No es necesario que hablen todos</strong>, pero sí que <strong>todos estén listos para hablar</strong>: puede haber preguntas para cualquier integrante.</li>
