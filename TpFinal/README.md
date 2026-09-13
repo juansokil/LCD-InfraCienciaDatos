@@ -289,7 +289,7 @@ extras de la seccion siguiente.
 
 Nada de esto es obligatorio y **no hacerlo no resta**. Son las cosas que distinguen un TP
 que funciona de uno bien ingenierizado. Todas se ven en alguna clase, con codigo que pueden
-mirar en [`stack/`](../stack/):
+mirar en `stack/` (se publica con la clase 02):
 
 | Bonus | De que se trata | Clase |
 |---|---|---|
@@ -332,7 +332,7 @@ TpFinal/grupos/G<NN>/
         └── 1_Gold.py                # dashboard de KPIs / vistas de negocio sobre el modelo final
 ```
 
-> **Patron de referencia**: la estructura sigue la misma logica del [`stack/`](../stack/) del curso (Airflow 3.1.5 + Postgres 17 Alpine + Streamlit). Pueden mirar `stack/` para inspirarse en el `docker-compose.yml`, `Dockerfile`, `init.sql`, etc. 
+> **Patron de referencia**: la estructura sigue la misma logica del `stack/` del curso (Airflow 3.1.5 + Postgres 17 Alpine + Streamlit). Pueden mirar `stack/` para inspirarse en el `docker-compose.yml`, `Dockerfile`, `init.sql`, etc. 
 
 > **Por que `G<NN>`?** `G` = Grupo y `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y te confirma el siguiente libre). Tiene que coincidir con el nombre de la branch (`tp/G01` ↔ `TpFinal/grupos/G01/`) — asi el docente puede comparar branches lado a lado al evaluar.
 
@@ -390,7 +390,7 @@ git push -u origin tp/G01
 3. **Disenar el modelo de datos**: que tablas en bronze, que limpieza en silver, que metricas / fact / dim en gold.
 4. **Crear la branch** `tp/G<NN>` desde `main` y la carpeta `TpFinal/grupos/G<NN>/` (ver "Como entregar el TP" arriba). **Tip**: arrancá copiando el README template ([`grupos/G00/README.md`](grupos/G00/README.md)) como `TpFinal/grupos/G<NN>/README.md` para tener la plantilla de los datos del proyecto.
 5. **Abrir el PR-draft** contra `main` con el titulo y body sugeridos.
-6. Armar el `docker-compose.yml` con los 4 servicios: postgres (warehouse), postgres (airflow), airflow, dashboard. Inspirarse en [`stack/docker-compose.yml`](../stack/docker-compose.yml).
+6. Armar el `docker-compose.yml` con los 4 servicios: postgres (warehouse), postgres (airflow), airflow, dashboard. Inspirarse en `stack/docker-compose.yml` (disponible desde la clase 02).
 7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa) — definir `schedule` segun la frecuencia de la API (ver el `Refresh` de cada API en la seccion arriba) y `is_paused_upon_creation=False` para que arranque solo.
 8. Construir el dashboard en Streamlit **sobre las tablas Gold** (KPIs / vistas de negocio — no se visualizan Bronze ni Silver, eso es backend del pipeline).
 9. Documentar todo en `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar el stack, decisiones tecnicas.
