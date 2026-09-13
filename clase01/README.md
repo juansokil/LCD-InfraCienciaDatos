@@ -2,12 +2,20 @@
 
 > **Material de la clase**:
 > - [`clase01.ipynb`](clase01.ipynb) — desarrollo teórico (Data Engineering, jerarquía del dato, modelado, pipelines, Arquitectura Medallion).
-> - Este README — entrega práctica: primer push con Git.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**: verifica tu setup de Git y genera tu `.txt` de registro en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - Este README — guía paso a paso de tu primer push con Git.
 
 ---
 
 ## 🎯 Objetivo de esta entrega
-Realizar tu primer **push con Git** al repositorio de la materia.
+
+Realizar tu primer **push con Git** al repositorio de la materia: crear tu rama personal, registrar tus datos con el ejercicio y abrir tu primer Pull Request.
+
+---
+
+## ✅ Prerequisito
+
+Tener **Git instalado** ([git-scm.com/downloads](https://git-scm.com/downloads)) y una **cuenta de GitHub**.
 
 ---
 
@@ -30,10 +38,6 @@ Realizar tu primer **push con Git** al repositorio de la materia.
 Ubicate primero en una carpeta donde quieras tener el repo y ejecutá:
 ```bash
 git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
-```
-
-Esto descarga el repo en una carpeta nueva llamada `LCD-InfraCienciaDatos`. Entrá a esa carpeta para empezar a trabajar adentro:
-```bash
 cd LCD-InfraCienciaDatos
 ```
 
@@ -41,73 +45,65 @@ cd LCD-InfraCienciaDatos
 
 **Paso 2 — Creá tu rama personal** (nunca trabajamos directo en `main`)
 
-> **Qué es una rama (branch)**: pensá a `main` como la versión oficial del curso. Tu rama personal (`apellido-nombre`) es una copia paralela donde **vos** hacés tus entregas, sin afectar la oficial. Cada alumno tiene su propia rama.
+> **Qué es una rama (branch)**: pensá a `main` como la versión oficial del curso. Tu rama personal (`estudiante/apellido-nombre`) es una copia paralela donde **vos** hacés tus entregas, sin afectar la oficial. Cada estudiante tiene su propia rama.
 
-Antes de crear la rama, listá las ramas disponibles para ver en qué estado estás:
+Creá tu rama personal (reemplazá `apellido-nombre` por el tuyo, ej: `estudiante/sokil-juan`):
 ```bash
-git branch
+git checkout -b estudiante/apellido-nombre
 ```
 
-Deberías ver solo `main` (con un `*` al lado, que indica la rama en la que estás parado).
+**Cómo se arma el nombre**: todo en minúsculas, sin tildes ni eñes, y **con un solo guión**, que separa el apellido del nombre. Si tenés **más de un nombre o más de un apellido, van pegados**:
 
-Ahora creá tu rama personal:
-```bash
-git checkout -b apellido-nombre
-```
+| Estudiante | Rama |
+| :--- | :--- |
+| Juan Sokil | `estudiante/sokil-juan` |
+| Juan Pablo Sokil | `estudiante/sokil-juanpablo` |
+| María José García López | `estudiante/garcialopez-mariajose` |
+| Lautaro Di Lacio | `estudiante/dilacio-lautaro` |
+| Ana Lucía D'Angelo | `estudiante/dangelo-analucia` |
 
-Volvé a listar las ramas para verificar:
-```bash
-git branch
-```
+> **¿Por qué pegados?** Porque el guión es el separador entre apellido y nombre. Si escribieras `garcia-lopez-maria-jose`, no habría forma de saber dónde termina el apellido. Por eso la rama lleva **exactamente un guión** — y un robot de GitHub cierra automáticamente los PRs de ramas que no cumplen la convención (te avisa con un comentario y te dice cómo arreglarlo).
 
-Ahora deberías ver **dos** ramas (`main` y `apellido-nombre`), y el `*` tiene que estar al lado de la rama que acabás de crear, indicando que ya estás trabajando sobre ella.
+Verificá con `git branch` que el `*` esté al lado de tu rama nueva.
 
-> **IMPORTANTE**: esta rama la vas a usar para **todas** las entregas del curso. No crees una rama nueva cada semana.
+> **IMPORTANTE**: esta rama la vas a usar para **todas** las entregas del curso. No crees una rama nueva cada semana. El prefijo `estudiante/` la distingue de las ramas del docente.
+
+> **¿Le erraste al nombre?** No pasa nada: el Paso 3 (notebook) calcula el nombre correcto a partir de tus datos y te da el comando exacto para renombrarla (`git branch -m ...`). Mientras no hayas pusheado, renombrar es gratis.
 
 ---
 
-**Paso 3 — Creá tu archivo de registro**
+**Paso 3 — Hacé el ejercicio de entrega**
 
-Con tu editor de preferencia (VSCode, Notepad, lo que uses), creá un archivo en `clase01/ejercicios/alumnos/apellido-nombre.md` reemplazando `apellido-nombre` por el tuyo (ej: `sokil-juan.md`).
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) desde Jupyter o VSCode. Completá tu nombre, apellido y usuario de GitHub (Paso 1 del notebook), ejecutá la verificación de Git (Paso 2) y generá tu archivo de entrega (Paso 3).
 
-Contenido sugerido (puede ser tan corto como esto):
-```markdown
-# Juan Sokil
-@juansokil
-```
+El script crea **un archivo único para vos** en `clase01/ejercicios/estudiantes/<apellido>-<nombre>.txt`.
+
+> **Importante**: leé [`ejercicios/README.md`](ejercicios/README.md) — el deliverable es **solo el `.txt`**, no el notebook. Esto evita conflictos cuando muchos estudiantes suben al mismo tiempo.
 
 ---
 
 **Paso 4 — Commit y push**
 
-Desde la terminal, en la carpeta `LCD-InfraCienciaDatos/`:
+Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 3 del notebook (ej: `sokil-juan.txt`). Desde la raíz del repo:
 
 ```bash
-# Con esto voy a agregar todos los archivos de esa carpeta
-git add clase01/ejercicios/alumnos/*
-
-# Ahora hacemos el commit
-git commit -m "clase01:registro"
-
-# Y por ultimo el push
-git push origin apellido-nombre
+git add clase01/ejercicios/estudiantes/<apellido>-<nombre>.txt
+git commit -m "ejercicio01: registro"
+git push origin estudiante/apellido-nombre
 ```
 
-**Qué hizo cada comando**:
-- `git add ...` → seleccionaste **qué** archivos querés subir (en este caso, todo lo que tenés en `clase01/ejercicios/alumnos/`).
-- `git commit -m "..."` → guardaste ese cambio **localmente** con un mensaje que lo describe (todavía no llegó a GitHub).
-- `git push origin apellido-nombre` → subiste tu commit a GitHub, a tu rama personal.
+> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
 
-> **Nota 1**: si es la primera vez que hacés `git commit`, puede aparecer un mensaje avisando que tu nombre y email fueron configurados automáticamente a partir de tu usuario y hostname. Conviene setearlos a mano para que tus commits queden identificados correctamente:
+> **Nota 1**: si es la primera vez que hacés `git commit`, configurá tu identidad para que tus commits queden bien identificados:
 >
 > ```bash
 > git config --global user.name "Tu Nombre"
 > git config --global user.email "tu@email.com"
 > ```
 
-> **Nota 2**: si es la primera vez que pusheás esta rama, Git puede pedir `git push --set-upstream origin apellido-nombre`. Es normal, solo pasa la primera vez.
+> **Nota 2**: si es la primera vez que pusheás esta rama, Git puede pedir `git push --set-upstream origin estudiante/apellido-nombre`. Es normal, solo pasa la primera vez.
 
-> **Nota 3**: si es la primera vez que pusheás, te va a pedir tu password. En realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
+> **Nota 3**: si te pide password, en realidad se refiere al **PAT** (Personal Access Token) que tenés que generar desde GitHub:
 > - GitHub → Settings → **Developer settings** (está abajo de todo, a la izquierda) → Personal access tokens → Tokens (classic).
 >
 >   ![Sidebar de GitHub Settings mostrando "Developer settings" al final del menú lateral](img/github-pat-sidebar.png)
@@ -119,8 +115,34 @@ git push origin apellido-nombre
 
 ---
 
-**Paso 5 — Abrí el Pull Request**
+**Paso 5 — Abrí tu Pull Request** (una sola vez en todo el curso)
+
+Este PR lo abrís **ahora** y lo dejás **abierto** todo el cuatrimestre: cada ejercicio siguiente vas a pushear a la misma rama y **este mismo PR se actualiza solo** (no abrís PRs nuevos).
+
 1. Andá a [github.com/juansokil/LCD-InfraCienciaDatos](https://github.com/juansokil/LCD-InfraCienciaDatos).
-2. Click en el botón **"Compare & pull request"**.
-3. Crealo con título: `apellido-nombre`.
-4. El docente revisa el PR y aprueba el merge a `main`.
+2. Click en el botón **"Compare & pull request"** sobre tu rama `estudiante/apellido-nombre`.
+3. Título: dejá el que sugiere GitHub (el nombre de tu rama, `estudiante/apellido-nombre`).
+4. Creá el PR y **dejalo abierto**. El docente va a revisar tus entregas ahí, semana a semana.
+
+**Qué vas a ver ahí de acá en adelante.** Apenas lo creás, un robot revisa el nombre de tu rama. Si está bien, no pasa nada y tu PR queda abierto. Si está mal, te deja un comentario con los comandos para arreglarlo y **cierra el PR** — no perdés nada: renombrás la rama y abrís uno nuevo. Es el único caso en que un PR del curso se cierra antes de tiempo, y si pasa, pasa acá.
+
+Después, durante el cuatrimestre, el docente puede dejarte dos tipos de señal:
+
+- 💬 un **comentario** — una observación o una pregunta; respondé en el mismo hilo.
+- 🔴 **"Changes requested"** — rechazó una entrega y hay algo que corregir. **Tu PR sigue abierto**: corregís, `commit` + `push` a la misma rama, y ese push levanta la marca. No abras un PR nuevo.
+
+> **Tu PR nunca se va a mergear, y eso no es una nota.** Es el diseño del curso: tu rama es tu espacio de trabajo y el PR es la ventana por donde se lo mira. Un PR abierto, con pushes semanales y sin marcas rojas, es exactamente lo que tiene que verse.
+
+---
+
+> **🔁 Cómo sigue el ciclo (importante)**
+>
+> Tu **rama** `estudiante/apellido-nombre` y tu **Pull Request** se crean **una sola vez acá** y los reusás todo el cuatrimestre — **nunca los borres**.
+>
+> En cada ejercicio siguiente **NO abrís un PR nuevo**. Solo:
+> 1. Sincronizás tu rama con `main` (`git merge main`) para traer el material nuevo del curso
+> 2. Hacés la entrega y la pusheás (`git push`)
+>
+> ...y tu PR (el que abriste acá) se actualiza solo. **Una rama para siempre, un PR para siempre.** El docente identifica cada entrega por el commit `ejercicioNN: ...` y el `.txt` nuevo. El detalle completo está en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).
+
+> **Nota para el/la docente**: el PR del estudiante queda **abierto** todo el cuatrimestre y **nunca se mergea** (ni al final: al cierre del cuatrimestre se cierra sin mergear — la evaluación sale del PR y del historial de la rama, y `main` queda solo con el material oficial del curso). **NO** borres la rama `estudiante/apellido-nombre` — es la misma para todas las entregas.
