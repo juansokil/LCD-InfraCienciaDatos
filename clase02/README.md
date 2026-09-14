@@ -13,7 +13,7 @@ Para esta materia necesitás un stack con **Airflow + Postgres + Streamlit** lev
 
 | Opción | Para quién | Esfuerzo |
 |---|---|---|
-| **A. Stack del curso** (recomendada) | Querés arrancar rápido y enfocarte en el contenido | `docker compose up -d` y listo |
+| **A. Stack del curso** (recomendada) | Querés arrancar rápido y enfocarte en el contenido | `docker compose up -d --build` y listo |
 | **B. Stack propio** | Querés armar tu propio `docker-compose.yml` y aprender el setup | Más control, más trabajo |
 
 > Si elegís la **opción B**, tu stack tiene que cumplir: Postgres expuesto en `localhost:5432`, db `InfraCienciaDatos`, credenciales `admin/admin`, schemas `bronze`/`silver`/`gold` creados, Airflow en `localhost:8080`. El script de verificación (Paso 4) valida estas piezas — si pasa, vas bien independientemente del stack que hayas armado.
@@ -35,12 +35,13 @@ Dejar instalado y funcionando un stack de trabajo (del curso o propio) y subir e
 | **Postgres (Data Warehouse)** | Base de datos del curso (Bronze / Silver / Gold). | `5432` |
 | **Airflow** | Orquestador de pipelines. | `8080` |
 | **Streamlit Dashboard** | Visualización BI. | `8501` |
+| **MLflow** | Tracking de experimentos ML y Model Registry (se usa en la clase 06). | `5000` |
 
 ---
 
 ## ✅ Prerequisito
 
-Tener la **Clase 01 lista**: tu rama personal `apellido-nombre` ya creada y con tu primer push hecho. Si todavía no la hiciste, andá a [`../clase01/README.md`](../clase01/README.md) primero.
+Tener la **Clase 01 lista**: tu rama personal `estudiante/apellido-nombre` ya creada y con tu primer push hecho. Si todavía no la hiciste, andá a [`../clase01/README.md`](../clase01/README.md) primero.
 
 ---
 
@@ -54,8 +55,8 @@ git checkout main
 git pull origin main
 
 # 2. Volver a tu rama personal y mergear
-git checkout apellido-nombre
-git merge main
+git checkout estudiante/apellido-nombre
+git merge main --no-edit
 ```
 
 > **Tip**: vas a repetir esto al empezar **cada** clase.
@@ -64,7 +65,7 @@ git merge main
 
 **Paso 2 — Creá tu entorno Python**
 
-Tres opciones (elegí una). Las dependencias del **entorno local** del alumno están en [`requirements.txt`](../requirements.txt) (raíz del repo).
+Tres opciones (elegí una). Las dependencias del **entorno local** del estudiante están en [`requirements.txt`](../requirements.txt) (raíz del repo).
 
 > El `stack/requirements.txt` es para el Docker de Airflow — no es el que usás vos localmente.
 
@@ -99,10 +100,10 @@ Asegurate de tener **Docker Desktop abierto** y con al menos **4 GB de RAM** asi
 Desde la raíz del repo:
 ```bash
 cd stack
-docker compose up -d
+docker compose up -d --build
 ```
 
-La primera vez tarda unos minutos (baja imágenes). Levanta cuatro contenedores:
+La primera vez tarda unos minutos (baja imágenes y construye las imágenes propias). Levanta cinco contenedores:
 
 | Contenedor | Servicio |
 |------------|----------|
@@ -110,13 +111,14 @@ La primera vez tarda unos minutos (baja imágenes). Levanta cuatro contenedores:
 | `airflow_db` | Postgres interno de Airflow (no expuesto) |
 | `data_warehouse` | Postgres del curso (`localhost:5432`) |
 | `dashboard` | Streamlit (`localhost:8501`) |
+| `mlflow` | MLflow: tracking de experimentos ML (`localhost:5000`), se usa en la clase 06 |
 
 Verificá que estén corriendo:
 ```bash
 docker ps
 ```
 
-Tenés que ver los 4 contenedores en estado `Up`.
+Tenés que ver los 5 contenedores en estado `Up`.
 
 > **Credenciales del Data Warehouse** (las usa el ejercicio):
 > - host: `localhost` · puerto: `5432`
@@ -126,27 +128,33 @@ Tenés que ver los 4 contenedores en estado `Up`.
 
 **Paso 4 — Validá la instalación con el ejercicio**
 
-Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) desde Jupyter o VSCode. Completá tu nombre y apellido, ejecutá la verificación (Paso 2 del notebook) y después generá tu archivo de entrega (Paso 3 del notebook).
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) desde Jupyter o VSCode. Completá tus datos y el puerto elegido (Paso 1), agregá el servicio Adminer al compose según la consigna, ejecutá la verificación de los 4 niveles (Paso 2), respondé las preguntas del compose (Paso 3) y generá tu archivo de entrega (Paso 4 del notebook).
 
-El script crea **un archivo único para vos** en `clase02/ejercicios/alumnos/<apellido>-<nombre>.txt` con tu código de verificación.
+El script crea **un archivo único para vos** en `clase02/ejercicios/estudiantes/<apellido>-<nombre>.txt` con tu código de verificación.
 
-> **Importante**: leé [`clase02/ejercicios/README.md`](ejercicios/README.md) — el deliverable es **solo el `.txt`**, no el notebook. Esto evita conflictos cuando muchos alumnos suben al mismo tiempo.
+> **Importante**: leé [`clase02/ejercicios/README.md`](ejercicios/README.md) — el deliverable es **solo el `.txt`**, no el notebook. Esto evita conflictos cuando muchos estudiantes suben al mismo tiempo.
 
 ---
 
 **Paso 5 — Commit y push**
 
-Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 3 del notebook (ej: `sokil-juan.txt`). Desde la raíz del repo:
+Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 4 del notebook (ej: `sokil-juan.txt`). Desde la raíz del repo:
 
 ```bash
-git add clase02/ejercicios/alumnos/<apellido>-<nombre>.txt
-git commit -m "clase02: verificacion de stack"
-git push origin apellido-nombre
+git add clase02/ejercicios/estudiantes/<apellido>-<nombre>.txt
+git commit -m "ejercicio02: verificacion de stack + adminer"
+git push origin estudiante/apellido-nombre
 ```
 
-> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los alumnos.
+> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
 
-> El PR a `main` ya existe desde la Clase 01. Cada `push` lo actualiza automáticamente — no hace falta crear uno nuevo.
+---
+
+**Paso 6 — Tu PR se actualiza solo**
+
+**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `ejercicio02: ...` y el `.txt` nuevo.
+
+> Tu PR es el mismo de siempre (`estudiante/apellido-nombre` → `main`), abierto desde la Clase 01; solo se actualiza con tu push. **Una rama para siempre, un PR para siempre.** Detalle completo en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).
 
 ---
 
@@ -160,6 +168,8 @@ git push origin apellido-nombre
 | `ImportError: pandas` (o cualquier librería) | El entorno virtual no está activado, o faltó `pip install -r requirements.txt` |
 | En Windows: bind mounts lentos o no sincronizan | Activá el motor WSL2 en Docker Desktop |
 | Nivel 3 (Airflow) falla aunque levantó OK | Esperá 1-2 minutos, Airflow tarda en estar listo después del `up` |
+| El container `mlflow` figura `Exited` | Tu volumen es previo a que se agregara MLflow al stack: la base `mlflow` la crea `stack/init.sql`, que **solo corre en el primer arranque de un volumen vacío**. Se arregla recreando el volumen: `docker compose down -v && docker compose up -d --build` (⚠️ **`down -v` BORRA los datos del warehouse**: bronze / silver / gold) |
+| En Mac, el puerto `5000` está ocupado | macOS lo usa para el **AirPlay Receiver**. Apagalo en `Ajustes del Sistema → General → AirDrop y Handoff → Receptor AirPlay`, o remapeá el puerto del host en `stack/docker-compose.yml` (`"5001:5000"`) |
 
 ---
 
