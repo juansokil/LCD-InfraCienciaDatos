@@ -44,6 +44,23 @@ data/gold/*
 # con backend Postgres — esta carpeta es solo el residuo de correrlo en local.
 mlruns/
 
+# Los DAGs del stack los ESCRIBEN las celdas `%%writefile` de los notebooks, y los
+# `dag_crypto_*.py` se copian desde `claseNN/ejercicios/`. En los dos casos la
+# fuente de verdad esta en otro lado: lo que quede en `stack/dags/` es una copia
+# generada. Sin esta regla, un `git add -A` publica el pipeline completo de las
+# clases 03 a 06 antes de que el estudiante lo construya — que es justo lo que el
+# curso no quiere spoilear. Las carpetas igual viajan por sus `.gitkeep`.
+stack/dags/**/*.py
+# `common/` es libreria de verdad, no artefacto generado: se exceptua.
+# OJO: la negacion va SOLA en su linea. `.gitignore` no soporta comentarios al
+# final del renglon -- un `!patron   # nota` se lee como un patron literal que
+# incluye el texto de la nota, y no matchea nada.
+!stack/dags/common/*.py
+
+# Mismo criterio: las paginas del dashboard llegan con la clase que las enseña, y
+# en clase05 cada estudiante agrega la suya.
+stack/dashboard/pages/*.py
+
 # --- IDEs ---
 .vscode/
 .idea/
