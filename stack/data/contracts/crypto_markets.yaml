@@ -79,20 +79,104 @@ schema:
     nullable: false       # CoinGecko siempre devuelve cuando refresco el dato
 
 # ----- REGLAS DE CALIDAD ---------------------------------------------
-# Bronze NO valida estas reglas (son a nivel fila). Silver (clase04) las
-# aplica con Pydantic generado dinamicamente desde este YAML.
+# ---------------------------------------------------------------------
+# REGLAS DE CALIDAD
+# ---------------------------------------------------------------------
+# Las aplica `evaluar_reglas()` de common/contracts.py sobre el lote entero,
+# NO Pydantic. Pydantic valida fila por fila y por eso no puede evaluar
+# `unique` (necesita el conjunto) ni comparar dos columnas entre si.
+#
+# SEVERIDAD -- dos niveles, y la diferencia importa:
+#   error   -> el registro va a CUARENTENA. Es inutilizable.
+#   warning -> el registro PASA a Silver, marcado en `_quality_flags`.
+#              Es usable pero sospechoso.
+#
+# Con un solo nivel hay dos salidas y las dos son malas: reglas laxas que no
+# atrapan nada, o reglas estrictas que tiran datos buenos.
+#
+# LOS UMBRALES SE MIDIERON, NO SE INVENTARON. Sobre 11.250 registros reales:
+#   reconciliacion market_cap : error mediano 0,009% · p95 0,26% · max 0,73%
+#   frescura de la fuente      : mediana 2,8 min · p95 3,8 min · max 4,7 min
+# De ahi salen `tolerance: 0.01` y `max_age_minutes: 20`: en operacion normal
+# no se disparan nunca, y si se disparan es porque algo cambio. Una regla cuyo
+# umbral se elige sin mirar los datos da siempre cero o siempre todo.
+# ---------------------------------------------------------------------
 quality_rules:
-  - rule: unique
-    column: id
 
+  # --- ERROR: sin esto el registro no sirve -------------------------
   - rule: not_null
     column: id
+    severity: error
 
   - rule: not_null
     column: current_price
+    severity: error
 
   - rule: positive
     column: current_price
+    severity: error
+
+  # Grano declarado de bronze/silver: 1 fila por cripto por snapshot.
+  # `unique` es de CONJUNTO: mira todas las filas a la vez.
+  - rule: unique
+    columns: [id, snapshot_ts]
+    severity: error
+
+  # --- WARNING: usable, pero mirar -----------------------------------
+  # El precio deberia estar dentro del rango de las ultimas 24 h... y a veces
+  # no lo esta. No es un dato corrupto: las tres columnas NO se refrescan en
+  # el mismo instante, asi que un precio que acaba de romper el minimo del dia
+  # aparece fuera del rango hasta que `low_24h` se actualiza.
+  # Medido: 399 de 11.250 (3,5%).
+  - name: precio_dentro_del_rango_24h
+    rule: within_columns
+    column: current_price
+    min_column: low_24h
+    max_column: high_24h
+    severity: warning
+
+  # El maximo del dia no puede ser menor que el minimo. Si esto se dispara,
+  # la fuente rompio algo de verdad. Medido: 0 de 11.250 -- es una alarma.
+  - name: rango_24h_coherente
+    rule: ordered
+    columns: [low_24h, high_24h]
+    severity: warning
+
+  # market_cap deberia ser precio x supply circulante.
+  # Medido: error mediano 0,009%, maximo 0,73%. Con 1% no se dispara en
+  # operacion normal; si se dispara, alguna de las tres columnas se desalineo.
+  - name: market_cap_reconcilia
+    rule: ratio_close
+    column: market_cap
+    equals: [current_price, circulating_supply]
+    tolerance: 0.01
+    severity: warning
+
+  # No puede circular mas de lo que existe. Medido: 1.291 de 11.250 (11,5%),
+  # y son diferencias de redondeo (bitcoin-cash: 20.087.699 vs 20.087.418).
+  # Warning y no error justamente por eso: el dato sirve.
+  - name: supply_coherente
+    rule: ordered
+    columns: [circulating_supply, total_supply]
+    severity: warning
+
+  # Volumen cero en un feed de "top 50 por capitalizacion" no es un error de
+  # dato: son fondos institucionales que no cotizan en mercado abierto
+  # (medido: 2 activos, 225 snapshots cada uno). La regla no dice "esto esta
+  # mal", dice "ojo, este activo no deberia entrar en un analisis de volumen".
+  - name: volumen_positivo
+    rule: positive
+    column: total_volume
+    severity: warning
+
+  # Frescura DE LA FUENTE: cuan viejo venia el dato de CoinGecko.
+  # Medido: mediana 2,8 min, maximo 4,7. Con 20 min es una alarma, no un filtro.
+  - name: fuente_fresca
+    rule: fresh
+    column: last_updated
+    compared_to: snapshot_ts     # <- contra la captura, NO contra el reloj
+    max_age_minutes: 20
+    severity: warning
 
 # ----- EVOLUCION DE SCHEMA -------------------------------------------
 # DIFERENCIA CLAVE con ventas.yaml: las APIs externas evolucionan y agregan

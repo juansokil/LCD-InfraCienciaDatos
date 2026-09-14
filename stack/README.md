@@ -1,6 +1,6 @@
 # Stack Infraestructura para Ciencia de Datos (UNSAM)
 
-Stack reutilizable de Airflow + Postgres + Streamlit. Arranca con un solo `docker compose up`. Es la **herramienta** sobre la que se construyen pipelines durante la cursada — no incluye DAGs ni datos de ejemplo, eso se arma en cada clase.
+Stack reutilizable de Airflow + Postgres + Streamlit + MLflow. Arranca con un solo `docker compose up -d --build`. Es la **herramienta** sobre la que se construyen pipelines durante la cursada — no incluye DAGs ni datos de ejemplo, eso se arma en cada clase.
 
 ## Arquitectura
 
@@ -8,6 +8,10 @@ Stack reutilizable de Airflow + Postgres + Streamlit. Arranca con un solo `docke
   [ Tu fuente ]    [ Airflow ]    [ PostgreSQL ]    [ Streamlit ]
   (API/CSV/...)  → orquestador  → bronze/silver  → dashboard BI
                   puerto 8080      gold (5432)      puerto 8501
+                                        ↓
+                                   [ MLflow ]
+                                 tracking + registry
+                                   puerto 5000
 ```
 
 ## Componentes
@@ -18,6 +22,7 @@ Stack reutilizable de Airflow + Postgres + Streamlit. Arranca con un solo `docke
 | **Airflow Metadata DB** | `airflow_db` | PostgreSQL 17 Alpine para metadatos internos de Airflow (no expuesto al host) |
 | **Data Warehouse** | `data_warehouse` | PostgreSQL 17 Alpine con arquitectura Medallon (Bronze / Silver / Gold). Expuesto en `localhost:5432` |
 | **Streamlit** | `dashboard` | Dashboard BI automatico (lee de gold schema, sin configuracion manual) |
+| **MLflow** | `mlflow` | Tracking server de experimentos + Model Registry. Backend en la base `mlflow` del `data_warehouse`, artifacts en volumen. Expuesto en `localhost:5000` (se usa en clase06) |
 
 Todos los servicios se comunican a traves de la red `de_stack_network` (bridge).
 
@@ -48,7 +53,7 @@ Al levantar el stack, se crea automaticamente:
 ## Como Empezar
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
 
 > La primera vez tarda unos minutos mientras construye la imagen y migra la base de datos.
@@ -60,6 +65,7 @@ docker compose up --build
 | Airflow UI | http://localhost:8080 | (sin login) | (sin login) |
 | Data Warehouse (PostgreSQL) | localhost:5432 | admin | admin |
 | Dashboard (Streamlit) | http://localhost:8501 | (sin login) | (sin login) |
+| MLflow (tracking + registry) | http://localhost:5000 | (sin login) | (sin login) |
 
 El dashboard de Streamlit se conecta automaticamente al schema `gold` y muestra los datos sin configuracion manual.
 
@@ -163,6 +169,7 @@ stack/
 ├── .env                        # Variables de entorno
 ├── docker-compose.yml          # Orquestacion de servicios
 ├── Dockerfile                  # Imagen custom de Airflow
+├── Dockerfile.mlflow           # Imagen custom del tracking server de MLflow
 ├── Dockerfile.postgres         # Imagen custom de Postgres (bakea init.sql, evita bind mount en Windows)
 ├── init-airflow.sh             # Script de arranque de Airflow
 ├── init.sql                    # Creacion de schemas en PostgreSQL (copiado a la imagen via Dockerfile.postgres)
@@ -205,4 +212,5 @@ Para usar BigQuery / GCS, colocar el archivo JSON de Service Account en `./crede
 - **Red Interna**: Airflow y Streamlit se conectan a PostgreSQL usando el host `data_warehouse` (el nombre del servicio en `docker-compose.yml`).
 - **Conexion configurable**: Los DAGs leen el host desde la variable de entorno `SOURCE_DB_HOST` (default `data_warehouse`). Los notebooks de verificacion usan `localhost` porque corren en tu maquina y se conectan al puerto expuesto.
 - **Init SQL**: Los esquemas se crean automaticamente via `init.sql`, que se copia adentro de la imagen Postgres mediante `Dockerfile.postgres` (asi evitamos bind mounts problematicos en Windows).
-- **Reset completo**: `docker compose down -v && docker compose up --build`
+- **MLflow**: la base `mlflow` (backend del tracking server) la crea `init.sql`, que **solo corre la primera vez que se inicializa un volumen vacio**. Si venis de un volumen anterior a MLflow, el container `mlflow` sale `Exited` y hay que recrear el volumen. En macOS, ademas, el puerto `5000` suele estar tomado por el **AirPlay Receiver**.
+- **Reset completo**: `docker compose down -v && docker compose up -d --build` (⚠️ `down -v` **BORRA** los datos del warehouse)

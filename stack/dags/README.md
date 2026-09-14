@@ -8,7 +8,7 @@ Esta carpeta contiene los **DAGs (Directed Acyclic Graphs)** que Airflow lee des
 
 ### `00-playground/`
 
-DAGs de aprendizaje y demos. Los alumnos generan los suyos en la **Clase 02** mediante celdas `%%writefile` del notebook `clase02.ipynb`:
+DAGs de aprendizaje y demos. Los estudiantes generan los suyos en la **Clase 02** mediante celdas `%%writefile` del notebook `clase02.ipynb`:
 
 - `demo_01_hola_mundo.py` — primer DAG con TaskFlow API
 - `demo_02_secuencia.py` — pasaje de datos entre tareas (XComs implícitos)

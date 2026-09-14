@@ -13,3 +13,10 @@ CREATE SCHEMA IF NOT EXISTS "gold";
 -- Comentario pedagógico:
 -- En 'InfraCienciaDatos' simulamos el sistema origen.
 -- En 'bronze', 'silver' y 'gold' realizamos la refinación de los datos.
+
+-- 3. Backend store del Tracking Server de MLflow.
+-- Base de datos APARTE (no esquema) en el mismo Postgres data_warehouse:
+-- MLflow crea ahí sus tablas (experiments, runs, metrics, params, ...).
+-- CREATE DATABASE corre a nivel cluster -> se ejecuta en el primer arranque
+-- del volumen nuevo (cuando el entrypoint de postgres corre este init.sql).
+CREATE DATABASE mlflow;

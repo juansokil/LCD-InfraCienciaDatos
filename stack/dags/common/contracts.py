@@ -256,3 +256,214 @@ def build_pydantic_from_contract(contract: dict, model_name: str | None = None):
             fields[col_name] = (py_type, Field(..., **field_kwargs))
 
     return create_model(name, **fields)
+
+
+# =====================================================================
+# Evaluador de `quality_rules` (Silver / clase04)
+# ---------------------------------------------------------------------
+# POR QUE ESTO EXISTE, Y NO ES OTRO CAMPO DE PYDANTIC
+#
+# `build_pydantic_from_contract` valida FILA POR FILA: recibe un registro y
+# decide si cumple. Eso alcanza para tipos y rangos ("current_price > 0"),
+# y no alcanza para nada mas:
+#
+#   - `unique` mira el CONJUNTO. Una fila sola nunca es duplicada.
+#   - `high_24h >= low_24h` mira DOS COLUMNAS a la vez.
+#   - la frescura mira la fila CONTRA EL RELOJ.
+#
+# Se puede meter todo en un `model_validator`, pero termina siendo un
+# evaluador de reglas escondido adentro de Pydantic. Mejor tenerlo afuera y
+# que se vea: esto recibe el DataFrame entero y devuelve, por regla, que filas
+# la violan.
+#
+# POR QUE REGLAS CON NOMBRE Y NO UNA EXPRESION
+#
+# Seria mas corto declarar `expr: "high_24h >= low_24h"` y hacerle eval(). Y
+# seria peor: un contrato con eval adentro es codigo disfrazado de
+# configuracion, y ejecuta lo que sea que alguien escriba en el YAML. Las
+# herramientas reales (dbt tests, Great Expectations, Soda) usan expectativas
+# CON NOMBRE. Agregar una regla nueva es sumar una entrada a _REGLAS.
+# =====================================================================
+
+
+class ReglaDesconocida(ValueError):
+    """Una `quality_rule` que el evaluador no sabe aplicar.
+
+    Falla RUIDOSAMENTE a proposito. La version anterior descartaba en silencio
+    lo que no entendia (`if k in _FIELD_RULE_MAP`), y asi es como un contrato
+    se vuelve decorativo: sigue declarando reglas, el DAG sigue en verde, y
+    nadie valida nada. Una regla que no se puede aplicar es un error de
+    contrato, no un detalle.
+    """
+
+
+def _serie(df, col):
+    import pandas as pd
+    if col not in df.columns:
+        raise ReglaDesconocida(f"la regla referencia la columna '{col}', "
+                               f"que no esta en el dato")
+    return pd.to_numeric(df[col], errors="coerce")
+
+
+# Cada regla devuelve una MASCARA booleana: True = esta fila VIOLA la regla.
+# Ojo con los nulos: `NaN > 5` es False, asi que un nulo nunca "viola" una
+# regla de comparacion. Es deliberado -- la ausencia de dato la reporta
+# `not_null`, no las reglas de rango. Una sola cosa por regla.
+
+def _r_not_null(df, r):
+    col = r["column"]
+    return df[col].isna() if col in df.columns else _serie(df, col).isna()
+
+
+def _r_positive(df, r):
+    s = _serie(df, r["column"])
+    return s.notna() & (s <= 0)
+
+
+def _r_non_negative(df, r):
+    s = _serie(df, r["column"])
+    return s.notna() & (s < 0)
+
+
+def _r_ordered(df, r):
+    """columns: [a, b] -> se espera a <= b."""
+    a, b = r["columns"]
+    sa, sb = _serie(df, a), _serie(df, b)
+    return sa.notna() & sb.notna() & (sa > sb)
+
+
+def _r_within_columns(df, r):
+    """column dentro de [min_column, max_column]."""
+    s = _serie(df, r["column"])
+    lo = _serie(df, r["min_column"])
+    hi = _serie(df, r["max_column"])
+    return s.notna() & lo.notna() & hi.notna() & ((s < lo) | (s > hi))
+
+
+def _r_ratio_close(df, r):
+    """column ~= producto de `equals`, con tolerancia relativa."""
+    objetivo = _serie(df, r["column"])
+    producto = None
+    for c in r["equals"]:
+        s = _serie(df, c)
+        producto = s if producto is None else producto * s
+    tol = float(r.get("tolerance", 0.01))
+    err = (objetivo - producto).abs() / objetivo.abs()
+    return objetivo.notna() & producto.notna() & (objetivo != 0) & (err > tol)
+
+
+def _r_unique(df, r):
+    """De CONJUNTO: marca TODAS las filas de cada combinacion repetida.
+
+    Se marcan todas y no solo las copias: cuando hay un duplicado no se sabe
+    cual es "la buena". Esa decision es de la logica de dedup, no de la
+    validacion.
+    """
+    cols = r.get("columns") or [r["column"]]
+    faltan = [c for c in cols if c not in df.columns]
+    if faltan:
+        raise ReglaDesconocida(f"la regla unique referencia {faltan}, "
+                               f"que no estan en el dato")
+    return df.duplicated(subset=cols, keep=False)
+
+
+def _r_fresh(df, r):
+    """El dato venia viejo DE ORIGEN cuando lo capturamos.
+
+    `compared_to` es la clave del asunto. Si se compara contra el reloj de
+    ahora, en una tabla historica TODA fila termina violando la regla por el
+    solo hecho de tener dias: la de ayer "tiene 24 horas de atraso". Eso no
+    mide frescura, mide antiguedad -- y la antiguedad de un snapshot viejo es
+    correcta, no un defecto.
+
+    Lo que interesa es cuanto atraso traia el dato EN EL MOMENTO DE LA CAPTURA:
+    `snapshot_ts - last_updated`. Ese numero no cambia con el paso del tiempo,
+    y es el que dice si la fuente nos esta dando algo actual.
+
+    Sin `compared_to` cae a "ahora", que sirve para validar un lote recien
+    ingestado pero no para revalidar historia.
+    """
+    import pandas as pd
+    ts = pd.to_datetime(df[r["column"]], errors="coerce", utc=True)
+    ref_col = r.get("compared_to")
+    if ref_col:
+        if ref_col not in df.columns:
+            raise ReglaDesconocida(
+                f"la regla fresh compara contra '{ref_col}', que no esta en el dato")
+        ref = pd.to_datetime(df[ref_col], errors="coerce", utc=True)
+    else:
+        ref = pd.Series(pd.Timestamp.utcnow(), index=df.index)
+    limite = float(r["max_age_minutes"])
+    atraso_min = (ref - ts).dt.total_seconds() / 60
+    return ts.notna() & ref.notna() & (atraso_min > limite)
+
+
+def _r_in_set(df, r):
+    permitidos = set(r["values"])
+    return df[r["column"]].notna() & ~df[r["column"]].isin(permitidos)
+
+
+_REGLAS = {
+    "not_null": _r_not_null,
+    "positive": _r_positive,
+    "non_negative": _r_non_negative,
+    "ordered": _r_ordered,
+    "within_columns": _r_within_columns,
+    "ratio_close": _r_ratio_close,
+    "unique": _r_unique,
+    "fresh": _r_fresh,
+    "in_set": _r_in_set,
+}
+
+SEVERIDADES = ("error", "warning")
+
+
+def nombre_regla(r: dict) -> str:
+    """Etiqueta estable para reportar la regla (la usa quality_runs)."""
+    if r.get("name"):
+        return r["name"]
+    objetivo = r.get("column") or ",".join(r.get("columns", []) or [])
+    return f"{r['rule']}:{objetivo}" if objetivo else r["rule"]
+
+
+def evaluar_reglas(df, contract: dict) -> list[dict]:
+    """Aplica las `quality_rules` del contrato sobre un DataFrame.
+
+    Devuelve una lista de dicts, uno por regla:
+        {"nombre", "rule", "severidad", "violaciones", "filas", "mask"}
+
+    `mask` es una Serie booleana alineada con `df`: True = esa fila viola.
+    El llamador decide que hacer con cada severidad -- este modulo no sabe
+    nada de cuarentena ni de Airflow, solo de reglas.
+    """
+    import pandas as pd
+
+    resultados = []
+    for r in contract.get("quality_rules", []) or []:
+        tipo = r.get("rule")
+        if tipo not in _REGLAS:
+            raise ReglaDesconocida(
+                f"regla '{tipo}' declarada en el contrato "
+                f"'{contract.get('dataset')}' y no implementada. "
+                f"Conocidas: {sorted(_REGLAS)}. "
+                f"Agregala a _REGLAS en common/contracts.py o sacala del YAML."
+            )
+        sev = r.get("severity", "error")
+        if sev not in SEVERIDADES:
+            raise ReglaDesconocida(
+                f"severidad '{sev}' invalida en la regla '{nombre_regla(r)}'. "
+                f"Validas: {SEVERIDADES}"
+            )
+        if df.empty:
+            mask = pd.Series([], dtype=bool)
+        else:
+            mask = _REGLAS[tipo](df, r).fillna(False)
+        resultados.append({
+            "nombre": nombre_regla(r),
+            "rule": tipo,
+            "severidad": sev,
+            "violaciones": int(mask.sum()),
+            "filas": int(len(df)),
+            "mask": mask,
+        })
+    return resultados

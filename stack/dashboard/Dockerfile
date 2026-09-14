@@ -7,6 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY db.py .
+COPY theme.py .
+COPY .streamlit/ .streamlit/
 COPY pages/ pages/
 
 EXPOSE 8501

@@ -121,6 +121,16 @@ services:
       - SOURCE_DB_HOST=data_warehouse
     ports:
       - "8501:8501"
+    volumes:
+      # Las paginas se GENERAN desde clase05.ipynb (%%writefile) al host.
+      # Este bind-mount hace que el contenedor vea esa carpeta en vivo:
+      # generas/refrescas Streamlit y aparecen, sin rebuild de la imagen.
+      - ./dashboard/pages:/app/pages
+      # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
+      # quien produce y quien consume: que el consumidor pueda leerlo es el
+      # punto. La pagina de Silver muestra las reglas VIGENTES desde el YAML,
+      # en vez de una copia pegada en el HTML que se desactualiza en silencio.
+      - ./data/contracts:/app/contracts:ro
     depends_on:
       data_warehouse:
         condition: service_healthy
@@ -133,11 +143,48 @@ services:
           memory: 512M
           cpus: '0.5'
 
+  # MLflow Tracking Server (experimentos + Model Registry)
+  # Reemplaza el MLflow LOCAL (sqlite) que usaba la notebook de clase06 por un
+  # server compartido y persistente. Backend en Postgres (data_warehouse, db
+  # `mlflow`), artifacts en volumen. La notebook loguea contra http://localhost:5000.
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    image: mlflow_server:custom
+    container_name: mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql://${SOURCE_DB_USER}:${SOURCE_DB_PASS}@data_warehouse:5432/mlflow
+      --artifacts-destination /mlflow/artifacts
+      --serve-artifacts
+    ports:
+      # UI + API de MLflow. Si 5000 está ocupado, cambiá el puerto del HOST (5001:5000).
+      - "5000:5000"
+    volumes:
+      - mlflow_artifacts:/mlflow/artifacts
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - de_stack_network
+    deploy:
+      resources:
+        limits:
+          # 2 GB: con 1 GB el server se queda sin aire al RECIBIR artefactos
+          # (--serve-artifacts hace que el .pkl del modelo pase por aca).
+          # Sintoma tipico: log_model() de un RandomForest corta con
+          # "Read timed out" mientras los modelos chicos loguean bien.
+          memory: 2048M
+
 volumes:
   airflow_db_data:
   airflow_logs:
   airflow_plugins:
   data_warehouse_data:
+  mlflow_artifacts:
 
 
 networks:
