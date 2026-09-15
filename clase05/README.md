@@ -3,20 +3,20 @@
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
 >
 > 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAGs demo + página dashboard sobre datos sintéticos (`silver.ventas_demo`)
-> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 8 ejercicios de **SQL Gold** sobre **Northwind** (agregaciones, JOIN *star*, CASE, ranking)
+> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **11 ítems**: 9 ejercicios de **SQL Gold** sobre **Northwind** (G1–G8 + G11: agregaciones, JOIN *star*, CASE, ranking, LAG) + **G9** (tu propia tabla Gold) + **G10** (tu página Streamlit)
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
 > - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`gold_01_star_basico.py`, `gold_02_abt.py`) + la página demo del dashboard (`Demo_Ventas.py`, datos sintéticos), todo generado vía `%%writefile` al ejecutar el notebook.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB) y **Parte 2** son **8 ejercicios de SQL Gold** (GROUP BY+agregaciones, HAVING, JOIN tipo *star*, CASE buckets, ROW_NUMBER/RANK, % del total). La **📦 Entrega** se deriva ejecutando tus queries (sin autoreporte) → `.txt` en `ejercicios/alumnos/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido con **11 ítems**: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB), **Parte 2** son **9 ejercicios de SQL Gold** (G1–G8 + G11: GROUP BY+agregaciones, HAVING, JOIN tipo *star*, CASE buckets, ROW_NUMBER/RANK, % del total, variación temporal con LAG) y **Parte 3** es tu propia capa Gold: **G9** (diseñás y materializás **tu tabla Gold**: grano + `CREATE TABLE` tipado + PK + `INSERT INTO ... SELECT`) y **G10** (**tu página Streamlit** que la consume). La **📦 Entrega** se deriva ejecutando tus queries y verificando tu tabla y tu página (sin autoreporte) → son **DOS archivos**: el `.txt` en `ejercicios/estudiantes/` **+** tu página `ejercicios/dashboard/pages/7_<apellido>-<nombre>.py` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
-> - [`ejercicios/dashboard/`](ejercicios/dashboard/) — **4 páginas Streamlit productivas** (`1_`–`4_Gold_*.py`) que consumen `crypto_gold`. Igual que el DAG, son archivos estáticos: se copian al stack con un `cp` (ver Paso 3). No se generan desde el notebook.
+> - [`ejercicios/dashboard/pages/`](ejercicios/dashboard/pages/) — acá cada estudiante crea **su propia página** (`7_<apellido>-<nombre>.py`, ejercicio G10), que **sí** se commitea junto con el `.txt`. Las páginas de **referencia** no se duplican acá: son las del dashboard del curso, en [`stack/dashboard/pages/`](../stack/dashboard/pages/), las mismas que ya ves corriendo en `localhost:8501`.
 
 ---
 
-## 🔁 Continuidad con clase 04
+## 🔁 Continuidad con la clase 04
 
-En **clase 04** cargamos `silver.crypto_markets` con datos limpios validados contra el contrato `crypto_markets.yaml`, más una tabla `silver.quarantine_*` para los registros que fallaron Pydantic. En **Gold** consumimos `silver.crypto_markets` (NO `bronze.*`) y la transformamos en un modelo dimensional listo para BI (`dim_*` + `fact_*`) + una **ABT** lista para ML.
+En la **clase 04** cargamos `silver.crypto_markets` con datos limpios validados contra el contrato `crypto_markets.yaml`, más una tabla `silver.quarantine_*` para los registros que fallaron Pydantic. En **Gold** consumimos `silver.crypto_markets` (NO `bronze.*`) y la transformamos en un modelo dimensional listo para BI (`dim_*` + `fact_*`) + una **ABT** lista para ML.
 
 > **Decisión arquitectural** (excepción documentada): `fact_global_market` lee de `bronze.global_market` **directo**, salteándose Silver. Razón: el dato macro ya viene agregado por la API de CoinGecko (no son filas individuales que validar) y Silver no agrega valor. Está documentado en [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py).
 
@@ -75,7 +75,7 @@ graph LR
 ## 🚀 Setup
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`).
-- Datos de Silver ya cargados (los generaste en **Clase 04** corriendo el `dag_crypto_silver.py`).
+- Datos de Silver ya cargados (los generaste en la **Clase 04** corriendo el `dag_crypto_silver.py`).
 - Tu rama personal sincronizada (ver root README → "Cómo Consumir el Repo Semana a Semana").
 
 ---
@@ -88,38 +88,52 @@ Abrí `clase05.ipynb`. La primera parte explica conceptos (Star Schema, Capa Sem
 
 | # | Archivo generado | Path destino | Qué introduce |
 |---|---|---|---|
-| 01 | `gold_01_star_basico.py` | `stack/dags/03-gold/` | Star Schema básico: `dim_producto_demo` + `dim_tiempo_demo` + `fact_ventas_demo` con FKs |
-| 02 | `gold_02_abt.py` | `stack/dags/03-gold/` | ABT (wide table) para ML: features derivadas + segmentación con `pd.cut` |
+| 01 | `gold_01_star_basico.py` | `stack/dags/03-gold/` | Star Schema básico **en SQL (ELT)**: `dim_producto_demo` + `dim_tiempo_demo` + `fact_ventas_demo` con FKs vía `JOIN` (surrogate key con `ROW_NUMBER()`) |
+| 02 | `gold_02_abt.py` | `stack/dags/03-gold/` | ABT (wide table) para ML **en SQL (ELT)**: features vía `GROUP BY` + segmentación con `CASE WHEN` + verificación real del grano |
 | — | `Demo_Ventas.py` | `stack/dashboard/pages/` | Página demo: Star Schema + ABT sobre datos **sintéticos** de ventas |
 
-> **¿Y las 4 páginas Gold productivas (`1_`–`4_Gold_*.py`)?** No se generan desde el notebook — viven como archivos estáticos en [`ejercicios/dashboard/`](ejercicios/dashboard/), misma lógica que el DAG productivo. Se deployan con un `cp` en el **Paso 3**.
+> **¿Y las páginas Gold del dashboard (`3_Gold_Mercado.py`, `4_Gold_Velas.py`, `5_Gold_Analisis.py`, `6_Gold_ML.py`)?** No se generan desde el notebook: **ya vienen en el stack**, en [`stack/dashboard/pages/`](../stack/dashboard/pages/), y se sirven con bind-mount. La única que agregás vos es la tuya de **G10** (`7_<apellido>-<nombre>.py`).
 
 Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`) — filtrá por tag **`gold`** para verlos juntos — y la página demo en Streamlit (`localhost:8501`).
 
-> **Convenciones aplicadas** (consistente con clase03/04):
+> **Convenciones aplicadas** (consistente con ejercicios 03/04):
 > - **Carpeta**: cada DAG vive en la capa Medallion destino (`03-gold/` para todo lo que escribe a `gold.*`).
 > - **Tags**: sintéticos didácticos llevan `tags=["gold"]`. El productivo crypto lleva `tags=["prod", "gold", "crypto"]` — filtrá por `prod` en la UI para verlo separado de los didácticos.
-> - **Numeración**: `gold_NN_xxx.py` con prefijo letra (igual que `bronze_NN_xxx.py` y `silver_NN_xxx.py`). Evita el bug histórico de Airflow con archivos que arrancan con dígito. Las páginas Streamlit **productivas** (`1_`–`4_Gold_*.py`) SÍ arrancan con dígito porque es la **convención de orden de Streamlit** (no Airflow); la página demo `Demo_Ventas.py` va **sin prefijo numérico** — Streamlit la ordena después de las numeradas.
+> - **Numeración**: `gold_NN_xxx.py` con prefijo letra (igual que `bronze_NN_xxx.py` y `silver_NN_xxx.py`). Evita el bug histórico de Airflow con archivos que arrancan con dígito. Las páginas Streamlit del dashboard (`1_Bronze_Ingesta.py` … `6_Gold_ML.py`) SÍ arrancan con dígito porque es la **convención de orden de Streamlit** (no Airflow); la página demo `Demo_Ventas.py` va **sin prefijo numérico** — Streamlit la ordena después de las numeradas.
 
 ### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-Abrí `ejercicios/ejercicio.ipynb` (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB) y resolvé los **8 ejercicios de SQL Gold** de la **Parte 2** (agregaciones que **colapsan el grano** para responder preguntas de negocio — el inverso de Silver en clase 04). Al final, la sección **📦 Entrega** **ejecuta tus `query_g1..query_g8`** y genera automáticamente `ejercicios/alumnos/<apellido>-<nombre>.txt` (motor + evidencia de Northwind + cuántos ejercicios devolvieron resultado, extraído de tus queries, **no autoreportado**) y te indica cómo subirlo (commit + push + **PR nuevo** de esta clase). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+Abrí `ejercicios/ejercicio.ipynb` (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB), resolvé los **9 ejercicios de SQL Gold** de la **Parte 2** (G1–G8 + G11: agregaciones que **colapsan el grano** para responder preguntas de negocio — el inverso de Silver en la clase 04 — más variación temporal con `LAG`) y cerrá con la **Parte 3**: **G9** (tu tabla Gold: grano + `CREATE TABLE` tipado + PK + `INSERT INTO ... SELECT`) y **G10** (tu página Streamlit `7_<apellido>-<nombre>.py`). Al final, la sección **📦 Entrega** **ejecuta tus `query_g1..query_g8` y `query_g11` y verifica tu tabla y tu página** y genera automáticamente `ejercicios/estudiantes/<apellido>-<nombre>.txt` (motor + evidencia de Northwind + qué ítems dieron resultado, extraído de tus queries, **no autoreportado**). La entrega son **DOS archivos** — el `.txt` **+** tu página `ejercicios/dashboard/pages/7_<apellido>-<nombre>.py` — y se suben con commit + push: tu PR se actualiza solo. Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
 
-> **Una rama para siempre, un PR por clase**: tu rama `apellido-nombre` es la misma desde clase01; el PR es nuevo cada clase (el anterior ya se mergeó). Detalle en el [README raíz](../README.md).
+**Commit y push.** Son **dos** archivos: el `.txt` y tu página de G10. Desde la raíz del repo:
 
-### Paso 3 — Deploy del DAG productivo crypto + páginas Gold productivas
+```bash
+git add clase05/ejercicios/estudiantes/<apellido>-<nombre>.txt clase05/ejercicios/dashboard/pages/7_<apellido>-<nombre>.py
+git commit -m "ejercicio05: sql gold + tabla y pagina propia"
+git push origin estudiante/apellido-nombre
+```
 
-El DAG productivo de Gold (ahora **SQL ELT**, ver su header) y las **4 páginas Gold productivas** del dashboard se deployan copiándolos al stack — Airflow y Streamlit los detectan solos:
+> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes. Tu página **sí** se commitea: es un archivo único por estudiante.
+
+> **Una rama para siempre, un PR para siempre**: tu rama `estudiante/apellido-nombre` y tu PR son los mismos desde la Clase 01; el push actualiza ese mismo PR (no abrís uno nuevo). Detalle en el [README raíz](../README.md).
+
+### Paso 3 — Deploy del DAG productivo crypto
+
+El DAG productivo de Gold (ahora **SQL ELT**, ver su header) se deploya copiándolo al stack — Airflow lo detecta solo:
 
 ```bash
 # DAG productivo (escribe gold.* desde silver/bronze)
 cp clase05/ejercicios/dag_crypto_gold.py stack/dags/03-gold/
-
-# 4 páginas Streamlit productivas que consumen gold.fact_crypto_markets / gold.gold_abt_crypto
-cp clase05/ejercicios/dashboard/*.py stack/dashboard/pages/
 ```
 
-Activá el DAG en la UI y vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` poblándose con datos reales. Refrescá `localhost:8501` y vas a ver las 4 páginas Gold productivas en el sidebar (la página demo aparece debajo de las 4, sin número).
+Las **páginas Gold del dashboard ya vienen en el stack** (`stack/dashboard/pages/`): no hay nada que copiar. La única página que vos agregás es la tuya de **G10**:
+
+```bash
+# Tu pagina de G10 (opcional: para verla corriendo; la verificacion es estatica)
+cp clase05/ejercicios/dashboard/pages/7_<apellido>-<nombre>.py stack/dashboard/pages/
+```
+
+El DAG **arranca solo** (`is_paused_upon_creation=False`): apenas Airflow lo detecta se suma a la **cadena data-aware**: se dispara cuando `crypto_silver` actualiza el asset `silver_crypto_markets`, sin cron propio. En la corrida siguiente vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` poblándose con datos reales, más las **10 vistas semánticas** `gold.v_*` que crea la task `build_views` — la "API pública" de Gold que consumen el dashboard y el modelo. Van en dos grupos: las que **agregan a día** (`v_series_diaria`, `v_ohlc_diario`, `v_metricas_riesgo`, `v_amplitud_mercado`, `v_kpis_mercado`) y las que conservan el **grano fino de snapshot** (`v_ultimo_snapshot`, `v_intradia`, `v_global_serie`, `v_concentracion`). Las segundas existen porque con pocos días de historia un análisis diario tiene 3 puntos y uno intradía tiene ~200: el pipeline ya recolecta cada 15 minutos, tirar esa resolución es gratis de evitar. Refrescá `localhost:8501` y las páginas Gold pasan de vacías a pobladas.
 
 > El `docker-compose.yml` del stack tiene `./dashboard/pages:/app/pages` como bind-mount, así que el `cp` se ve en vivo sin rebuild de la imagen.
 
@@ -127,30 +141,31 @@ Activá el DAG en la UI y vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.
 
 ## 🎨 Dashboard incluido en el stack
 
-El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde la **Clase 02**. Las páginas Gold vienen de **dos lugares** distintos según su naturaleza:
+El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde la **Clase 02**. Las páginas están **ordenadas por capa** — se leen de arriba hacia abajo como se lee el pipeline — y cada una responde **una** pregunta:
 
-- **4 páginas productivas** (`1_`–`4_Gold_*.py`) — archivos **estáticos** en [`ejercicios/dashboard/`](ejercicios/dashboard/), se deployan con el `cp` del **Paso 3**. Misma lógica que el DAG productivo: lo que consume datos reales no se genera desde el notebook.
-- **1 página demo** (`Demo_Ventas.py`) — **se genera al ejecutar `clase05.ipynb`** (celda `%%writefile`), igual que los 2 DAGs pedagógicos. Es sintética: queda documentada y reproducible desde el notebook.
+| # · Página | Pregunta que responde | Lee de |
+|---|---|---|
+| **1 · 🥉 Bronze — Ingesta** | ¿Llegó el dato? | `bronze.crypto_markets` |
+| **2 · 🥈 Silver — Calidad** | ¿Sirve el dato? | `silver.crypto_markets` + `silver.quarantine_*` vs `bronze.*` |
+| **3 · 🥇 Gold — Mercado** | ¿Qué dice el negocio? | `gold.v_kpis_mercado`, `gold.v_ultimo_snapshot` |
+| **4 · 🥇 Gold — Velas** | ¿Cómo se movió cada activo? | `gold.v_ohlc_diario` |
+| **5 · 🥇 Gold — Análisis** | ¿Qué estructura hay detrás? | `gold.v_metricas_riesgo`, `gold.v_amplitud_mercado` |
+| **6 · 🤖 Gold — ML** | ¿Qué dice el modelo? | `gold.gold_abt_crypto`, `gold.predicciones` |
+| **7 · 👤 Tu página (G10)** | la que vos elijas | **tu** tabla Gold de G9 |
+| **— · 🎓 Demo Ventas** | Star Schema + ABT sobre datos **sintéticos** | `gold.*_demo` (DAGs `gold_0*`) |
 
-Las 5 páginas terminan en `stack/dashboard/pages/`:
+Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
 
-| # · Página | Origen | Qué muestra | Lee de |
-|--------|--------|-------------|--------|
-| **1 · 📊 Gold — Resumen Mercado** | `cp` desde `ejercicios/dashboard/` | KPIs globales del mercado crypto | `gold.fact_global_market` |
-| **2 · 🏆 Gold — Ranking Precios** | `cp` desde `ejercicios/dashboard/` | Top criptos por valor / volumen / market cap | `gold.dim_crypto` + `gold.fact_crypto_markets` |
-| **3 · 📉 Gold — Volatilidad / Riesgo** | `cp` desde `ejercicios/dashboard/` | Métricas de volatilidad histórica | `gold.fact_crypto_markets` |
-| **4 · 🥧 Gold — Dominancia** | `cp` desde `ejercicios/dashboard/` | Share de mercado de las top criptos | `gold.fact_global_market` |
-| **— · 🎓 Demo Ventas** | `%%writefile` desde `clase05.ipynb` | Star Schema + ABT sobre datos **sintéticos** | `gold.*_demo` (DAGs `gold_0*`) |
-
-Las páginas **1–4** leen las tablas **productivas** de `crypto_gold`; la demo (`Demo_Ventas.py`, sin número → aparece **debajo** de las 1–4 en el sidebar) lee las `*_demo` de los DAGs pedagógicos. Streamlit las detecta automáticamente — refrescá `localhost:8501`.
+- **Las páginas 3–6 no leen tablas: leen vistas `gold.v_*`.** Esa es la **capa semántica** — la API pública de Gold. El KPI se define **una sola vez, en SQL**, y no se recalcula en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
+- **La demo (`Demo_Ventas.py`) se genera desde el notebook** (`%%writefile` en `clase05.ipynb`), igual que los 2 DAGs pedagógicos: es sintética, y queda reproducible. Las otras son estáticas y vienen con el stack. Sin número → Streamlit la ordena **al final** del sidebar.
 
 ### ¿Querés agregar tu propia visualización?
 
-Streamlit detecta automáticamente cualquier archivo `.py` que pongas en `stack/dashboard/pages/`. Usá la página demo como referencia y crea la tuya:
+Eso es exactamente **G10**. Streamlit detecta cualquier `.py` que pongas en `stack/dashboard/pages/`; el número del prefijo define el orden. Como el curso ya ocupa `1_` a `6_`, usá `7_` en adelante:
 
 ```bash
 # Copiá la demo como punto de partida
-cp stack/dashboard/pages/Demo_Ventas.py stack/dashboard/pages/5_Mi_Custom.py
+cp stack/dashboard/pages/Demo_Ventas.py stack/dashboard/pages/7_Mi_Custom.py
 # Editala y refrescá Streamlit — sin rebuild necesario
 ```
 
@@ -203,7 +218,7 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 - **Orquestación E2E**: un Master DAG (`crypto_pipeline_e2e`) dispara Bronze→Silver→Gold en cascada con `TriggerDagRunOperator`. **Caveat pedagógico explícito**: es el patrón más simple para *enseñar* orquestación entre DAGs; en producción real con frecuencias distintas se usa **Airflow Datasets** (data-aware scheduling) o **decoupling por idempotencia**. La clase explica las 3 alternativas con tabla comparativa.
 - **Bonus Track MLOps**: mapa de Feature Stores, Model Registry, Drift Detection, Training-Serving Skew. No se enseña — es la próxima frontera.
 
-> 🔁 **El círculo Medallion se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze (clase03) y la **semántica** de cada fila en Silver (clase04) culmina en Gold con la **integridad referencial** del modelo dimensional (clase05). En clase06 consumimos ese output para entrenar ML productivo + ver el cuadro completo. **Un solo contrato, cuatro capas, cuatro responsabilidades**.
+> 🔁 **El círculo Medallion se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze (clase 03) y la **semántica** de cada fila en Silver (clase 04) culmina en Gold con la **integridad referencial** del modelo dimensional (clase 05). En clase06 consumimos ese output para entrenar ML productivo + ver el cuadro completo. **Un solo contrato, cuatro capas, cuatro responsabilidades**.
 
 ---
 
@@ -212,5 +227,5 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 | Problema | Solución |
 | :--- | :--- |
 | El DAG no aparece en Airflow UI | Verificar que el archivo esté en `stack/dags/03-gold/`. Esperar 10-30s para que Airflow lo detecte. |
-| El DAG corre pero las tablas Gold están vacías | Verificá que `crypto_silver` (clase04) haya corrido antes y poblado `silver.crypto_markets`. |
+| El DAG corre pero las tablas Gold están vacías | Verificá que `crypto_silver` (clase 04) haya corrido antes y poblado `silver.crypto_markets`. |
 | `IntegrityError: foreign key violation` | El DAG verifica integridad. Mirá la tabla `dim_crypto` — todos los `crypto_id` de `fact_crypto_markets` tienen que existir en `dim_crypto`. |
