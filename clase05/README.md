@@ -7,7 +7,7 @@
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`gold_01_star_basico.py`, `gold_02_abt.py`) + la página demo del dashboard (`Demo_Ventas.py`, datos sintéticos), todo generado vía `%%writefile` al ejecutar el notebook.
+> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`gold_01_star_basico.py`, `gold_02_abt.py`) generados vía `%%writefile`, y el **consumo** de las dos audiencias de Gold (BI y ML) graficado en el propio notebook.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido con **11 ítems**: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB), **Parte 2** son **9 ejercicios de SQL Gold** (G1–G8 + G11: GROUP BY+agregaciones, HAVING, JOIN tipo *star*, CASE buckets, ROW_NUMBER/RANK, % del total, variación temporal con LAG) y **Parte 3** es tu propia capa Gold: **G9** (diseñás y materializás **tu tabla Gold**: grano + `CREATE TABLE` tipado + PK + `INSERT INTO ... SELECT`) y **G10** (**tu página Streamlit** que la consume). La **📦 Entrega** se deriva ejecutando tus queries y verificando tu tabla y tu página (sin autoreporte) → son **DOS archivos**: el `.txt` en `ejercicios/estudiantes/` **+** tu página `ejercicios/dashboard/pages/7_<apellido>-<nombre>.py` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
 > - [`ejercicios/dashboard/pages/`](ejercicios/dashboard/pages/) — acá cada estudiante crea **su propia página** (`7_<apellido>-<nombre>.py`, ejercicio G10), que **sí** se commitea junto con el `.txt`. Las páginas de **referencia** no se duplican acá: son las del dashboard del curso, en [`stack/dashboard/pages/`](../stack/dashboard/pages/), las mismas que ya ves corriendo en `localhost:8501`.
@@ -84,22 +84,21 @@ graph LR
 
 ### Paso 1 — Leer el notebook teórico y correr los DAGs pedagógicos
 
-Abrí `clase05.ipynb`. La primera parte explica conceptos (Star Schema, Capa Semántica, ABT, Best Practices). La parte final tiene **3 cells `%%writefile`** que generan 2 DAGs pedagógicos (datos sintéticos) + 1 página demo del dashboard:
+Abrí `clase05.ipynb`. La primera parte explica conceptos (Star Schema, Capa Semántica, ABT, Best Practices). La parte final tiene **2 cells `%%writefile`** que generan los DAGs pedagógicos (datos sintéticos), y cierra **consumiendo** esas tablas desde el propio notebook:
 
 | # | Archivo generado | Path destino | Qué introduce |
 |---|---|---|---|
 | 01 | `gold_01_star_basico.py` | `stack/dags/03-gold/` | Star Schema básico **en SQL (ELT)**: `dim_producto_demo` + `dim_tiempo_demo` + `fact_ventas_demo` con FKs vía `JOIN` (surrogate key con `ROW_NUMBER()`) |
 | 02 | `gold_02_abt.py` | `stack/dags/03-gold/` | ABT (wide table) para ML **en SQL (ELT)**: features vía `GROUP BY` + segmentación con `CASE WHEN` + verificación real del grano |
-| — | `Demo_Ventas.py` | `stack/dashboard/pages/` | Página demo: Star Schema + ABT sobre datos **sintéticos** de ventas |
 
 > **¿Y las páginas Gold del dashboard (`3_Gold_Mercado.py`, `4_Gold_Velas.py`, `5_Gold_Analisis.py`, `6_Gold_ML.py`)?** No se generan desde el notebook: **ya vienen en el stack**, en [`stack/dashboard/pages/`](../stack/dashboard/pages/), y se sirven con bind-mount. La única que agregás vos es la tuya de **G10** (`7_<apellido>-<nombre>.py`).
 
-Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`) — filtrá por tag **`gold`** para verlos juntos — y la página demo en Streamlit (`localhost:8501`).
+Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`) — filtrá por tag **`gold`** para verlos juntos. La última sección del notebook lee esas tablas y las grafica ahí mismo.
 
 > **Convenciones aplicadas** (consistente con ejercicios 03/04):
 > - **Carpeta**: cada DAG vive en la capa Medallion destino (`03-gold/` para todo lo que escribe a `gold.*`).
 > - **Tags**: sintéticos didácticos llevan `tags=["gold"]`. El productivo crypto lleva `tags=["prod", "gold", "crypto"]` — filtrá por `prod` en la UI para verlo separado de los didácticos.
-> - **Numeración**: `gold_NN_xxx.py` con prefijo letra (igual que `bronze_NN_xxx.py` y `silver_NN_xxx.py`). Evita el bug histórico de Airflow con archivos que arrancan con dígito. Las páginas Streamlit del dashboard (`1_Bronze_Ingesta.py` … `6_Gold_ML.py`) SÍ arrancan con dígito porque es la **convención de orden de Streamlit** (no Airflow); la página demo `Demo_Ventas.py` va **sin prefijo numérico** — Streamlit la ordena después de las numeradas.
+> - **Numeración**: `gold_NN_xxx.py` con prefijo letra (igual que `bronze_NN_xxx.py` y `silver_NN_xxx.py`). Evita el bug histórico de Airflow con archivos que arrancan con dígito. Las páginas Streamlit del dashboard (`1_Bronze_Ingesta.py` … `6_Gold_ML.py`) SÍ arrancan con dígito porque es la **convención de orden de Streamlit** (no Airflow).
 
 ### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
@@ -152,20 +151,19 @@ El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde l
 | **5 · 🥇 Gold — Análisis** | ¿Qué estructura hay detrás? | `gold.v_metricas_riesgo`, `gold.v_amplitud_mercado` |
 | **6 · 🤖 Gold — ML** | ¿Qué dice el modelo? | `gold.gold_abt_crypto`, `gold.predicciones` |
 | **7 · 👤 Tu página (G10)** | la que vos elijas | **tu** tabla Gold de G9 |
-| **— · 🎓 Demo Ventas** | Star Schema + ABT sobre datos **sintéticos** | `gold.*_demo` (DAGs `gold_0*`) |
 
 Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
 
 - **Las páginas 3–6 no leen tablas: leen vistas `gold.v_*`.** Esa es la **capa semántica** — la API pública de Gold. El KPI se define **una sola vez, en SQL**, y no se recalcula en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
-- **La demo (`Demo_Ventas.py`) se genera desde el notebook** (`%%writefile` en `clase05.ipynb`), igual que los 2 DAGs pedagógicos: es sintética, y queda reproducible. Las otras son estáticas y vienen con el stack. Sin número → Streamlit la ordena **al final** del sidebar.
+- **La demo de ventas NO es una página del dashboard, y es deliberado.** Esas tablas `gold.*_demo` son **sintéticas**: el dashboard muestra el pipeline **productivo** de criptomonedas, y mezclarle una demo de juguete confunde las dos cosas. El notebook de la clase la grafica ahí mismo — el patrón de consumo es idéntico, lo que cambia es dónde vive.
 
 ### ¿Querés agregar tu propia visualización?
 
 Eso es exactamente **G10**. Streamlit detecta cualquier `.py` que pongas en `stack/dashboard/pages/`; el número del prefijo define el orden. Como el curso ya ocupa `1_` a `6_`, usá `7_` en adelante:
 
 ```bash
-# Copiá la demo como punto de partida
-cp stack/dashboard/pages/Demo_Ventas.py stack/dashboard/pages/7_Mi_Custom.py
+# Copiá una página real del curso como punto de partida
+cp stack/dashboard/pages/3_Gold_Mercado.py stack/dashboard/pages/7_Mi_Custom.py
 # Editala y refrescá Streamlit — sin rebuild necesario
 ```
 
