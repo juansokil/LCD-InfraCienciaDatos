@@ -57,8 +57,11 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 
 #### Clase 06: Workshop End-to-End — ML sobre Gold
 - Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
-- Clasificación honesta (dirección de precio 24h): baseline + model zoo de 4 modelos + feature importance + lección target leakage
-- Tracking con MLflow: experimentos + comparación de runs
+- **Elegir la pregunta antes que el modelo**: predecir la *dirección* del precio no funciona ni puede funcionar; predecir **qué criptos van a ser las más movidas** sí, porque la volatilidad se agrupa en el tiempo
+- Tres modelos con la misma pregunta y distinta historia (**1, 3 y 7 días**): mirar más atrás ayuda, y se ve
+- Validación honesta: walk-forward por fechas, baseline de clase mayoritaria, lección de target leakage
+- Tracking con MLflow: un modelo registrado por ventana, cada uno con su alias `@champion`
+- El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
 - 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
 
 ---
