@@ -82,7 +82,7 @@ Las clases del cuatrimestre que arman el pipeline (**Bronze → Silver → Gold*
 |---|---|---|---|
 | **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple → idempotente → multi-formato → contrato) | Top 50 cryptos (CoinGecko) → `bronze.crypto_markets` | `dag_crypto_bronze.py` |
 | **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 11 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join, dedup y cuarentena) | `dag_crypto_silver.py` |
-| **05 — Gold** | 2 DAGs sobre `silver.ventas_demo` sintético (Star Schema → ABT) + 1 página de dashboard | 11 ítems sobre Northwind: 9 queries SQL Gold (agregaciones, JOIN star, ranking, LAG) + tu tabla Gold + tu página Streamlit | `dag_crypto_gold.py` |
+| **05 — Gold** | 2 DAGs sobre `silver.ventas_demo` sintético (Star Schema → ABT) + consumo BI/ML en el notebook | 11 ítems sobre Northwind: 9 queries SQL Gold (agregaciones, JOIN star, ranking, LAG) + tu tabla Gold + tu página Streamlit | `dag_crypto_gold.py` |
 
 **Por qué este diseño:**
 
