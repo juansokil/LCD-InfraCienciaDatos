@@ -212,8 +212,8 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 **Clase 06** es la **clase de cierre del cuatrimestre** — workshop magistral, sin entrega comprometida. El objetivo es **consolidar lo aprendido y ver el cuadro completo**. Lo que vas a ver:
 
 - **Recap del cuatrimestre**: tabla + diagrama Mermaid del pipeline completo (Bronze→Silver→Gold→ML) + decisiones técnicas clave de cada capa + errores típicos / lecciones aprendidas.
-- **Workshop ML sobre la ABT**: clasificación honesta de la **dirección de precio 24h** (`subio_24h`) desde *fundamentals* con **baseline + un model zoo de 4 modelos** (regresión logística, árbol, random forest, gradient boosting) + feature importance, sobre `gold.gold_abt_crypto`. Incluye una **lección sobre target leakage**.
-- **Tracking con MLflow**: registrar runs (params + metrics + modelos), comparar los runs del model zoo entre sí, ver la UI en `localhost:5000`.
+- **Workshop ML sobre Gold**: predecir **qué criptos van a ser las más movidas mañana**, con validación honesta (walk-forward por fechas) y baseline explícito. Incluye la lección de por qué predecir la *dirección* del precio no funciona, y una sobre **target leakage**.
+- **Tracking con MLflow**: registrar runs (params + metrics + modelos), un modelo por ventana de historia con su alias `@champion`, y la UI en `localhost:5000`.
 - **Monitoring E2E del pipeline**: tres niveles de observabilidad (infra / datos / negocio), dashboard Streamlit como cierre del ciclo, health check SQL del pipeline completo.
 - **Orquestación E2E**: un Master DAG (`crypto_pipeline_e2e`) dispara Bronze→Silver→Gold en cascada con `TriggerDagRunOperator`. **Caveat pedagógico explícito**: es el patrón más simple para *enseñar* orquestación entre DAGs; en producción real con frecuencias distintas se usa **Airflow Datasets** (data-aware scheduling) o **decoupling por idempotencia**. La clase explica las 3 alternativas con tabla comparativa.
 - **Bonus Track MLOps**: mapa de Feature Stores, Model Registry, Drift Detection, Training-Serving Skew. No se enseña — es la próxima frontera.
