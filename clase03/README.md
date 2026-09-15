@@ -1,14 +1,14 @@
 # Clase 03: Ingesta Profesional (Capa Bronze)
 
-> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
+> 📚 **Cómo está estructurado este ejercicio** (patrón compartido por ejercicios 03/04/05):
 >
 > 1. **Notebook teórico** ([`clase03.ipynb`](clase03.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (CSV/JSON locales)
 > 2. **Ejercicio práctico** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — los mismos conceptos sobre CoinGecko
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_bronze.py`](ejercicios/dag_crypto_bronze.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase03.ipynb`](clase03.ipynb) — desarrollo teórico: ingesta multi-formato, idempotencia con SHA256, Hive Partitioning, Row-hashing.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **con entrega**: ingesta desde API real (CoinGecko). Genera tu `.txt` en `ejercicios/alumnos/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`clase03.ipynb`](clase03.ipynb) — desarrollo teórico: ingesta multi-formato (CSV/JSON/JSONL/Parquet), idempotencia con SHA256 de archivos, Hive Partitioning, payload crudo en JSONB e idempotencia por fila con `ON CONFLICT`.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **con entrega**: ingesta desde API real (CoinGecko). Genera tu `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_bronze.py`](ejercicios/dag_crypto_bronze.py) — DAG productivo de ingesta crypto a Bronze (con comentarios educativos).
 
 ---
@@ -16,10 +16,11 @@
 ## 🎯 Objetivos
 
 - Implementar la **Capa Bronze** usando Airflow.
-- Dominar la **Idempotencia** mediante hashing SHA256 de archivos.
+- Dominar la **Idempotencia** mediante **hashing SHA256 de archivos** (unidad = archivo: `DELETE + INSERT` por `file_hash`).
 - Aplicar **Hive Partitioning** para organizar el Data Lake.
-- Practicar **Row-level Hashing** para detectar cambios sin comparaciones pesadas.
-- Definir un **Data Contract** declarativo (YAML) y validar la **forma** de los archivos contra él (extensión, encoding, delimiter, columnas presentes). La validación de **valores** es responsabilidad de Silver (clase04).
+- Guardar el **payload crudo en JSONB** y desanidarlo con `->` / `->>` sin reprocesar la fuente.
+- Aplicar **idempotencia a nivel fila** (unidad = fila: hash del payload + `INSERT ... ON CONFLICT DO NOTHING`) y deduplicar versiones con `ROW_NUMBER()`.
+- Definir un **Data Contract** declarativo (YAML) y validar la **forma** de los archivos contra él (extensión, encoding, delimiter, columnas presentes). La validación de **valores** es responsabilidad de Silver (clase 04).
 
 ## 🥉 Capa Bronze: Fuente de Verdad
 
@@ -55,15 +56,25 @@ Abrí `clase03.ipynb`. El notebook explica los conceptos y al ejecutarse genera 
 
 Después de ejecutar las celdas, los DAGs aparecen automáticamente en Airflow UI (`localhost:8080`). En la UI, filtrá por **tag `bronze`** para verlos juntos.
 
-> **Convención de carpetas**: cada DAG vive en la carpeta de su **capa Medallion destino** (`01-bronze/` para todo lo que escribe a `bronze.*`, `02-silver/` para Silver, etc.). El `00-playground/` queda reservado para demos del API de Airflow que NO escriben a la DB (los demos `demo_01/02/03` de clase02).
+> **Convención de carpetas**: cada DAG vive en la carpeta de su **capa Medallion destino** (`01-bronze/` para todo lo que escribe a `bronze.*`, `02-silver/` para Silver, etc.). El `00-playground/` queda reservado para demos del API de Airflow que NO escriben a la DB (los demos `demo_01/02/03` de la clase 02).
 >
 > **Convención de tags**: sintéticos didácticos llevan `tags=["bronze"]`. El DAG productivo (crypto) lleva `tags=["prod", "bronze", "crypto"]` para distinguirlo en la UI con el filtro `prod`.
 
 ### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-Abrí `ejercicios/ejercicio.ipynb` para practicar con datos reales desde la **API CoinGecko**. Al final, la sección **📦 Entrega** te genera automáticamente tu archivo `ejercicios/alumnos/<apellido>-<nombre>.txt` y te indica cómo subirlo (commit + push + abrir un **PR nuevo** de esta clase). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+Abrí `ejercicios/ejercicio.ipynb` para practicar con datos reales desde la **API CoinGecko**. Al final, la sección **📦 Entrega** te genera automáticamente tu archivo `ejercicios/estudiantes/<apellido>-<nombre>.txt` y te indica cómo subirlo (solo commit + push: tu PR se actualiza solo). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
 
-> **Una rama para siempre, un PR por clase**: tu rama `apellido-nombre` es la misma desde clase01; el PR es nuevo cada clase (el anterior ya se mergeó). Detalle en el [README raíz](../README.md).
+**Commit y push.** Reemplazá `<apellido>-<nombre>` por el filename que te imprimió la sección 📦 Entrega. Desde la raíz del repo:
+
+```bash
+git add clase03/ejercicios/estudiantes/<apellido>-<nombre>.txt
+git commit -m "ejercicio03: ejercicio bronze"
+git push origin estudiante/apellido-nombre
+```
+
+> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
+
+> **Una rama para siempre, un PR para siempre**: tu rama `estudiante/apellido-nombre` y tu PR son los mismos desde la Clase 01; el push actualiza ese mismo PR (no abrís uno nuevo). Detalle en el [README raíz](../README.md).
 
 ### Paso 3 — Correr el DAG productivo en Airflow
 
@@ -73,7 +84,10 @@ Abrí `ejercicios/ejercicio.ipynb` para practicar con datos reales desde la **AP
 cp clase03/ejercicios/dag_crypto_bronze.py stack/dags/01-bronze/
 ```
 
-Airflow detecta el archivo automáticamente (volumen montado) y lo muestra en la UI. Activalo con el toggle y mirá los datos llegar a `bronze.crypto_markets` y `bronze.global_market`.
+Airflow detecta el archivo automáticamente (volumen montado) y lo muestra en la UI. A diferencia de los DAGs didácticos, este trae `is_paused_upon_creation=False`: **arranca despausado solo**, no hace falta tocar el toggle. Mirá los datos llegar a `bronze.crypto_markets` y `bronze.global_market`.
+
+> [!WARNING]
+> Apenas copiás el archivo, el DAG empieza a pegarle a la API de CoinGecko **cada 15 minutos** (`schedule="0,15,30,45 * * * *"`) y sigue haciéndolo mientras el stack esté levantado. Si no querés eso corriendo de fondo, **pausalo con el toggle** en la UI después de la primera corrida.
 
 > Filtrá por tag **`prod`** en la UI para ver solo los DAGs productivos (separa el "DAG real" de la escalera didáctica `01_*` → `04_*`).
 
@@ -112,7 +126,7 @@ Si las 3 queries devuelven valores razonables, tu pipeline Bronze está **funcio
 
 ## 🔮 Forward reference a Silver (clase 04)
 
-Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ventas.yaml` + idempotencia por SHA256 + audit metadata). En **clase 04** vamos a:
+Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ventas.yaml` + idempotencia por SHA256 + audit metadata). En la **clase 04** vamos a:
 
 | Concepto | Qué construimos |
 |---|---|
@@ -134,3 +148,5 @@ Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ven
 | `ModuleNotFoundError: requests` (en el DAG crypto) | El módulo viene en el Dockerfile del stack. Si falla, rebuild: `docker compose down && docker compose up -d --build`. |
 | Error de conexión a Postgres dentro del DAG | Las credenciales se leen de variables de entorno (`SOURCE_DB_*`). Verificar que `stack/.env` esté presente. |
 | El DAG corre pero no veo datos | Conectarte a Postgres (`localhost:5432`, user `admin`, db `InfraCienciaDatos`) y consultar `bronze.crypto_markets`. |
+| `ventas_columnar.parquet` cae en quarantine con `ImportError` | Falta `pyarrow` dentro de la imagen de Airflow. Rebuild: `docker compose up -d --build`. (Si el `.parquet` tampoco se genera desde el notebook, instalá `pyarrow` en tu entorno local.) |
+| `NameError: generar_archivos_demo_ventas` | Ejecutaste una celda de siembra sin haber corrido antes la celda que define el sembrador (sección **🌱 El sembrador**, arriba de todo). Corré esa celda primero. |

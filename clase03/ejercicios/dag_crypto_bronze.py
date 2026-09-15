@@ -22,7 +22,7 @@ Dos endpoints en paralelo:
   - /coins/markets -> top 50 criptos (datos por moneda)
   - /global -> datos agregados del mercado crypto total
 
-Corre cada 5 minutos, acumulando snapshots con precios en tiempo real.
+Corre cada 15 minutos, acumulando snapshots con precios en tiempo real.
 """
 
 # =============================================================================
@@ -62,7 +62,7 @@ Corre cada 5 minutos, acumulando snapshots con precios en tiempo real.
 # Los decoradores simplifican enormemente el codigo.
 # =============================================================================
 from airflow.decorators import dag, task
-from datetime import datetime
+from datetime import datetime, timedelta
 import math
 import os
 
@@ -146,6 +146,7 @@ import sys
 
 # Hacemos visible el paquete `common` (esta dos niveles arriba en el stack)
 sys.path.append("/opt/airflow/dags")
+from common.assets import BRONZE_CRYPTO  # noqa: E402
 from common.contracts import load_contract  # noqa: E402
 
 CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
@@ -188,15 +189,31 @@ def _clean_records(records):
 #     NO significa que va a ejecutar desde esa fecha (eso depende de catchup).
 #     Es solo una referencia temporal para el scheduler.
 #
-#   schedule="*/5 * * * *"
+#   schedule="0,15,30,45 * * * *"
 #     Frecuencia de ejecucion usando sintaxis CRON (estandar de Unix).
 #     Los 5 campos son: minuto hora dia_mes mes dia_semana
-#       */5 * * * * = "cada 5 minutos, cualquier hora, cualquier dia"
+#       0,15,30,45 * * * * = "en los minutos :00 :15 :30 :45 de cada hora"
 #     Otros ejemplos:
+#       "*/5 * * * *"  = cada 5 minutos
 #       "0 * * * *"    = cada hora en punto (minuto 0)
 #       "0 8 * * *"    = todos los dias a las 08:00
 #       "0 0 * * 1"    = cada lunes a medianoche
 #       "@daily"        = alias para "0 0 * * *"
+#
+#     POR QUE BRONZE ES EL UNICO CON CRON:
+#     bronze es el BORDE del pipeline: consulta una API externa que no le avisa
+#     cuando hay dato nuevo. El reloj es la unica senal posible, y cada 15
+#     minutos es un compromiso razonable entre frescura y rate limit.
+#
+#     Las capas de abajo NO tienen cron: se encadenan por ASSETS.
+#         crypto_silver  schedule=[BRONZE_CRYPTO]   <- arranca cuando bronze termina
+#         crypto_gold    schedule=[SILVER_CRYPTO]   <- arranca cuando silver termina
+#
+#     La version vieja de este pipeline las escalonaba de a 5 minutos
+#     (silver :05, gold :10). Andaba, pero era una apuesta: si bronze tardaba
+#     6 minutos, silver leia el snapshot anterior y publicaba igual. Encadenar
+#     por horario es esperar que el upstream termine a tiempo; encadenar por
+#     asset es SABER que termino.
 #
 #   catchup=False
 #     CRITICO: si el DAG estuvo apagado 2 horas, NO ejecuta las ~24 corridas
@@ -215,12 +232,30 @@ def _clean_records(records):
 # =============================================================================
 @dag(
     dag_id="crypto_bronze",
+    # SELF-HEAL: si una task falla por algo transitorio (API lenta, Postgres
+    # ocupado, corrida manual desordenada), REINTENTA en vez de dejar el dia
+    # en rojo. Con el encadenado por asset el caso "upstream todavia vacio" ya
+    # no existe, pero el retry sigue siendo la red de seguridad barata.
+    default_args={"retries": 2, "retry_delay": timedelta(minutes=2)},
     start_date=datetime(2024, 1, 1),
-    schedule="*/5 * * * *",
+    # ARRANCA SOLO: sin esto Airflow crea el DAG PAUSADO y el pipeline no
+    # corre hasta que alguien lo despausa a mano (incumple "docker compose up
+    # y funciona", que es el criterio central del TP).
+    is_paused_upon_creation=False,
+
+    # EL UNICO CRON DE LA CADENA. Bronze es el BORDE del pipeline: consulta una
+    # API externa, no tiene nada aguas arriba que esperar, asi que el reloj es
+    # la unica senal posible para arrancar.
+    #
+    # De aca en adelante NADIE adivina tiempos: silver se dispara con el asset
+    # que emite este DAG (schedule=[BRONZE_CRYPTO]) y gold con el de silver.
+    # Encadenar por cron ("silver 5 minutos despues") es una apuesta: si bronze
+    # tarda 6 minutos, silver lee un upstream viejo y nadie se entera.
+    schedule="0,15,30,45 * * * *",
     catchup=False,
     tags=["prod", "bronze", "crypto"],
     doc_md="""
-    ## Crypto Bronze - Ingesta cada 5 minutos
+    ## Crypto Bronze - Ingesta cada 15 minutos
     Consulta **dos endpoints** de CoinGecko en paralelo:
     - Top 50 criptomonedas por market cap -> `bronze.crypto_markets`
     - Datos globales del mercado crypto -> `bronze.global_market`
@@ -380,7 +415,39 @@ def crypto_bronze():
         # Esto es un patron comun en APIs: envolver la respuesta real en un campo "data".
         data = response.json()["data"]
         print(f"Mercado global: {data.get('active_cryptocurrencies', '?')} criptos activas")
-        return data
+
+        # =============================================================
+        # POR QUE NO DEVOLVEMOS data ENTERO (leccion aprendida en produccion)
+        # =============================================================
+        # /global trae total_market_cap y total_volume convertidos a 63
+        # monedas (usd, eur, btc, sats, vef, ...). Nosotros usamos SOLO usd
+        # y las dominancias: el resto es peso muerto.
+        #
+        # Y ese peso muerto ROMPE el pipeline. Lo que se retorna de una @task
+        # viaja por XCom, que Airflow serializa con msgpack: soporta enteros
+        # hasta 2**64-1 (18.446.744.073.709.551.615). El market cap en
+        # bolivares venezolanos (vef) supera ese limite por la hiperinflacion:
+        #
+        #   total_market_cap.vef = 215.816.825.849.841.940.000  (11,7x el limite)
+        #
+        # Cuando ese valor llega SIN decimales, Python lo lee como int y la
+        # task muere con "OverflowError: can't serialize ints > 2**64 - 1"
+        # ANTES de ejecutar una sola linea nuestra (falla intermitente y muy
+        # dificil de diagnosticar: el log de la task queda vacio).
+        #
+        # REGLA GENERAL: XCom es para METADATA CHICA, no para arrastrar el
+        # payload crudo de una API. Filtra lo que necesitas en el fetch.
+        # (Si necesitaras el crudo completo, va a Bronze como JSONB, no a XCom.)
+        # =============================================================
+        return {
+            "active_cryptocurrencies": data.get("active_cryptocurrencies"),
+            "markets": data.get("markets"),
+            "total_market_cap_usd": data.get("total_market_cap", {}).get("usd"),
+            "total_volume_usd": data.get("total_volume", {}).get("usd"),
+            "btc_dominance": data.get("market_cap_percentage", {}).get("btc"),
+            "eth_dominance": data.get("market_cap_percentage", {}).get("eth"),
+            "market_cap_change_pct_24h": data.get("market_cap_change_percentage_24h_usd"),
+        }
 
     # ============================================================
     # TRANSFORM: markets
@@ -645,21 +712,21 @@ def crypto_bronze():
         row = {
             "active_cryptocurrencies": data.get("active_cryptocurrencies"),
             "markets": data.get("markets"),
-            # .get("total_market_cap", {}).get("usd") es un patron de "safe navigation":
-            # si "total_market_cap" no existe, retorna {} (dict vacio),
-            # y luego .get("usd") sobre un dict vacio retorna None.
-            # Nunca lanza excepcion, siempre retorna algo valido.
-            "total_market_cap_usd": data.get("total_market_cap", {}).get("usd"),
-            "total_volume_usd": data.get("total_volume", {}).get("usd"),
+            # Ojo: aca ya NO desanidamos. fetch_global() dejo el dato plano
+            # (ver el comentario "POR QUE NO DEVOLVEMOS data ENTERO" alla arriba):
+            # el desanidado y el filtrado se hacen lo mas cerca posible de la
+            # fuente, para que por XCom viaje solo lo necesario.
+            "total_market_cap_usd": data.get("total_market_cap_usd"),
+            "total_volume_usd": data.get("total_volume_usd"),
             # DOMINANCIA: que porcentaje del market cap total corresponde a BTC/ETH.
             # Es un indicador clave del mercado:
             #   - Si btc_dominance SUBE: el mercado se "concentra" en Bitcoin
             #     (los inversores buscan seguridad en la cripto mas grande).
             #   - Si btc_dominance BAJA: los altcoins estan ganando terreno
             #     (se llama "alt season" cuando esto pasa fuertemente).
-            "btc_dominance": data.get("market_cap_percentage", {}).get("btc"),
-            "eth_dominance": data.get("market_cap_percentage", {}).get("eth"),
-            "market_cap_change_pct_24h": data.get("market_cap_change_percentage_24h_usd"),
+            "btc_dominance": data.get("btc_dominance"),
+            "eth_dominance": data.get("eth_dominance"),
+            "market_cap_change_pct_24h": data.get("market_cap_change_pct_24h"),
             # Mismas columnas de metadata que en markets, para consistencia
             # entre ambas tablas Bronze.
             "ingested_at": now.isoformat(),
@@ -677,7 +744,7 @@ def crypto_bronze():
         # BRONZE = datos CRUDOS, tal cual vienen de la fuente, con minima
         #   transformacion. Es nuestro "archivo historico".
         #   - Usamos "append" para ACUMULAR cada snapshot sin borrar los anteriores.
-        #   - Cada corrida (cada 5 min) agrega un nuevo registro.
+        #   - Cada corrida (cada 15 min) agrega un nuevo registro.
         #   - NUNCA borramos datos en Bronze: es nuestro backup/respaldo historico.
         #   - Si algo sale mal en Silver o Gold, siempre podemos REPROCESAR
         #     desde Bronze (es la fuente de verdad).
@@ -696,14 +763,24 @@ def crypto_bronze():
         # =============================================================
         df.to_sql("global_market", engine, schema="bronze", if_exists="append", index=False)
 
-        print(f"bronze.global_market: +1 registro | BTC dom: {row['btc_dominance']:.1f}%")
+        # Formateo defensivo: si la API no trajo la dominancia, no queremos que
+        # un print rompa una carga que ya se hizo bien.
+        dom = row["btc_dominance"]
+        dom_txt = f"{dom:.1f}%" if dom is not None else "s/d"
+        print(f"bronze.global_market: +1 registro | BTC dom: {dom_txt}")
 
     # ============================================================
     # LOAD: markets
     # ============================================================
-    @task
+    @task(outlets=[BRONZE_CRYPTO])
     def load_markets(records: list):
-        """Acumular en bronze.crypto_markets (append directo)."""
+        """Acumular en bronze.crypto_markets (append directo).
+
+        DATA-AWARE: `outlets=[BRONZE_CRYPTO]` -> cuando esta tarea termina OK,
+        Airflow marca el asset como actualizado y crypto_silver arranca solo.
+        El asset se emite ACA (en la tarea que escribe el dato), no al final del
+        DAG: lo que se declara es "el dato existe", no "el DAG termino".
+        """
         import pandas as pd
         import sqlalchemy
 
