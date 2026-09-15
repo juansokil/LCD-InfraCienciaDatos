@@ -7,7 +7,9 @@ Pipeline: bronze.crypto_markets -> Evaluar -> Limpiar -> silver.crypto_markets
 
 Este DAG implementa la Capa Silver de la Arquitectura Medallion.
 La idea central es: Bronze tiene datos CRUDOS (tal cual vinieron de la API).
-Silver tiene datos LIMPIOS, validados y deduplicados.
+Silver tiene datos LIMPIOS, validados y deduplicados
+(la deduplicacion Y la normalizacion se hacen en SQL -- pushdown --
+y la validacion semantica con Pydantic generado desde el contrato).
 
 Los registros que no pasan las validaciones van a "quarantine"
 (una tabla aparte) para que un humano los revise. Esto es una
@@ -23,7 +25,7 @@ Flujo de tareas:
 # IMPORTS
 # ============================================================
 from airflow.decorators import dag, task
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import math
 import os
 import sys
@@ -32,6 +34,18 @@ import sys
 # para poder importar el modulo de contratos compartido entre Bronze y Silver.
 sys.path.append("/opt/airflow/dags")
 from common.contracts import build_pydantic_from_contract, load_contract  # noqa: E402
+
+# Asset que produce este DAG. Declararlo como `outlets` en load_silver hace que,
+# al terminar OK, se dispare (data-aware) cualquier DAG que escuche este asset
+# (las ramas Gold-asset). NO cambia el schedule de Silver: sigue corriendo
+# normal por cron; solo "anuncia" que produjo silver.crypto_markets.
+from common.assets import BRONZE_CRYPTO, SILVER_CRYPTO  # noqa: E402
+from common.contracts import evaluar_reglas  # noqa: E402
+
+try:  # Airflow 3.x
+    from airflow.sdk import get_current_context
+except ImportError:  # fallback Airflow 2.x
+    from airflow.operators.python import get_current_context  # noqa: E402
 
 
 # ============================================================
@@ -88,30 +102,132 @@ def _clean_records(records):
     return records
 
 
+def _guardar_metricas(ds: str, contract: dict, resultados: list) -> None:
+    """Una fila por (corrida x regla) en silver.quality_runs.
+
+    APPEND-ONLY, sin DELETE: el valor de esta tabla es justamente la historia.
+    Con una sola foto no se puede distinguir "12 rechazos es lo de siempre" de
+    "12 rechazos y ayer eran 0".
+
+    Y algo que solo se ve teniendo la tabla: una regla con 0 violaciones sobre
+    11.300 filas evaluadas ES informacion. Sin esto, "la cuarentena esta vacia"
+    no distingue entre "todo bien" y "no se valido nada" -- que es exactamente
+    la ambiguedad en la que vivia este pipeline.
+    """
+    if not resultados:
+        return
+    import pandas as pd
+    import sqlalchemy
+
+    # UNA marca de tiempo para TODA la corrida, calculada afuera de la
+    # comprension. Adentro, datetime.now() se evalua una vez POR FILA y cada
+    # regla queda con un run_ts distinto por microsegundos -- con lo cual cada
+    # regla pasa a ser su propia "corrida" y se rompe el grano de la tabla:
+    # `WHERE run_ts = max(run_ts)` devuelve UNA regla en vez de las diez.
+    run_ts = datetime.now().isoformat()
+
+    filas = [{
+        "run_ts": run_ts,
+        "ds": ds,
+        "dataset": contract.get("dataset"),
+        "contract_version": str(contract.get("version")),
+        "regla": r["nombre"],
+        "tipo": r["rule"],
+        "severidad": r["severidad"],
+        "filas_evaluadas": r["filas"],
+        "violaciones": r["violaciones"],
+    } for r in resultados]
+
+    engine = sqlalchemy.create_engine(DB_URI)
+    with engine.begin() as conn:
+        conn.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS silver")
+    pd.DataFrame(filas).to_sql("quality_runs", engine, schema="silver",
+                               if_exists="append", index=False)
+    print(f"[{ds}] silver.quality_runs: +{len(filas)} mediciones")
+
+
+def _target_date() -> str:
+    """Fecha 'YYYY-MM-DD' del intervalo que procesa este run.
+
+    Es la pieza que hace el DAG incremental + backfilleable: cada run
+    procesa SOLO los snapshots de su dia. Reproceso historico:
+        airflow dags backfill crypto_silver -s 2024-01-01 -e 2024-01-31
+
+    OJO CON EL DISPARO POR ASSET
+    ----------------------------
+    Un run disparado por un asset NO tiene `logical_date`, asi que la variable
+    de template `ds` NO EXISTE en el contexto: pedirla tira KeyError('ds').
+    Tiene sentido -- "que dia procesa" es una pregunta de un DAG con cron, que
+    corre por intervalos. Un DAG data-aware corre porque LLEGO UN DATO, y el
+    dato que llego es el de ahora.
+
+    Por eso: si hay `ds` (cron o backfill) se respeta -- es lo que hace posible
+    el reproceso historico. Si no lo hay (asset), se procesa HOY en UTC, que es
+    la fecha del snapshot que acaba de escribir Bronze.
+    """
+    ctx = get_current_context()
+    ds = ctx.get("ds")
+    if ds:
+        return ds
+
+    # Fallback para runs data-aware: la fecha del momento en que corre.
+    # `logical_date` puede venir None; `run_after` (Airflow 3) o el reloj sirven.
+    for clave in ("logical_date", "run_after", "data_interval_end"):
+        valor = ctx.get(clave)
+        if valor is not None:
+            return valor.strftime("%Y-%m-%d")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
 # ============================================================
 # DEFINICION DEL DAG
 # ============================================================
 @dag(
     dag_id="crypto_silver",
+    # SELF-HEAL: si una task falla por algo transitorio (API lenta, Postgres
+    # ocupado, corrida manual desordenada), REINTENTA en vez de dejar el dia
+    # en rojo. Con el encadenado por asset el caso "upstream todavia vacio" ya
+    # no existe, pero el retry sigue siendo la red de seguridad barata.
+    default_args={"retries": 2, "retry_delay": timedelta(minutes=2)},
     start_date=datetime(2024, 1, 1),
 
-    # schedule=None significa que este DAG NO se ejecuta automaticamente.
-    # Solo se ejecuta cuando alguien lo "triggerea" manualmente desde
-    # la UI de Airflow (boton "Play") o desde la CLI.
-    # Esto tiene sentido para Silver porque queremos control sobre
-    # cuando se procesan los datos (a diferencia de Bronze que corre
-    # cada 5 minutos automaticamente).
-    schedule="@daily",
+    # ARRANCA SOLO (ver nota en crypto_bronze).
+    is_paused_upon_creation=False,
+
+    # DATA-AWARE: no hay cron. Este DAG arranca cuando crypto_bronze termina de
+    # escribir y emite BRONZE_CRYPTO. Antes corria en :05 :20 :35 :50, cinco
+    # minutos "despues" de bronze -- una apuesta: si bronze tardaba 6 minutos,
+    # silver leia el snapshot anterior y nadie se enteraba. Ahora la senal es el
+    # dato, no el reloj.
+    #
+    # Efecto buscado: si bronze falla, silver NO corre. Antes corria igual y
+    # reprocesaba el dia con datos viejos, publicando Silver "fresco" mentiroso.
+    #
+    # Cada run procesa los snapshots de SU fecha (`ds`) con DELETE+append,
+    # asi que re-correrlo dentro del mismo dia es idempotente: reprocesa el
+    # dia completo y deja el mismo resultado. catchup=False -> no auto-corre
+    # la historia; para reprocesar el pasado se usa `airflow dags backfill`.
+    schedule=[BRONZE_CRYPTO],
 
     catchup=False,
     tags=["prod", "silver", "crypto"],
     doc_md="""
     ## Crypto Silver - Transformacion y Calidad
-    Lee TODOS los datos acumulados de Bronze, aplica contrato de datos,
-    separa registros validos (Silver) de invalidos (Quarantine).
+    Lee los snapshots del DIA, aplica el contrato de datos y separa
+    registros validos (Silver) de invalidos (Quarantine).
 
-    Idempotente: reconstruye Silver completo en cada corrida
-    (replace) a partir de todo Bronze.
+    Incremental por dia: cada run procesa los snapshots de su
+    fecha (data_interval) y hace DELETE+append de ESE dia.
+    Idempotente por dia y reprocesable.
+
+    ### Correr "para atras" (reproceso historico)
+    `catchup=False` -> al despausar NO se auto-corre la historia.
+    Para reprocesar un rango pasado, desde la CLI de Airflow:
+
+        airflow dags backfill crypto_silver -s 2024-01-01 -e 2024-01-31
+
+    Cada dia se procesa por separado (DELETE del dia + append), asi
+    que se puede repetir sin duplicar y sin pisar los demas dias.
     """,
 )
 def crypto_silver():
@@ -119,12 +235,11 @@ def crypto_silver():
     DAG de la Capa Silver. Transforma datos crudos de Bronze en datos
     limpios y validados.
 
-    Concepto clave: IDEMPOTENCIA
-    Este DAG es "idempotente", lo que significa que si lo corres
-    1 vez o 10 veces, el resultado es el mismo. Esto es porque
-    usa if_exists="replace" (borra y recrea Silver desde cero
-    a partir de todo Bronze). En produccion esto es muy importante
-    porque permite re-ejecutar sin miedo a duplicar datos.
+    Concepto clave: IDEMPOTENCIA POR DIA
+    Cada run procesa los snapshots de su fecha y hace DELETE
+    (de ese dia) + append. Correr 1 o 10 veces el mismo dia da
+    el mismo resultado (no duplica) y NO pisa los demas dias,
+    lo que permite reprocesar historia con `airflow dags backfill`.
     """
 
     # ============================================================
@@ -133,28 +248,86 @@ def crypto_silver():
     @task
     def read_bronze():
         """
-        Leer todos los datos acumulados de bronze.crypto_markets.
+        Leer los snapshots del DIA que procesa este run.
 
-        Notar que leemos TODOS los datos de Bronze, no solo los nuevos.
-        Esto es parte del patron "full refresh": Silver se reconstruye
-        completo en cada corrida. Es mas simple y seguro que intentar
-        procesar solo los deltas (datos nuevos).
+        INCREMENTAL: filtra bronze.crypto_markets por la fecha del run
+        (data_interval / `ds`), no toda la historia. Esto hace el DAG
+        backfilleable: `airflow dags backfill crypto_silver -s <ini>
+        -e <fin>` reprocesa cada dia por separado.
 
-        Retorna: lista de diccionarios con todos los registros de Bronze.
+        Dedup y normalizacion (symbol->UPPER, name->Title, trim,
+        ''->NULL) se hacen en SQL -- pushdown: el worker recibe los
+        datos ya deduplicados y normalizados (solo la validacion de
+        contrato corre en Python, por diseno contract-driven).
+
+        Retorna: lista de dicts del DIA (deduplicados + normalizados).
         """
         import pandas as pd
         import sqlalchemy
 
         engine = sqlalchemy.create_engine(DB_URI)
 
-        # Leer toda la tabla bronze.crypto_markets
-        # pd.read_sql() ejecuta la query y devuelve un DataFrame
-        df = pd.read_sql("SELECT * FROM bronze.crypto_markets", engine)
+        # SQL PUSHDOWN: dedup + normalizacion se hacen en Postgres, no en pandas.
+        # Armamos la lista de columnas desde el catalogo para:
+        #   - normalizar en SQL (symbol->UPPER, name->Title, trim, ''->NULL)
+        #   - NO perder columnas extra (ath, atl, ...) -> evolution-safe
+        #     (no se puede `SELECT *, upper(symbol) AS symbol`: columnas duplicadas)
+        cols = pd.read_sql(
+            """
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = 'bronze' AND table_name = 'crypto_markets'
+            ORDER BY ordinal_position
+            """,
+            engine,
+        )
+        TEXT_TYPES = {"text", "character varying", "varchar", "character", "char"}
+        KEEP_RAW = {"id", "snapshot_ts", "ingested_at"}  # llaves/audit: sin tocar
+        select_exprs = []
+        for cname, dtype in zip(cols["column_name"], cols["data_type"]):
+            q = f'"{cname}"'
+            if cname == "symbol":
+                select_exprs.append(f"upper(NULLIF(btrim({q}), '')) AS {q}")
+            elif cname == "name":
+                # OJO: aca habia un initcap(). Parecia inofensivo -- "normalizar
+                # mayusculas" -- y corrompia el 38% de las filas: initcap baja
+                # a minuscula todo lo que no sea inicial de palabra, asi que
+                # BNB -> Bnb, OKB -> Okb, PayPal USD -> Paypal Usd, NEAR
+                # Protocol -> Near Protocol.
+                #
+                # La capa que LIMPIA fue la que ROMPIO, y el contrato no lo vio
+                # porque solo miraba `id` y `current_price`. Limpiar no es
+                # "aplicarle una funcion de texto a todo": es sacar lo que
+                # sobra (espacios, vacios) sin inventar nada. Un nombre propio
+                # se respeta como viene.
+                select_exprs.append(f"NULLIF(btrim({q}), '') AS {q}")
+            elif dtype in TEXT_TYPES and cname not in KEEP_RAW:
+                # trim + blancos -> NULL (normalizacion Silver, set-based)
+                select_exprs.append(f"NULLIF(btrim({q}), '') AS {q}")
+            else:
+                # numericas/timestamp + llaves/audit: tal cual (raw)
+                select_exprs.append(q)
+        select_list = ",\n                   ".join(select_exprs)
 
-        # Contar snapshots unicos para el log
-        # .nunique() cuenta valores unicos en una columna
-        dias = df["snapshot_ts"].nunique() if "snapshot_ts" in df.columns else 1
-        print(f"Leidos {len(df)} registros de Bronze ({dias} snapshots)")
+        # Fecha del run: incremental + backfill (solo los snapshots de ese dia).
+        ds = _target_date()
+
+        # DISTINCT ON (id, snapshot_ts) + ORDER BY ... ingested_at DESC =
+        # "1 fila por (id, snapshot_ts): la de ingested_at mas reciente"
+        # (equivalente exacto a drop_duplicates(keep="last") tras ordenar).
+        # WHERE snapshot_ts::date = ds -> SOLO el dia que procesa este run.
+        query = f"""
+            SELECT DISTINCT ON (id, snapshot_ts)
+                   {select_list}
+            FROM bronze.crypto_markets
+            WHERE snapshot_ts::date = '{ds}'
+            ORDER BY id, snapshot_ts, ingested_at DESC
+        """
+        df = pd.read_sql(query, engine)
+
+        snaps = df["snapshot_ts"].nunique() if "snapshot_ts" in df.columns else 0
+        print(f"[{ds}] Leidos {len(df)} registros de Bronze "
+              f"({snaps} snapshots del dia)")
 
         # Convertir a lista de dicts y limpiar NaN para XCom
         return _clean_records(df.to_dict(orient="records"))
@@ -261,17 +434,12 @@ def crypto_silver():
         df = pd.DataFrame(records)
 
         # --- 2. DEDUPLICACION ---
-        # sort_values por ingested_at: pone los mas recientes al final
-        # drop_duplicates con keep="last": se queda con el mas reciente
-        dedup_cols = ["id", "snapshot_ts"] if "snapshot_ts" in df.columns else ["id"]
-        df = df.sort_values("ingested_at").drop_duplicates(subset=dedup_cols, keep="last")
+        # Ya viene deduplicada de SQL (read_bronze: DISTINCT ON) -- pushdown.
+        # No repetimos el dedup en pandas: el set-based lo hizo Postgres.
 
         # --- 3. NORMALIZACION DE STRINGS ---
-        # .str.strip(): elimina espacios al inicio y final
-        # .str.upper(): convierte a mayusculas
-        # .str.title(): primera letra mayuscula
-        df["symbol"] = df["symbol"].str.strip().str.upper()
-        df["name"] = df["name"].str.strip().str.title()
+        # Ya hecha en SQL (read_bronze): symbol->UPPER, name->Title,
+        # trim y blancos->NULL -- pushdown. No se repite en pandas.
 
         # --- 4. VALIDACION fila por fila con Pydantic dinamico ---
         # Solo pasamos a Pydantic las columnas que el contrato declara
@@ -299,10 +467,56 @@ def crypto_silver():
                 )
                 invalidos.append(row_dict)
 
-        # --- 5. CONVERTIR A DATAFRAMES + AGREGAR METADATA ---
+        # --- 5. QUALITY RULES: lo que Pydantic no puede ver ---------
+        # Pydantic valida FILA POR FILA: tipos y rangos de una columna. No
+        # puede evaluar `unique` (necesita el conjunto) ni comparar dos
+        # columnas entre si. Las quality_rules del contrato se evaluan sobre el
+        # LOTE, con common.contracts.evaluar_reglas().
+        #
+        # Hasta esta version esas reglas NO SE EJECUTABAN EN NINGUN LADO: el
+        # YAML las declaraba y el unico que las leia era el dashboard, para
+        # mostrarlas como texto. Por eso la cuarentena estaba siempre vacia --
+        # no porque el dato fuera perfecto, sino porque casi nada se miraba.
         df_silver = pd.DataFrame(validos)
         df_quarantine = pd.DataFrame(invalidos)
 
+        resultados = []
+        if not df_silver.empty:
+            resultados = evaluar_reglas(df_silver, contract)
+
+            # SEVERIDAD: la regla decide que pasa con la fila.
+            #   error   -> a cuarentena. El registro no sirve.
+            #   warning -> pasa, marcado. Es usable pero sospechoso.
+            # Con un solo nivel hay dos salidas y las dos son malas: reglas
+            # laxas que no atrapan nada, o estrictas que tiran datos buenos.
+            rechaza = pd.Series(False, index=df_silver.index)
+            flags = pd.Series("", index=df_silver.index)
+            for res in resultados:
+                if res["severidad"] == "error":
+                    rechaza |= res["mask"]
+                else:
+                    flags = flags.where(~res["mask"],
+                                        flags + res["nombre"] + ";")
+
+            if rechaza.any():
+                caidos = df_silver[rechaza].copy()
+                motivos = pd.Series("", index=caidos.index)
+                for res in resultados:
+                    if res["severidad"] != "error":
+                        continue
+                    m = res["mask"].reindex(caidos.index, fill_value=False)
+                    motivos = motivos.where(~m, motivos + res["nombre"] + ";")
+                caidos["quarantine_reason"] = "QualityRule: " + motivos.str.rstrip(";")
+                df_quarantine = pd.concat([df_quarantine, caidos], ignore_index=True)
+                df_silver = df_silver[~rechaza].copy()
+                flags = flags[~rechaza]
+
+            # `_quality_flags` es lo que hace que "aparezcan cosas mal" sin
+            # perder el dato: un market_cap que no reconcilia por 3% es
+            # sospechoso, no basura.
+            df_silver["_quality_flags"] = flags.str.rstrip(";").values
+
+        # --- 6. METADATA DE TRAZABILIDAD ---
         now = datetime.now().isoformat()
         for d in [df_silver, df_quarantine]:
             if not d.empty:
@@ -311,8 +525,21 @@ def crypto_silver():
                 d["_contract_version"] = str(contract.get("version"))
 
         s, q = len(df_silver), len(df_quarantine)
-        print(f"Silver: {s} | Quarantine: {q} | "
+        marcados = int((df_silver["_quality_flags"] != "").sum()) if s else 0
+        print(f"Silver: {s} | Quarantine: {q} | Marcados: {marcados} | "
               f"Tasa: {s / max(s + q, 1) * 100:.1f}%")
+        for res in resultados:
+            if res["violaciones"]:
+                print(f"   [{res['severidad']:<7}] {res['nombre']}: "
+                      f"{res['violaciones']} de {res['filas']}")
+
+        # --- 7. METRICAS DE CALIDAD POR CORRIDA ---------------------
+        # Un numero aislado no dice nada: 12 rechazos pueden ser lo normal o
+        # una catastrofe. La senal es el CAMBIO, y para verlo hace falta la
+        # historia. Append-only: es una tabla de auditoria.
+        # _target_date() respeta el `ds` del run cuando hay (cron/backfill) y
+        # cae a hoy cuando el run vino de un asset -- ver su docstring.
+        _guardar_metricas(_target_date(), contract, resultados)
 
         return {
             "silver": _clean_records(df_silver.to_dict(orient="records")),
@@ -322,34 +549,71 @@ def crypto_silver():
     # ============================================================
     # TAREA 4: CARGAR SILVER (datos validos)
     # ============================================================
-    @task
+    @task(outlets=[SILVER_CRYPTO])
     def load_silver(split_data: dict):
         """
-        Cargar registros validos en silver.crypto_markets.
+        Cargar los validos del DIA en silver.crypto_markets.
 
-        Usa if_exists="replace" (NO append como Bronze).
-        Esto significa que BORRA la tabla Silver y la recrea desde cero.
+        DATA-AWARE: `outlets=[SILVER_CRYPTO]` -> al terminar OK, Airflow marca el
+        asset `silver_crypto_markets` como actualizado y dispara solos a TODOS
+        los consumidores que lo escuchan: `crypto_gold` (el productivo) y las
+        dos ramas de demo del fan-out de clase06.
 
-        ¿Por que replace y no append?
-        Porque Silver se reconstruye completo desde Bronze en cada corrida.
-        Si usaramos append, tendriamos duplicados cada vez que corremos el DAG.
-        Con replace, siempre tenemos un Silver limpio y consistente.
+        El asset se emite ACA, en la task que ESCRIBE el dato, no al final del
+        DAG: lo que se publica es "el dato existe", no "el DAG termino".
 
-        Este patron se llama "full refresh" y es muy comun en capas
-        de transformacion (Silver, Gold).
+        INCREMENTAL e idempotente POR DIA:
+          1) DELETE de las filas de ese dia (si la tabla existe)
+          2) append de las filas procesadas de ese dia
+        Correr el mismo dia N veces no duplica y NO pisa los demas
+        dias -> habilita `airflow dags backfill`. Gold sigue leyendo
+        silver.crypto_markets completo (Silver acumula todos los dias;
+        solo cambia COMO se escribe).
         """
         import pandas as pd
         import sqlalchemy
 
-        # Extraer solo los registros "silver" del diccionario
         df = pd.DataFrame(split_data["silver"])
         engine = sqlalchemy.create_engine(DB_URI)
+        ds = _target_date()
 
-        # replace: borra la tabla y la recrea con los datos nuevos
-        df.to_sql("crypto_markets", engine, schema="silver", if_exists="replace", index=False)
+        # Idempotencia POR DIA: schema + DELETE de ese dia (si la tabla existe).
+        # to_regclass devuelve NULL si la tabla no existe -> 1ra corrida no
+        # borra nada (el append de abajo la crea).
+        with engine.begin() as conn:
+            conn.execute(sqlalchemy.text("CREATE SCHEMA IF NOT EXISTS silver;"))
+            existe = conn.execute(sqlalchemy.text(
+                "SELECT to_regclass('silver.crypto_markets')"
+            )).scalar()
+            if existe:
+                conn.execute(sqlalchemy.text(
+                    f"DELETE FROM silver.crypto_markets WHERE snapshot_ts::date = '{ds}'"
+                ))
+                # EVOLUCION DE ESQUEMA. `to_sql(if_exists="append")` NO agrega
+                # columnas: si el DataFrame trae una que la tabla no tiene,
+                # falla con UndefinedColumn. Y la tabla la creo pandas por
+                # inferencia en la primera corrida, sin `_quality_flags`.
+                #
+                # `ADD COLUMN IF NOT EXISTS` es idempotente: la primera vez la
+                # agrega, despues no hace nada. Es la forma barata de evolucionar
+                # un esquema hacia adelante sin recrear la tabla ni perder la
+                # historia -- que es justo lo que `evolution_policy` del
+                # contrato permite (allow_new_columns: true).
+                conn.execute(sqlalchemy.text(
+                    "ALTER TABLE silver.crypto_markets "
+                    "ADD COLUMN IF NOT EXISTS _quality_flags TEXT"
+                ))
 
-        dias = df["snapshot_ts"].nunique() if "snapshot_ts" in df.columns else 1
-        print(f"silver.crypto_markets: {len(df)} registros ({dias} snapshots)")
+        if df.empty:
+            print(f"[{ds}] silver.crypto_markets: 0 registros (dia sin validos)")
+            return
+
+        # append: agrega SOLO el dia (ya lo borramos arriba -> idempotente por dia)
+        df.to_sql("crypto_markets", engine, schema="silver", if_exists="append", index=False)
+
+        snaps = df["snapshot_ts"].nunique() if "snapshot_ts" in df.columns else 0
+        print(f"[{ds}] silver.crypto_markets: +{len(df)} registros "
+              f"({snaps} snapshots del dia)")
 
     # ============================================================
     # TAREA 5: CARGAR QUARANTINE (datos invalidos)
@@ -373,8 +637,25 @@ def crypto_silver():
 
         df = pd.DataFrame(split_data["quarantine"])
         engine = sqlalchemy.create_engine(DB_URI)
-        df.to_sql("quarantine_crypto_markets", engine, schema="silver", if_exists="replace", index=False)
-        print(f"silver.quarantine_crypto_markets: {len(df)} registros")
+        ds = _target_date()
+
+        # Idempotencia POR DIA (igual patron que load_silver).
+        with engine.begin() as conn:
+            conn.execute(sqlalchemy.text("CREATE SCHEMA IF NOT EXISTS silver;"))
+            existe = conn.execute(sqlalchemy.text(
+                "SELECT to_regclass('silver.quarantine_crypto_markets')"
+            )).scalar()
+            if existe:
+                conn.execute(sqlalchemy.text(
+                    f"DELETE FROM silver.quarantine_crypto_markets WHERE snapshot_ts::date = '{ds}'"
+                ))
+
+        if df.empty:
+            print(f"[{ds}] silver.quarantine_crypto_markets: 0 registros (dia OK)")
+            return
+
+        df.to_sql("quarantine_crypto_markets", engine, schema="silver", if_exists="append", index=False)
+        print(f"[{ds}] silver.quarantine_crypto_markets: +{len(df)} registros")
 
     # ============================================================
     # TAREA 6: LOG RESUMEN (reporte final)
@@ -414,7 +695,7 @@ def crypto_silver():
     #   [load_s, load_q] >> log_summary(split)
     # Significa: "log_summary solo se ejecuta cuando AMBAS cargas terminan"
 
-    bronze_data = read_bronze()              # Paso 1: Leer todo Bronze
+    bronze_data = read_bronze()              # Paso 1: Leer Bronze del dia (incremental)
     evaluated = evaluate_quality(bronze_data) # Paso 2: Evaluar calidad
     split = clean_and_split(evaluated)        # Paso 3: Limpiar y separar
     load_s = load_silver(split)               # Paso 4a: Cargar Silver (paralelo)

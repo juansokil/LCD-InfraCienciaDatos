@@ -92,17 +92,17 @@ INSERT INTO Categories VALUES(8,'Seafood','Seaweed and fish');
 
 INSERT INTO Customers VALUES(1,'Alfreds Futterkiste','Maria Anders','Obere Str. 57','Berlin','12209','Germany');
 INSERT INTO Customers VALUES(2,'Ana Trujillo Emparedados y helados','Ana Trujillo','Avda. de la Constitución 2222','México D.F.','5021','Mexico');
-INSERT INTO Customers VALUES(3,'Antonio Moreno Taquería','Antonio Moreno','Mataderos 2312','México D.F.','5023','Mexico');
+INSERT INTO Customers VALUES(3,'Antonio Moreno Taquería','Antonio Moreno','Mataderos 2312','México D.F.','5023','  mexico ');
 INSERT INTO Customers VALUES(4,'Around the Horn','Thomas Hardy','120 Hanover Sq.','London','WA1 1DP','UK');
 INSERT INTO Customers VALUES(5,'Berglunds snabbköp','Christina Berglund','Berguvsvägen 8','Luleå','S-958 22','Sweden');
-INSERT INTO Customers VALUES(6,'Blauer See Delikatessen','Hanna Moos','Forsterstr. 57','Mannheim','68306','Germany');
+INSERT INTO Customers VALUES(6,'Blauer See Delikatessen','Hanna Moos','Forsterstr. 57','Mannheim','68306','');
 INSERT INTO Customers VALUES(7,'Blondel père et fils','Frédérique Citeaux','24, place Kléber','Strasbourg','67000','France');
 INSERT INTO Customers VALUES(8,'Bólido Comidas preparadas','Martín Sommer','C/ Araquil, 67','Madrid','28023','Spain');
 INSERT INTO Customers VALUES(9,'Bon app''''','Laurence Lebihans','12, rue des Bouchers','Marseille','13008','France');
 INSERT INTO Customers VALUES(10,'Bottom-Dollar Marketse','Elizabeth Lincoln','23 Tsawassen Blvd.','Tsawassen','T2F 8M4','Canada');
 INSERT INTO Customers VALUES(11,'B''''s Beverages','Victoria Ashworth','Fauntleroy Circus','London','EC2 5NT','UK');
 INSERT INTO Customers VALUES(12,'Cactus Comidas para llevar','Patricio Simpson','Cerrito 333','Buenos Aires','1010','Argentina');
-INSERT INTO Customers VALUES(13,'Centro comercial Moctezuma','Francisco Chang','Sierras de Granada 9993','México D.F.','5022','Mexico');
+INSERT INTO Customers VALUES(13,'Centro comercial Moctezuma','Francisco Chang','Sierras de Granada 9993','México D.F.','5022','MEXICO');
 INSERT INTO Customers VALUES(14,'Chop-suey Chinese','Yang Wang','Hauptstr. 29','Bern','3012','Switzerland');
 INSERT INTO Customers VALUES(15,'Comércio Mineiro','Pedro Afonso','Av. dos Lusíadas, 23','São Paulo','05432-043','Brazil');
 INSERT INTO Customers VALUES(16,'Consolidated Holdings','Elizabeth Brown','Berkeley Gardens 12 Brewery','London','WX1 6LT','UK');
@@ -229,7 +229,7 @@ INSERT INTO Suppliers VALUES(29,'Forêts d''érables','Chantal Goulet','148 rue 
 
 INSERT INTO Products VALUES(1,'Chais',1,1,'10 boxes x 20 bags',18);
 INSERT INTO Products VALUES(2,'Chang',1,1,'24 - 12 oz bottles',19);
-INSERT INTO Products VALUES(3,'Aniseed Syrup',1,2,'12 - 550 ml bottles',10);
+INSERT INTO Products VALUES(3,'Aniseed Syrup',1,2,'12 - 550 ml bottles',-10);
 INSERT INTO Products VALUES(4,'Chef Anton''s Cajun Seasoning',2,2,'48 - 6 oz jars',22);
 INSERT INTO Products VALUES(5,'Chef Anton''s Gumbo Mix',2,2,'36 boxes',21.35);
 INSERT INTO Products VALUES(6,'Grandma''s Boysenberry Spread',3,2,'12 - 8 oz jars',25);
