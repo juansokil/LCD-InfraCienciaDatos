@@ -19,7 +19,7 @@
 
 > ⚠️ **clase06 requiere el stack Docker levantado y el pipeline productivo ya corrido.** Si en los ejercicios 03/04/05 hiciste la variante con **DuckDB** (sin Docker), eso **no alcanza acá**: clase06 no usa las tablas `*_demo` del ejercicio personal, sino el **pipeline productivo** completo. DuckDB sirvió para practicar cada capa; el cierre necesita el stack real.
 
-> 📌 **Versiones**: el `requirements.txt` pinea **`mlflow==2.18.0`** — la misma versión que corre el server del stack. Un cliente MLflow 3.x contra ese server **falla al loguear modelos** (llama endpoints que el server 2.x no tiene). Si tu entorno tiene otra versión: `pip install mlflow==2.18.0`.
+> 📌 **Versiones**: el `requirements.txt` pinea **`mlflow==3.4.0`** — la misma versión que corre el server del stack. Cliente y server tienen que coincidir en la versión **mayor**: si difieren, `log_model` llama endpoints que el otro lado no tiene y falla. Si tu entorno tiene otra versión: `pip install mlflow==3.4.0`.
 
 ---
 
@@ -46,7 +46,7 @@ El docente recorre el notebook en vivo. Estructura real:
 
 3. **Target cross-sectional**: `vol_mañana > mediana de la volatilidad de mañana`. La mitad le gana por definición, así que queda **balanceado siempre** y el baseline se clava en 50%. Con un target absoluto el baseline se movía con el humor del día y dejaba de ser comparable.
 
-4. **🔭 ¿Mirar más atrás ayuda?** — tres modelos, la **misma** pregunta, distinta cantidad de historia: **1, 3 y 7 días**. Acá la respuesta es **sí**, y se ve la progresión. Los tres se evalúan sobre las **mismas fechas**: si cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las features o del test set.
+4. **🔭 ¿Mirar más atrás ayuda?** — la grilla cruza **4 algoritmos × 3 ventanas** (1, 3 y 7 días): 12 runs, la **misma** pregunta, distinta cantidad de historia. La respuesta **la da el dato del día, no el apunte**: la celda compara el salto entre ventanas contra lo que mueve una sola predicción, y si no lo supera dice que no hay diferencia. Los 12 se evalúan sobre las **mismas fechas**: si cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las features o del test set.
 
 5. **Validación honesta**: split temporal por **fechas únicas** (walk-forward), jamás por posición de fila. El baseline es la **clase mayoritaria de lo que ya pasó** — nunca la del día que se quiere predecir, que sería elegir el lado ganador después del partido.
 
@@ -97,9 +97,10 @@ El **mensaje final** completo está en la última celda del notebook.
 | Todo aparece como **NO CONCLUYENTE** | Esperable con poca historia: el guard pide ≥ 14 fechas distintas y el warehouse suma 1 por día. Dejá el stack corriendo y volvé a correr la Parte 2 |
 | `ImportError: sklearn` o `mlflow` | Activá tu entorno y `pip install -r requirements.txt` (raíz del repo) |
 | MLflow no responde en `localhost:5000` | El server es **parte del stack** (no hay que correr nada a mano): `docker compose up -d mlflow` desde `stack/` |
-| `log_model` falla con `404` en `/api/2.0/mlflow/logged-models` | Cliente MLflow **3.x** contra el server **2.18** del stack. Instalá la versión pineada: `pip install mlflow==2.18.0` |
+| `log_model` falla con `404` en `/api/2.0/mlflow/logged-models` | Cliente y server difieren en la versión **mayor** de MLflow. Instalá la pineada: `pip install mlflow==3.4.0` |
 | `load_model(...)` desde el notebook se cuelga y da `Read timed out` | En Windows, el port-forward de Docker Desktop no cierra bien las respuestas *chunked* del proxy de artifacts (**la descarga al host se cuelga; la subida anda salvo con artefactos grandes — ver la fila siguiente**). Por eso la celda 3.4 recarga el champion **adentro de la red** (`docker exec` → `http://mlflow:5000`) — igual que el DAG. Adentro de la red no existe el problema |
 | `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso el zoo del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
 | El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
 | `crypto_ml` no se dispara nunca | Consume el asset `gold_abt`, que emite la task `build_abt` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara |
-| El modelo no le gana a los baselines | **Es esperable y es la lección**: predecir la dirección del retorno diario con features públicas de precio/volumen es casi azar. Si vieras accuracy alta, sospechá leakage (target disfrazado, split que mezcla días, grano intradía) |
+| El modelo no le gana al baseline de **persistencia** | Es un resultado posible, y hay que leerlo: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla, así que es un rival serio. Con pocas fechas de test, además, la diferencia suele caer dentro del ruido — la celda imprime cuánto mueve una sola predicción, justamente para poder descartarla |
+| Accuracy sospechosamente alta | Sospechá **leakage**: target disfrazado de feature, split que mezcla días, o grano intradía filtrándose en el cierre |

@@ -33,7 +33,7 @@ clase06 (model zoo -> comparar runs -> alias @champion). Eso involucra
 criterio humano y es la leccion de la clase: no se automatiza.
 
 Este DAG toma el champion VIGENTE por alias
-(`models:/crypto_direccion_diaria@champion`): cuando promuevas otra version
+(`models:/crypto_volatilidad_{W}d@champion`, uno por ventana): cuando promuevas otra version
 a @champion, la corrida siguiente la usa sola, sin tocar codigo.
 
 =============================================================================
@@ -47,7 +47,7 @@ la red Docker se llega por el NOMBRE DEL SERVICIO:
 
 La URI se lee de la env var MLFLOW_TRACKING_URI; si no esta seteada se usa
 ese default. mlflow y scikit-learn ya estan en la imagen de Airflow
-(stack/requirements.txt pinea mlflow==2.18.0, igual que el server).
+(stack/requirements.txt pinea mlflow==3.4.0, igual que el server).
 
 =============================================================================
 DISENO ANTI-ROJO (serving que arranca antes que el modelo)
@@ -222,7 +222,7 @@ def columnas_features(W: int) -> list:
     ## crypto_ml - Scoring con el @champion (serving)
 
     Consume el asset **`gold_abt`**: cuando `crypto_gold` termina de construir
-    la ABT, carga `models:/crypto_direccion_diaria@champion` del MLflow del stack
+    la ABT, carga `models:/crypto_volatilidad_{W}d@champion` del MLflow del stack
     (`http://mlflow:5000`), reconstruye las features del ultimo dia con la
     MISMA query SQL del notebook y escribe **`gold.predicciones`**
     (idempotente por dia).
@@ -324,16 +324,22 @@ def crypto_ml():
                 "fecha_features": str(ultima_fecha.date()),
                 "crypto_id": cid,
                 "symbol": sym,
-                "pred_sube_manana": int(p),
-                "proba_sube": (float(pr) if pr is not None else None),
+                "predijo_alta_vol": int(p),
+                "proba_alta_vol": (float(pr) if pr is not None else None),
                 "champion_version": champion_version,
                 "scored_at": scored_at,
+                # La ventana se calculo arriba leyendola del champion: hay que
+                # ESCRIBIRLA. Sin esto la fila cae en el default 0 -- una
+                # ventana que no existe -- y el tablero la agrupa aparte.
+                "origen": "produccion",
+                "ventana": ventana,
             }
             for cid, sym, p, pr in zip(hoy["crypto_id"], hoy["symbol"], pred, proba)
         ]
         print(f"Scoreadas {len(rows)} criptos (features del {ultima_fecha:%Y-%m-%d}) "
               f"con {MODEL_NAME} v{champion_version}")
-        return {"status": "ok", "fecha": str(ultima_fecha.date()), "rows": rows}
+        return {"status": "ok", "fecha": str(ultima_fecha.date()),
+                "ventana": ventana, "rows": rows}
 
     @task
     def write_predicciones(payload: dict):
@@ -353,28 +359,53 @@ def crypto_ml():
                     fecha_features   date             NOT NULL,
                     crypto_id        text             NOT NULL,
                     symbol           text,
-                    pred_sube_manana integer,
-                    proba_sube       double precision,
+                    predijo_alta_vol integer,
+                    proba_alta_vol   double precision,
                     champion_version text,
                     scored_at        timestamptz,
-                    PRIMARY KEY (fecha_features, crypto_id)
+                    origen           text             DEFAULT 'produccion',
+                    ventana          integer          NOT NULL,
+                    -- La ventana entra en la PK: las tres (1/3/7) predicen la
+                    -- misma cripto el mismo dia, y son filas distintas.
+                    PRIMARY KEY (fecha_features, crypto_id, ventana)
                 )
             """)
+            # La tabla nacio con el target anterior (direccion del precio).
+            # RENAME conserva los datos y el IF lo hace idempotente: en una base
+            # nueva el CREATE de arriba ya la crea con los nombres correctos.
+            for viejo, nuevo in (("pred_sube_manana", "predijo_alta_vol"),
+                                 ("proba_sube", "proba_alta_vol")):
+                conn.exec_driver_sql(f'''
+                    DO $$
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM information_schema.columns
+                                   WHERE table_schema = 'gold'
+                                     AND table_name   = 'predicciones'
+                                     AND column_name  = '{viejo}') THEN
+                            ALTER TABLE gold.predicciones
+                                RENAME COLUMN {viejo} TO {nuevo};
+                        END IF;
+                    END $$;
+                ''')
+
             # Idempotencia: si el DAG corre dos veces el mismo dia,
             # borra ese dia y lo reescribe (mismo principio que Bronze).
             conn.execute(
                 sqlalchemy.text(
-                    "DELETE FROM gold.predicciones WHERE fecha_features = :f"
+                    "DELETE FROM gold.predicciones "
+                    "WHERE fecha_features = :f AND origen = 'produccion'"
                 ),
                 {"f": payload["fecha"]},
             )
             conn.execute(
                 sqlalchemy.text("""
                     INSERT INTO gold.predicciones
-                        (fecha_features, crypto_id, symbol, pred_sube_manana,
-                         proba_sube, champion_version, scored_at)
-                    VALUES (:fecha_features, :crypto_id, :symbol, :pred_sube_manana,
-                            :proba_sube, :champion_version, :scored_at)
+                        (fecha_features, crypto_id, symbol, predijo_alta_vol,
+                         proba_alta_vol, champion_version, scored_at,
+                         origen, ventana)
+                    VALUES (:fecha_features, :crypto_id, :symbol, :predijo_alta_vol,
+                            :proba_alta_vol, :champion_version, :scored_at,
+                            :origen, :ventana)
                 """),
                 payload["rows"],
             )
@@ -442,8 +473,8 @@ def crypto_ml():
                 for (_, r), pr in zip(test.iterrows(), proba):
                     filas.append({
                         "fecha_features": str(d), "crypto_id": r["crypto_id"],
-                        "symbol": r["symbol"], "pred_sube_manana": int(pr > 0.5),
-                        "proba_sube": float(pr), "champion_version": f"wf_v{W}",
+                        "symbol": r["symbol"], "predijo_alta_vol": int(pr > 0.5),
+                        "proba_alta_vol": float(pr), "champion_version": f"wf_v{W}",
                         "scored_at": datetime.now(timezone.utc).isoformat(),
                         "origen": "reconstruido", "ventana": int(W),
                     })
@@ -459,10 +490,11 @@ def crypto_ml():
             conn.execute(
                 sqlalchemy.text("""
                     INSERT INTO gold.predicciones
-                        (fecha_features, crypto_id, symbol, pred_sube_manana,
-                         proba_sube, champion_version, scored_at, origen, ventana)
-                    VALUES (:fecha_features, :crypto_id, :symbol, :pred_sube_manana,
-                            :proba_sube, :champion_version, :scored_at, :origen, :ventana)
+                        (fecha_features, crypto_id, symbol, predijo_alta_vol,
+                         proba_alta_vol, champion_version, scored_at, origen, ventana)
+                    VALUES (:fecha_features, :crypto_id, :symbol, :predijo_alta_vol,
+                            :proba_alta_vol, :champion_version, :scored_at,
+                            :origen, :ventana)
                     ON CONFLICT (fecha_features, crypto_id, ventana) DO NOTHING
                 """),
                 filas,
@@ -514,15 +546,15 @@ def crypto_ml():
                        p.fecha_features + 1                AS dia_predicho,
                        p.crypto_id,
                        p.symbol,
-                       p.pred_sube_manana                  AS predijo_alta_vol,
-                       p.proba_sube                        AS proba_alta_vol,
+                       p.predijo_alta_vol,
+                       p.proba_alta_vol,
                        p.champion_version,
                        p.ventana,
                        p.origen,
                        (i.vol > m.med)::int                AS realmente_alta_vol,
                        round(i.vol::numeric, 3)            AS vol_real,
                        round(m.med::numeric, 3)            AS mediana_del_dia,
-                       (p.pred_sube_manana = (i.vol > m.med)::int) AS acerto
+                       (p.predijo_alta_vol = (i.vol > m.med)::int) AS acerto
                 FROM gold.predicciones p
                 JOIN intra i   ON i.crypto_id = p.crypto_id
                               AND i.fecha     = p.fecha_features + 1
