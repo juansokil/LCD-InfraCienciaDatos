@@ -23,7 +23,7 @@ from theme import (aplicar_tema, encabezado, pill, kpi, seccion, aviso,
 aplicar_tema("Gold · ML", "🤖")
 
 MLFLOW = "http://mlflow:5000"       # nombre del servicio dentro de la red Docker
-EXPERIMENTO = "crypto_direccion_diaria"
+EXPERIMENTO = "crypto_volatilidad"
 MIN_DIAS = 14                        # el mismo umbral que usa el notebook de clase06
 
 
@@ -112,6 +112,26 @@ else:
 seccion("¿Cómo sabemos si el modelo sirve?",
         "¿Acertó qué criptos iban a ser las más movidas? Medido contra lo que pasó")
 
+# La definicion del target, escrita donde se miran los resultados. Sin esto,
+# "alta volatilidad" parece un umbral fijo y no lo es: la vara es el mercado
+# de ese dia.
+aviso(
+    "<b>¿Qué quiere decir acá «de las movidas»?</b> No hay ningún umbral fijo "
+    "tipo <i>«más de 5% es volátil»</i>. Son dos pasos:<br><br>"
+    "<b>1.</b> Cuánto se movió cada cripto ese día, con los ~66 snapshots que el "
+    "pipeline junta y el cierre diario descarta:<br>"
+    "<code>vol = desvío(precio del día) ÷ promedio(precio del día) × 100</code>"
+    "<br><br>"
+    "<b>2.</b> La vara es <b>el propio mercado de ese día</b>:<br>"
+    "<code>de las movidas = vol supera a la mediana de las vol de TODAS las "
+    "criptos ese día</code><br><br>"
+    "Por eso es <b>relativa</b>: en un día de pánico general no son todas "
+    "volátiles — siempre hay una mitad por encima y una por debajo. Y por eso "
+    "queda <b>balanceada 50/50 por construcción</b>, que es lo que hace que el "
+    "accuracy se pueda comparar entre días.",
+    "📐",
+)
+
 # El filtro va ARRIBA de los paneles que gobierna, no adentro de uno: si cada
 # tarjeta trae el suyo, dos paneles vecinos terminan mostrando periodos distintos
 # y nadie se da cuenta.
@@ -123,28 +143,29 @@ porv = q(f"""
     WITH dia AS (
         SELECT ventana, dia_predicho,
                avg(acerto::int)                 AS acc,
-               avg(realmente_alta_vol::numeric)    AS subio,
+               avg(realmente_alta_vol::numeric) AS tasa_alta_vol,
                count(*)                         AS n
         FROM gold.v_ml_aciertos WHERE 1=1 {W_PER} GROUP BY ventana, dia_predicho
     ),
     con_pasado AS (
-        -- Lo que se sabia ANTES de ese dia: la proporcion que venia subiendo.
-        -- Es la unica informacion con la que se puede elegir la regla tonta sin
+        -- Lo que se sabia ANTES de ese dia: que proporcion de criptos venia
+        -- siendo de las movidas.
+        -- Es la unica informacion con la que se puede elegir la regla simple sin
         -- hacer trampa. Mirar el resultado del propio dia para decidir que
         -- predecir es leakage: elige el lado ganador despues del partido.
         SELECT d.*,
-               avg(d.subio) OVER (PARTITION BY d.ventana ORDER BY d.dia_predicho
+               avg(d.tasa_alta_vol) OVER (PARTITION BY d.ventana ORDER BY d.dia_predicho
                                   ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING)
-                                                AS subio_hist
+                                                AS tasa_hist
         FROM dia d
     )
     SELECT ventana,
            count(*)                                          AS dias,
            sum(n)                                            AS predicciones,
            round(avg(acc) * 100, 1)                          AS accuracy,
-           round(avg(CASE WHEN subio_hist IS NULL THEN NULL
-                          WHEN subio_hist > 0.5 THEN subio
-                          ELSE 1 - subio END) * 100, 1)      AS baseline
+           round(avg(CASE WHEN tasa_hist IS NULL THEN NULL
+                          WHEN tasa_hist > 0.5 THEN tasa_alta_vol
+                          ELSE 1 - tasa_alta_vol END) * 100, 1)  AS baseline
     FROM con_pasado GROUP BY ventana ORDER BY ventana
 """) if hay_vista else pd.DataFrame()
 
@@ -179,21 +200,30 @@ else:
     # El ejemplo sale del dia mas desbalanceado que haya: explicar el baseline
     # en abstracto no alcanza, con un numero real se entiende solo.
     ej = q(f"""
-        SELECT dia_predicho, count(*) AS n, sum(realmente_alta_vol) AS subieron
+        SELECT dia_predicho, count(*) AS n,
+               sum(realmente_alta_vol) AS fueron_volatiles
         FROM gold.v_ml_aciertos WHERE 1=1 {W_PER}
         GROUP BY dia_predicho
         ORDER BY abs(avg(realmente_alta_vol::numeric) - 0.5) DESC LIMIT 1
     """)
     if not ej.empty:
         e = ej.iloc[0]
-        n, sub = int(e["n"]), int(e["subieron"])
-        baj = n - sub
-        may, verbo = (baj, "bajan") if baj >= sub else (sub, "suben")
+        n, vol = int(e["n"]), int(e["fueron_volatiles"])
+        tranq = n - vol
+        may, verbo = ((tranq, "quedan tranquilas") if tranq >= vol
+                      else (vol, "son de las movidas"))
         aviso(
-            f"<b>El baseline es la regla más tonta posible: predecir siempre lo "
+            f"<b>El baseline es la regla más simple posible: predecir siempre lo "
             f"que venía pasando</b>, sin mirar las features. Acá ronda el 50% "
             f"porque el target está balanceado por construcción — la mitad de las "
             f"criptos supera a la mediana del día, siempre.<br><br>"
+            f"<b>El día más desparejo de este período fue el "
+            f"{e['dia_predicho']:%d/%m}</b>: de {n} predicciones, {may} "
+            f"{verbo}. (Son predicciones y no criptos: cada cripto aparece una "
+            f"vez por ventana.) Aun ahí, predecir siempre esa clase sin mirar nada "
+            f"habría acertado {may / n * 100:.0f}% — eso es todo lo que vale "
+            f"la regla simple, y es el piso que el modelo tiene que superar."
+            f"<br><br>"
             f"<b>Ese balance es lo que hace la comparación limpia.</b> Cuando una "
             f"clase domina, un accuracy alto no significa nada; acá el 50% es un "
             f"piso real y todo lo que esté por encima es señal.<br><br>"
