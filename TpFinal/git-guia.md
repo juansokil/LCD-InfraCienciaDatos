@@ -232,7 +232,7 @@ tp/G07:                           I───J───K    (TP + arrastra G, H, 
 
 ### 6.2. "Edite un archivo desde la UI de GitHub y se creo un fork"
 
-**Sintoma**: el PR aparece con `<usuario>:<branch>` en vez de simplemente `<branch>`. Ej: `afloreschoquehuanca-byte:patch-1` en vez de `tp/G07`.
+**Sintoma**: el PR aparece con `<usuario>:<branch>` en vez de simplemente `<branch>`. Ej: `tu-usuario:patch-1` en vez de `tp/G07`.
 
 **Por que pasa**: cuando editas un archivo desde el boton "Edit this file" en la web de GitHub, si GitHub no detecta bien tus permisos te ofrece automaticamente "Fork and edit" y crea un fork sin avisarte. Despues de editar, te abre un PR desde el fork al repo original.
 

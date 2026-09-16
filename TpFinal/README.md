@@ -121,6 +121,11 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 >   ```
 > - Las **tablas** conviene crearlas en el `init.sql` (no dentro del DAG): si silver corre antes que bronze y la tabla no existe, el DAG falla; si ya existe, simplemente lee 0 filas y en el proximo ciclo levanta los datos.
 > - Los schemas `bronze`/`silver`/`gold` se crean solos (via `init.sql` montado al postgres).
+> - **El acceso a Airflow tiene que estar documentado.** `airflow standalone` genera una
+>   contraseña **aleatoria** y la escribe en los logs: si el docente levanta el stack y no
+>   puede entrar a la UI, no puede verificar nada. Pongan en el README del grupo el usuario
+>   y la contraseña, o configuren un usuario fijo (o sin login). No es un detalle de
+>   prolijidad: sin acceso, el TP no se puede corregir.
 > - **Healthchecks y orden de arranque**: Postgres tarda unos segundos en aceptar conexiones,
 >   y Airflow arranca mas rapido. Sin `healthcheck` en la base y `depends_on: condition:
 >   service_healthy` en los servicios que dependen de ella, el arranque es una **carrera**:
