@@ -12,6 +12,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from db import frescura, run_query
 from theme import (aplicar_tema, encabezado, pill, hero, kpi, seccion, tabla,
+                   filtro_categoria, where_categoria,
                    de_donde_sale, frescura_pill,
                    PLOTLY, SUBE, BAJA, GRIS)
 
@@ -144,6 +145,35 @@ st.caption("🔵 sube · 🔴 baja — el signo va escrito en la etiqueta: la le
 
 # --- ranking ---------------------------------------------------------------
 seccion("Ranking", "Último snapshot de cada activo")
+
+# El filtro va SOLO acá y no arriba de toda la pagina, a proposito: el hero,
+# los KPIs y el mapa son del mercado COMPLETO (v_kpis_mercado agrega todas
+# las criptas en una fila). Un control arriba de todo daria a entender que
+# tambien los recorta, y no es asi.
+try:
+    _cats = list(q("SELECT DISTINCT categoria FROM gold.dim_crypto "
+                   "WHERE categoria IS NOT NULL ORDER BY 1")["categoria"])
+except Exception:
+    _cats = []
+_sel = filtro_categoria("mercado", opciones=_cats) if _cats else []
+_W = where_categoria("categoria", _sel, universo=_cats)
+
+# Se vuelve a consultar en vez de filtrar el DataFrame en pandas: el corte por
+# `categoria` es un WHERE contra la dimension, que es para lo que existe el
+# star schema. Filtrar en el cliente traeria las 53 criptas para tirar 40.
+rank = q("""
+    SELECT name, symbol, current_price, price_change_percentage_24h,
+           market_cap, market_cap_rank
+    FROM gold.v_ultimo_snapshot
+    WHERE 1=1 """ + _W + """
+    ORDER BY market_cap_rank
+""") if _W else ult
+
+if rank.empty:
+    st.caption("Ninguna cripto en esa categoría.")
+    rank = ult.head(0)
+
+_mcap_max = rank["market_cap"].max() if not rank.empty else 1
 filas = "".join(
     f"<tr><td>{int(r.market_cap_rank)}</td>"
     f"<td>{r.name}<span class='sym'>{r.symbol}</span></td>"
@@ -153,8 +183,8 @@ filas = "".join(
     f"<td>US$ {r.market_cap / 1e9:,.1f} B"
     f"<span style='display:inline-block;height:7px;border-radius:2px;background:{SUBE};"
     f"opacity:.7;vertical-align:middle;margin-left:9px;"
-    f"width:{max(3, r.market_cap / ult['market_cap'].max() * 72):.0f}px'></span></td></tr>"
-    for r in ult.itertuples()
+    f"width:{max(3, r.market_cap / _mcap_max * 72):.0f}px'></span></td></tr>"
+    for r in rank.itertuples()
 )
 tabla(filas, ["#", "Activo", "Precio", "24 h", "Capitalización"])
 
