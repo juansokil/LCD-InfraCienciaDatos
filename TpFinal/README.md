@@ -41,10 +41,31 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 3. **DAGs de Airflow**: minimo un DAG por capa (bronze, silver, gold), todos con **schedule definido** y **activos por default** (no en pausa)
 4. **Dashboard en Streamlit** sobre las tablas **Gold** (el dashboard consume el modelo final, no Bronze ni Silver)
 5. **README** del proyecto explicando: API elegida, modelo de datos, como levantar el stack
+6. **Trabajo repartido en git**: que **commiteen varios integrantes**, con commits del dominio
+   distribuidos en el tiempo — no un unico commit gigante el ultimo dia, ni un solo autor
+   subiendo todo. El historial es parte de la entrega: muestra como trabajo el grupo, y se mira.
 
-> ⚠️ **Importante: el stack tiene que arrancar a correr SOLO**. Cuando se haga `docker compose up`, el pipeline empieza a correr sin que haya que activar DAGs a mano ni crear schemas manualmente:
+> ⚠️ **Importante: el stack tiene que arrancar a correr SOLO.** Cuando se haga
+> `docker compose up`, el pipeline empieza a correr sin que haya que activar DAGs a mano ni crear schemas manualmente:
+>
+> Y rapido: en el pipeline del curso, desde que arranca Airflow hasta que hay datos en Gold
+> pasan **menos de 30 segundos** — bronze a los 8s, y silver, gold y el scoring encadenados
+> detras. No es una meta ambiciosa: es lo que sale solo cuando la configuracion esta bien.
+>
+> **Como se corrige esto**: el docente hace `docker compose up` en frio y mira. Si al minuto
+> no hay filas en Bronze, no se sale a buscar por que — se anota que no arranco.
+>
 > - DAGs **activados por default** (en el `@dag(...)` poner `is_paused_upon_creation=False`).
 > - Cada DAG con **schedule definido** (NO `schedule=None`) — elegir el intervalo segun el `Refresh` de la API que eligieron (ej: `@hourly` si la API actualiza cada hora, `"*/15 * * * *"` para cada 15 min, `@daily`, etc.).
+> - **`start_date` en el PASADO.** Esta es la trampa que mas silencio hace, asi que va
+>   medida y no de palabra: con `catchup=False` y `start_date` viejo, Airflow crea la
+>   corrida del **ultimo intervalo ya cerrado** y la ejecuta **al instante** — lo medimos en
+>   el stack del curso y el DAG arranco **1 segundo** despues de que Airflow leyo el archivo.
+>   Con `start_date` en el futuro (o `datetime.now()`), en cambio, **no corre nunca**:
+>   probamos uno con fecha de manana y a los 45 segundos tenia **cero corridas**.
+>
+>   Es la diferencia entre un TP que genera datos solo y uno que parece roto sin estarlo.
+>   Poner algo como `start_date=datetime(2024, 1, 1)` y listo.
 > - **ENCADENAR las tres capas** (esto es lo que mas falla). Si las tres comparten el mismo cron, disparan al mismo tiempo: bronze todavia no escribio y silver/gold leen una tabla vacia (o inexistente, y el DAG queda en rojo).
 >
 >   **La forma que esperamos: UN SOLO CRON, EN EL BORDE.** Bronze corre por reloj porque sale a buscar a una API que no le avisa cuando hay dato nuevo. De ahi para adentro, cada capa arranca **cuando la anterior termino de escribir**, usando Airflow Assets:
@@ -90,13 +111,16 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 >   2. **Un consumidor pausado no se dispara** y no hay ningun error a la vista: el asset se actualiza, el DAG simplemente no arranca. De ahi el `is_paused_upon_creation=False` en los tres.
 >   3. **Un dato, un dueño.** Si dos DAGs escriben la misma tabla, ganan por orden de llegada y el resultado se vuelve no determinista. Una tabla se escribe desde un solo lugar.
 >
->   **Alternativa aceptada: cron escalonado.** Si no llegan con los assets, escalonar los tres crons tambien cumple el requisito de arranque automatico:
+>   **El cron escalonado NO alcanza.** Escalonar los tres crons parece equivalente, y no lo
+>   es: silver arranca **por reloj**, no porque bronze haya terminado. El dia que bronze
+>   tarde de mas, silver procesa datos viejos **sin fallar** y gold publica igual. Un
+>   pipeline que anda mientras miente es peor que uno que se rompe.
+>
 >   ```python
+>   # esto NO cumple la consigna:
 >   schedule="0,15,30,45 * * * *"    # bronze
->   schedule="5,20,35,50 * * * *"    # silver, 5 min despues
->   schedule="10,25,40,55 * * * *"   # gold,   5 min despues
+>   schedule="5,20,35,50 * * * *"    # silver, 5 min despues -- espera, no escucha
 >   ```
->   Funciona, pero sepan que el colchon es una esperanza: el dia que bronze tarde de mas, silver procesa datos viejos **sin fallar** — que es peor que romperse. Adapten los minutos a la frecuencia de SU API (si es `@daily`, escalonen por horas).
 >
 > - **🔎 Como se evalua esto**: el docente hace `docker compose up` en la carpeta del grupo, espera un ciclo y mira si las tres capas tienen datos **sin haber tocado nada**. Si su cron de Bronze es lento (`@daily`, `@hourly`), el docente va a **disparar Bronze a mano una vez** desde la UI: con el encadenado por assets, silver y gold salen detras en segundos y queda demostrado. Con cron escalonado hay que esperar los offsets.
 >
@@ -115,20 +139,40 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 >   ```
 > - Las **tablas** conviene crearlas en el `init.sql` (no dentro del DAG): si silver corre antes que bronze y la tabla no existe, el DAG falla; si ya existe, simplemente lee 0 filas y en el proximo ciclo levanta los datos.
 > - Los schemas `bronze`/`silver`/`gold` se crean solos (via `init.sql` montado al postgres).
+> - **El acceso a Airflow tiene que estar documentado.** `airflow standalone` genera una
+>   contraseña **aleatoria** y la escribe en los logs: si el docente levanta el stack y no
+>   puede entrar a la UI, no puede verificar nada. Pongan en el README del grupo el usuario
+>   y la contraseña, o configuren un usuario fijo (o sin login). No es un detalle de
+>   prolijidad: sin acceso, el TP no se puede corregir.
+> - **Healthchecks y orden de arranque**: Postgres tarda unos segundos en aceptar conexiones,
+>   y Airflow arranca mas rapido. Sin `healthcheck` en la base y `depends_on: condition:
+>   service_healthy` en los servicios que dependen de ella, el arranque es una **carrera**:
+>   a veces anda y a veces el primer DAG falla con "connection refused". Que ande en su
+>   maquina no alcanza — en la del docente arranca en frio, que es el caso peor.
+>
+>   ```yaml
+>   services:
+>     postgres:
+>       healthcheck:
+>         test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+>         interval: 5s
+>         retries: 10
+>     airflow:
+>       depends_on:
+>         postgres: { condition: service_healthy }
+>   ```
 > - El dashboard arranca, conecta a Postgres y muestra Gold automaticamente.
 >
 > Una vez levantado, va a haber datos en las tablas en cuestion de minutos/horas segun el schedule.
 
 ## Organizacion y entrega
 
-> 📅 **Las fechas todavia no estan definidas.** Donde dice `<FECHA A DEFINIR>` va la fecha real — se confirma en clase y se actualiza este README.
-
 | | |
 |---|---|
 | **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tp/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. Ver seccion "Como entregar el TP" mas abajo. |
 | **Politica de APIs** | Pueden repetir la misma API entre grupos (no es excluyente). Si quieren proponer una API fuera de la lista, consultar con el docente. |
-| **Fecha de entrega** | **`<FECHA A DEFINIR>` hasta 23:59** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
-| **Presentacion oral** | **`<FECHA A DEFINIR>` en clase**, **7 a 10 minutos por grupo**, mas una breve ronda de preguntas. |
+| **Fecha de entrega** | **Domingo 15 de noviembre de 2026, hasta las 23:59 (hora Argentina)** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
+| **Presentacion oral** | **Jueves 19 de noviembre de 2026, remota (por videollamada)**, **7 a 10 minutos por grupo**, mas una breve ronda de preguntas. Camara prendida durante la exposicion. |
 
 > **Sobre `G<NN>`**: `G` = Grupo, `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y confirma el siguiente libre). `G00` es el template de referencia, no es una entrega real.
 
@@ -273,11 +317,11 @@ extras de la seccion siguiente.
 
 | # | Criterio | Que se mira |
 |---|---|---|
-| 1 | **Pipeline funcional** (Bronze → Silver → Gold) | Que corra solo y produzca datos reales end-to-end. Idempotencia: correrlo dos veces no duplica filas. |
+| 1 | **Pipeline funcional** (Bronze → Silver → Gold) | Que corra solo y produzca datos reales end-to-end, **encadenado por Assets** (bronze termina → dispara silver → dispara gold). Idempotencia: correrlo dos veces no duplica filas. |
 | 2 | **Modelo y transformaciones** | Modelo dimensional (fact/dim), tipado y validacion, deduplicacion, trazabilidad a Bronze. **Aca es donde se sube el techo.** |
 | 3 | **Dashboard sobre Gold** | Consume solo `gold.*`, responde preguntas de negocio, y no se rompe cuando todavia no hay datos. |
-| 4 | **Containerizacion + arranque automatico** | `docker compose up` y el pipeline corre solo, sin activar DAGs a mano. Airflow 3.1.5, Dockerfile propio, `init.sql`. **El mas discriminante.** |
-| 5 | **Documentacion y claridad** | README completo (API, modelo, como levantar, decisiones, integrantes reales) y codigo legible. |
+| 4 | **Containerizacion + arranque automatico** | `docker compose up` y el pipeline corre solo, sin activar DAGs a mano. Airflow 3.1.5, `init.sql`, **healthchecks + `depends_on: service_healthy`** para que el arranque no sea una carrera. Dockerfile propio, `init.sql`. **El mas discriminante.** |
+| 5 | **Documentacion y trabajo del grupo** | README completo (API, modelo, como levantar, decisiones, integrantes reales), codigo legible, y un **historial de git con varios autores** y commits repartidos en el tiempo. |
 
 > ⚠️ **Airflow 3.1.5 es obligatorio**, no una sugerencia: la imagen base tiene que ser
 > `apache/airflow:3.1.5`. Todo lo que vemos en clase (assets, TaskFlow, la UI) es de la 3.x,
@@ -289,16 +333,17 @@ extras de la seccion siguiente.
 
 Nada de esto es obligatorio y **no hacerlo no resta**. Son las cosas que distinguen un TP
 que funciona de uno bien ingenierizado. Todas se ven en alguna clase, con codigo que pueden
-mirar en `stack/` (se publica con la clase 02):
+mirar en `stack/` (se publica con la clase 02).
+
+> ⚠️ **El encadenado por Assets y la colaboracion en git NO son bonus**: son requisitos, y
+> estan en la seccion **Entregables**. Si los buscan aca es porque en una version anterior
+> de esta consigna figuraban como opcionales — ya no lo son.
 
 | Bonus | De que se trata | Clase |
 |---|---|---|
-| **Encadenado por Assets** | Las tres capas encadenadas con `outlets=` / `schedule=[ASSET]` en vez de crons escalonados (ver arriba). Es la forma que esperamos. | 03-05 |
 | **Contratos + calidad de datos** | Un contrato declarativo (YAML) con reglas que **efectivamente corren**, dos severidades (rechaza a cuarentena vs deja pasar marcado) y la tabla de cuarentena con lo que no paso. | 04 |
 | **Metricas de calidad en el tiempo** | Una tabla append-only con una fila por (corrida x regla). Un numero suelto no dice nada: "12 rechazos" puede ser lo normal o una catastrofe, y la diferencia solo se ve con la historia al lado. | 04 |
 | **Capa semantica** | Vistas `gold.v_*` que encapsulan las metricas del negocio, para que el dashboard no repita SQL. La regla para saber si algo va en una vista: *si la consulta depende de lo que el usuario eligio, no es capa semantica*. | 05 |
-| **Un modelo con MLflow** | Un modelo simple sobre la ABT, con tracking de experimentos y alias `@champion`. **Totalmente optativo**: solo si les sobra tiempo y su API se presta. | 06 |
-| **Colaboracion real en git** | Que commiteen varios integrantes, con commits del dominio repartidos en el tiempo — no un unico commit gigante el ultimo dia. | — |
 
 ## Esqueleto de entrega
 
@@ -373,9 +418,9 @@ git push -u origin tp/G01
 
 **4. Trabajar en la branch**: commits chicos y frecuentes mejor que pocos grandes. Cada `git push` actualiza el PR automaticamente.
 
-**5. Entrega final (`<FECHA A DEFINIR>` hasta 23:59)**: en el PR, hacer click en el boton **"Ready for review"**. Eso transforma el draft en PR formal — esa accion es la entrega.
+**5. Entrega final (domingo 15 de noviembre, hasta las 23:59)**: en el PR, hacer click en el boton **"Ready for review"**. Eso transforma el draft en PR formal — esa accion es la entrega.
 
-**6. Presentacion (`<FECHA A DEFINIR>` en clase)**: 7-10 minutos con el dashboard corriendo en sus maquinas. Ver [`consigna_presentacion.html`](consigna_presentacion.html) para que mostrar.
+**6. Presentacion (jueves 19 de noviembre, remota)**: 7-10 minutos con el dashboard corriendo en sus maquinas. Ver [`consigna_presentacion.html`](consigna_presentacion.html) para que mostrar.
 
 
 > **PR (Pull Request)** = propuesta de mergear los commits de una branch a otra; lleva codigo, se puede revisar linea por linea, tiene aprobaciones y se puede mergear.
@@ -394,4 +439,4 @@ git push -u origin tp/G01
 7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa) — definir `schedule` segun la frecuencia de la API (ver el `Refresh` de cada API en la seccion arriba) y `is_paused_upon_creation=False` para que arranque solo.
 8. Construir el dashboard en Streamlit **sobre las tablas Gold** (KPIs / vistas de negocio — no se visualizan Bronze ni Silver, eso es backend del pipeline).
 9. Documentar todo en `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar el stack, decisiones tecnicas.
-10. **Entregar** antes del **`<FECHA A DEFINIR>` hasta 23:59** y **presentar** el **`<FECHA A DEFINIR>`** (7-10 min).
+10. **Entregar** antes del **domingo 15 de noviembre, 23:59** y **presentar** el **jueves 19 de noviembre** (7-10 min).
