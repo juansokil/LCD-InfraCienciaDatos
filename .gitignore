@@ -44,6 +44,13 @@ data/gold/*
 # con backend Postgres — esta carpeta es solo el residuo de correrlo en local.
 mlruns/
 
+# Dumps del warehouse. Son binarios de varios MB que cambian en cada corrida:
+# no tienen nada que hacer en el historial de un repo publico. Los scripts que
+# los generan SI se versionan, para que el backup sea reproducible en otra
+# maquina; por eso se ignoran los archivos y no la carpeta entera.
+backup/*.dump
+backup/*.parcial
+
 # Los DAGs del stack los ESCRIBEN las celdas `%%writefile` de los notebooks, y los
 # `dag_crypto_*.py` se copian desde `claseNN/ejercicios/`. En los dos casos la
 # fuente de verdad esta en otro lado: lo que quede en `stack/dags/` es una copia
