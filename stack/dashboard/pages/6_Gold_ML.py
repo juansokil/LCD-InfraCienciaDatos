@@ -112,6 +112,26 @@ else:
 seccion("¿Cómo sabemos si el modelo sirve?",
         "¿Acertó qué criptos iban a ser las más movidas? Medido contra lo que pasó")
 
+# La definicion del target, escrita donde se miran los resultados. Sin esto,
+# "alta volatilidad" parece un umbral fijo y no lo es: la vara es el mercado
+# de ese dia.
+aviso(
+    "<b>¿Qué quiere decir acá «de las movidas»?</b> No hay ningún umbral fijo "
+    "tipo <i>«más de 5% es volátil»</i>. Son dos pasos:<br><br>"
+    "<b>1.</b> Cuánto se movió cada cripto ese día, con los ~66 snapshots que el "
+    "pipeline junta y el cierre diario descarta:<br>"
+    "<code>vol = desvío(precio del día) ÷ promedio(precio del día) × 100</code>"
+    "<br><br>"
+    "<b>2.</b> La vara es <b>el propio mercado de ese día</b>:<br>"
+    "<code>de las movidas = vol supera a la mediana de las vol de TODAS las "
+    "criptos ese día</code><br><br>"
+    "Por eso es <b>relativa</b>: en un día de pánico general no son todas "
+    "volátiles — siempre hay una mitad por encima y una por debajo. Y por eso "
+    "queda <b>balanceada 50/50 por construcción</b>, que es lo que hace que el "
+    "accuracy se pueda comparar entre días.",
+    "📐",
+)
+
 # El filtro va ARRIBA de los paneles que gobierna, no adentro de uno: si cada
 # tarjeta trae el suyo, dos paneles vecinos terminan mostrando periodos distintos
 # y nadie se da cuenta.
