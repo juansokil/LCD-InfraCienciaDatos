@@ -45,9 +45,27 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
    distribuidos en el tiempo — no un unico commit gigante el ultimo dia, ni un solo autor
    subiendo todo. El historial es parte de la entrega: muestra como trabajo el grupo, y se mira.
 
-> ⚠️ **Importante: el stack tiene que arrancar a correr SOLO**. Cuando se haga `docker compose up`, el pipeline empieza a correr sin que haya que activar DAGs a mano ni crear schemas manualmente:
+> ⚠️ **Importante: el stack tiene que arrancar a correr SOLO.** Cuando se haga
+> `docker compose up`, el pipeline empieza a correr sin que haya que activar DAGs a mano ni crear schemas manualmente:
+>
+> Y rapido: en el pipeline del curso, desde que arranca Airflow hasta que hay datos en Gold
+> pasan **menos de 30 segundos** — bronze a los 8s, y silver, gold y el scoring encadenados
+> detras. No es una meta ambiciosa: es lo que sale solo cuando la configuracion esta bien.
+>
+> **Como se corrige esto**: el docente hace `docker compose up` en frio y mira. Si al minuto
+> no hay filas en Bronze, no se sale a buscar por que — se anota que no arranco.
+>
 > - DAGs **activados por default** (en el `@dag(...)` poner `is_paused_upon_creation=False`).
 > - Cada DAG con **schedule definido** (NO `schedule=None`) — elegir el intervalo segun el `Refresh` de la API que eligieron (ej: `@hourly` si la API actualiza cada hora, `"*/15 * * * *"` para cada 15 min, `@daily`, etc.).
+> - **`start_date` en el PASADO.** Esta es la trampa que mas silencio hace, asi que va
+>   medida y no de palabra: con `catchup=False` y `start_date` viejo, Airflow crea la
+>   corrida del **ultimo intervalo ya cerrado** y la ejecuta **al instante** — lo medimos en
+>   el stack del curso y el DAG arranco **1 segundo** despues de que Airflow leyo el archivo.
+>   Con `start_date` en el futuro (o `datetime.now()`), en cambio, **no corre nunca**:
+>   probamos uno con fecha de manana y a los 45 segundos tenia **cero corridas**.
+>
+>   Es la diferencia entre un TP que genera datos solo y uno que parece roto sin estarlo.
+>   Poner algo como `start_date=datetime(2024, 1, 1)` y listo.
 > - **ENCADENAR las tres capas** (esto es lo que mas falla). Si las tres comparten el mismo cron, disparan al mismo tiempo: bronze todavia no escribio y silver/gold leen una tabla vacia (o inexistente, y el DAG queda en rojo).
 >
 >   **La forma que esperamos: UN SOLO CRON, EN EL BORDE.** Bronze corre por reloj porque sale a buscar a una API que no le avisa cuando hay dato nuevo. De ahi para adentro, cada capa arranca **cuando la anterior termino de escribir**, usando Airflow Assets:
