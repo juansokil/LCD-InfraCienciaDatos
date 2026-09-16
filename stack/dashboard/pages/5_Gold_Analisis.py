@@ -27,7 +27,6 @@ import plotly.graph_objects as go
 from db import run_query
 from theme import (aplicar_tema, encabezado, seccion, de_donde_sale,
                    filtro_periodo, where_periodo, layout,
-                   filtro_categoria, where_categoria,
                    PLOTLY, SUBE, BAJA, GRIS, SERIES)
 
 aplicar_tema("Gold · Análisis", "🥇")
@@ -50,28 +49,9 @@ def faltan(actual, minimo, que):
 encabezado("🥇 Gold · Análisis",
            "Riesgo, correlación y amplitud · capa semántica de Gold")
 
-# Los filtros van arriba de todo lo que gobiernan.
+# El filtro va en UNA fila, arriba de todo lo que gobierna.
 periodo = filtro_periodo("analisis")
-
-# Las categorias salen de la DIMENSION, no de una lista escrita aca.
-try:
-    cats = list(q("SELECT DISTINCT categoria FROM gold.dim_crypto "
-                  "WHERE categoria IS NOT NULL ORDER BY 1")["categoria"])
-except Exception:
-    cats = []
-categorias = filtro_categoria("analisis", opciones=cats) if cats else []
-W_CAT = where_categoria("categoria", categorias, universo=cats)
-
-st.caption("Riesgo, correlación y estructura del mercado · mostrando **"
-           + periodo["etiqueta"] + "**"
-           + (" · " + ", ".join(categorias) if W_CAT else ""))
-if W_CAT:
-    # Honestidad sobre el alcance del filtro: las vistas de mercado agregan
-    # TODAS las criptas en una sola fila por dia, asi que no hay columna
-    # `categoria` que filtrar. Decirlo es mejor que dejar dos paneles
-    # vecinos mostrando universos distintos sin avisar.
-    st.caption("↳ el filtro de categoría aplica a los paneles **por cripto**; "
-               "amplitud, concentración y estacionalidad son del mercado completo")
+st.caption("Riesgo, correlación y estructura del mercado · mostrando **" + periodo["etiqueta"] + "**")
 
 try:
     riesgo = q("""
@@ -79,7 +59,6 @@ try:
                r.retorno_periodo_pct, r.max_drawdown_pct, u.market_cap, u.market_cap_rank
         FROM gold.v_metricas_riesgo r
         JOIN gold.v_ultimo_snapshot u USING (crypto_id)
-        WHERE 1=1 """ + W_CAT.replace("categoria", "u.categoria") + """
         ORDER BY u.market_cap_rank
     """)
     amplitud = q("SELECT * FROM gold.v_amplitud_mercado WHERE true"
@@ -388,8 +367,78 @@ else:
         },
     )
     de_donde_sale("gold.v_estacionalidad",
-                  "El JOIN de la fact con dim_tiempo por fecha_id. Es la única "
-                  "vista del dashboard que corta por un atributo de dimensión.")
+                  "El JOIN de la fact con dim_tiempo por fecha_id: corta por un "
+                  "atributo que vive en la dimensión, no en la fact.")
+
+# --- la MISMA leccion, con la OTRA dimension -------------------------------
+# dim_tiempo respondia "cuando". dim_crypto responde "quien". Es el mismo
+# mecanismo, y ponerlos uno al lado del otro es lo que lo hace evidente.
+cat = q("""
+    SELECT categoria,
+           avg(rango_pct)            AS rango_medio_pct,
+           count(DISTINCT crypto_id) AS criptos,
+           count(*)                  AS observaciones
+    FROM gold.v_ohlc_diario
+    WHERE categoria IS NOT NULL
+    GROUP BY categoria
+    ORDER BY rango_medio_pct DESC
+""")
+
+if not cat.empty:
+    st.markdown("")
+    izq3, der3 = st.columns([.9, 1.1])
+    with izq3:
+        st.markdown(
+            "Arriba la dimensión respondía **cuándo**. La misma mecánica "
+            "responde **quién**: `dim_crypto.categoria` dice a qué familia "
+            "pertenece cada moneda — stablecoin, memecoin, altcoin — y el "
+            "`crypto_id` la une a la fact.\n\n"
+            "Fijate que el JOIN de arriba **ya traía las dos dimensiones** "
+            "(`-- quién` y `-- cuándo`) y solo usaba una. Esto es la otra.\n\n"
+            "Y vale lo mismo: `categoria` **no está en la fact**. La fact no "
+            "sabe qué es una memecoin, y no tiene por qué saberlo."
+        )
+        st.code(
+            "SELECT d.categoria,\n"
+            "       avg(o.rango_pct)\n"
+            "FROM gold.fact_crypto_markets f\n"
+            "JOIN gold.dim_crypto  d USING (crypto_id)   -- quién\n"
+            "JOIN gold.dim_tiempo  t USING (fecha_id)    -- cuándo\n"
+            "GROUP BY d.categoria",
+            language="sql",
+        )
+    with der3:
+        # El color sigue a la ENTIDAD, no a su posicion en el ranking: si
+        # manana las memecoins pasan a las altcoins, cada familia conserva su
+        # color y el grafico se sigue leyendo igual.
+        COLOR_CAT = {"bitcoin": SERIES[0], "altcoin": SERIES[1],
+                     "memecoin": SERIES[4], "commodity": SERIES[3],
+                     "stablecoin": SERIES[2]}
+        figc = go.Figure(go.Bar(
+            x=cat["categoria"], y=cat["rango_medio_pct"],
+            marker_color=[COLOR_CAT.get(c, GRIS) for c in cat["categoria"]],
+            text=[f"{v:.2f}%" for v in cat["rango_medio_pct"]],
+            textposition="outside",
+            customdata=cat[["criptos"]].to_numpy(),
+            hovertemplate="<b>%{x}</b><br>rango medio %{y:.2f}%"
+                          "<br>%{customdata[0]} criptos<extra></extra>",
+        ))
+        figc.update_layout(**layout(
+            height=260,
+            yaxis=dict(title="Rango medio del día (%)", showgrid=True,
+                       gridcolor="rgba(128,128,128,.15)"),
+        ))
+        st.plotly_chart(figc, use_container_width=True)
+        st.caption(
+            "Las stablecoins casi no se mueven: para eso están. Que el orden "
+            "salga solo es la prueba de que la dimensión clasifica bien — "
+            "nadie le dijo al gráfico qué es una stablecoin, lo dice "
+            "`dim_crypto`."
+        )
+    de_donde_sale("gold.dim_crypto",
+                  "La columna `categoria` sale de la taxonomía de CoinGecko y "
+                  "vive en la dimensión, no en la fact: cortar por familia no "
+                  "costó tocar una sola fila de hechos.")
 
 st.divider()
 seccion("Tabla de métricas")
