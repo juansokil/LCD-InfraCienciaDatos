@@ -121,14 +121,12 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 
 ## Organizacion y entrega
 
-> 📅 **Las fechas todavia no estan definidas.** Donde dice `<FECHA A DEFINIR>` va la fecha real — se confirma en clase y se actualiza este README.
-
 | | |
 |---|---|
 | **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tp/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. Ver seccion "Como entregar el TP" mas abajo. |
 | **Politica de APIs** | Pueden repetir la misma API entre grupos (no es excluyente). Si quieren proponer una API fuera de la lista, consultar con el docente. |
-| **Fecha de entrega** | **`<FECHA A DEFINIR>` hasta 23:59** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
-| **Presentacion oral** | **`<FECHA A DEFINIR>` en clase**, **7 a 10 minutos por grupo**, mas una breve ronda de preguntas. |
+| **Fecha de entrega** | **Domingo 15 de noviembre de 2026, hasta las 23:59 (hora Argentina)** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
+| **Presentacion oral** | **Jueves 19 de noviembre de 2026, en clase**, **7 a 10 minutos por grupo**, mas una breve ronda de preguntas. |
 
 > **Sobre `G<NN>`**: `G` = Grupo, `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y confirma el siguiente libre). `G00` es el template de referencia, no es una entrega real.
 
@@ -373,9 +371,9 @@ git push -u origin tp/G01
 
 **4. Trabajar en la branch**: commits chicos y frecuentes mejor que pocos grandes. Cada `git push` actualiza el PR automaticamente.
 
-**5. Entrega final (`<FECHA A DEFINIR>` hasta 23:59)**: en el PR, hacer click en el boton **"Ready for review"**. Eso transforma el draft en PR formal — esa accion es la entrega.
+**5. Entrega final (domingo 15 de noviembre, hasta las 23:59)**: en el PR, hacer click en el boton **"Ready for review"**. Eso transforma el draft en PR formal — esa accion es la entrega.
 
-**6. Presentacion (`<FECHA A DEFINIR>` en clase)**: 7-10 minutos con el dashboard corriendo en sus maquinas. Ver [`consigna_presentacion.html`](consigna_presentacion.html) para que mostrar.
+**6. Presentacion (jueves 19 de noviembre, en clase)**: 7-10 minutos con el dashboard corriendo en sus maquinas. Ver [`consigna_presentacion.html`](consigna_presentacion.html) para que mostrar.
 
 
 > **PR (Pull Request)** = propuesta de mergear los commits de una branch a otra; lleva codigo, se puede revisar linea por linea, tiene aprobaciones y se puede mergear.
@@ -394,4 +392,4 @@ git push -u origin tp/G01
 7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa) — definir `schedule` segun la frecuencia de la API (ver el `Refresh` de cada API en la seccion arriba) y `is_paused_upon_creation=False` para que arranque solo.
 8. Construir el dashboard en Streamlit **sobre las tablas Gold** (KPIs / vistas de negocio — no se visualizan Bronze ni Silver, eso es backend del pipeline).
 9. Documentar todo en `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar el stack, decisiones tecnicas.
-10. **Entregar** antes del **`<FECHA A DEFINIR>` hasta 23:59** y **presentar** el **`<FECHA A DEFINIR>`** (7-10 min).
+10. **Entregar** antes del **domingo 15 de noviembre, 23:59** y **presentar** el **jueves 19 de noviembre** (7-10 min).
