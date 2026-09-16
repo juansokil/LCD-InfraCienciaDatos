@@ -16,7 +16,6 @@ import plotly.graph_objects as go
 from db import run_query
 from theme import (aplicar_tema, encabezado, seccion, aviso,
                    de_donde_sale, filtro_periodo, where_periodo,
-                   filtro_categoria, where_categoria,
                    PLOTLY, SUBE, BAJA, GRIS)
 
 aplicar_tema("Gold · Velas", "🥇")
@@ -30,29 +29,15 @@ q = run_query
 encabezado("🥇 Gold · Velas",
            "Apertura · máximo · mínimo · cierre · <code>gold.v_ohlc_diario</code>")
 
-# Los filtros van arriba de todo lo que gobiernan.
+# El filtro va en UNA fila, arriba de todo lo que gobierna.
 periodo = filtro_periodo("velas")
-
-# Las categorias salen de la DIMENSION, no de una lista escrita aca: si manana
-# `dim_crypto` clasifica una familia nueva, aparece sola en el control.
-try:
-    cats = list(q("SELECT DISTINCT categoria FROM gold.dim_crypto "
-                  "WHERE categoria IS NOT NULL ORDER BY 1")["categoria"])
-except Exception:
-    cats = []
-categorias = filtro_categoria("velas", opciones=cats) if cats else []
-W_CAT = where_categoria("categoria", categorias, universo=cats)
-
-st.caption("Las velas se arman agrupando los snapshots del día · mostrando **"
-           + periodo["etiqueta"] + "**"
-           + (" · " + ", ".join(categorias) if W_CAT else ""))
+st.caption("Las velas se arman agrupando los snapshots del día · mostrando **" + periodo["etiqueta"] + "**")
 
 try:
     activos = q("""
         SELECT o.crypto_id, o.name, o.symbol, max(u.market_cap_rank) AS rnk
         FROM gold.v_ohlc_diario o
         JOIN gold.v_ultimo_snapshot u USING (crypto_id)
-        WHERE 1=1 """ + W_CAT.replace("categoria", "o.categoria") + """
         GROUP BY 1, 2, 3
         ORDER BY rnk
         LIMIT 25
@@ -62,10 +47,7 @@ except Exception:
     st.stop()
 
 if activos.empty:
-    if W_CAT:
-        st.info("Ninguna cripto en esa categoría todavía. Probá con otra.")
-    else:
-        st.info("🕐 Sin datos en Gold todavía — esperá la próxima corrida de `crypto_gold`.")
+    st.info("🕐 Sin datos en Gold todavía — esperá la próxima corrida de `crypto_gold`.")
     st.stop()
 
 nombre_de = dict(zip(activos["crypto_id"], activos["name"]))
