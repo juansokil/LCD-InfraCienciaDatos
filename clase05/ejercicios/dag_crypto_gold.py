@@ -833,6 +833,44 @@ def crypto_gold():
             GROUP BY t.es_fin_de_semana, t.dia_semana
             ORDER BY t.es_fin_de_semana, t.dia_semana;
         """)
+        _run_ddl("""
+            -- LA MISMA PREGUNTA, POR LA OTRA DIMENSION.
+            -- v_estacionalidad corta por un atributo de dim_tiempo (cuando);
+            -- esta corta por uno de dim_crypto (quien). Mismas metricas, para
+            -- que las dos se puedan leer una al lado de la otra.
+            --
+            -- Y agrega una que la temporal no puede dar: cuanto PESA cada
+            -- familia en el mercado. Son dos cosas distintas -- las
+            -- stablecoins son muchas monedas y casi nada de capitalizacion.
+            -- (Ojo: nada de escribir el signo de porcentaje en estos
+            --  comentarios; psycopg2 lo lee como placeholder de parametro.)
+            CREATE OR REPLACE VIEW gold.v_por_categoria AS
+            WITH mcap AS (
+                -- El peso se mide sobre la foto mas reciente, no sobre el
+                -- promedio historico: "cuanto pesa hoy", no "cuanto peso".
+                SELECT categoria,
+                       sum(market_cap)                                    AS mcap,
+                       sum(market_cap) / NULLIF(sum(sum(market_cap)) OVER (), 0) * 100
+                                                                          AS part_pct
+                FROM gold.v_ultimo_snapshot
+                GROUP BY categoria
+            )
+            SELECT
+                o.categoria,
+                count(DISTINCT o.crypto_id)                    AS criptos,
+                count(*)                                       AS observaciones,
+                round(avg(o.rango_pct)::numeric, 3)            AS rango_medio_pct,
+                round(avg((o.cierre / NULLIF(o.apertura, 0) - 1) * 100)::numeric, 3)
+                                                               AS retorno_medio_pct,
+                round(stddev_samp((o.cierre / NULLIF(o.apertura, 0) - 1) * 100)::numeric, 3)
+                                                               AS desvio_pct,
+                round(max(m.part_pct)::numeric, 2)             AS participacion_mcap_pct
+            FROM gold.v_ohlc_diario o
+            LEFT JOIN mcap m USING (categoria)
+            WHERE o.categoria IS NOT NULL
+            GROUP BY o.categoria
+            ORDER BY rango_medio_pct DESC;
+        """)
         # NOTA: aca vivia `gold.v_correlacion_intradia`, y se retiro a
         # proposito. Una matriz de correlacion depende de que activos elige
         # quien mira: es una consulta AD-HOC, no una metrica gobernada. Vive en
