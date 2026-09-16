@@ -406,6 +406,58 @@ def where_periodo(columna: str, periodo: dict) -> str:
             f" AND {columna} < DATE '{periodo['hasta']:%Y-%m-%d}' + 1")
 
 
+# ------------------------------------------------------- filtro categoria
+# El orden NO es alfabetico: va de la que mas se mueve a la que menos, que es
+# como se leen los paneles. bitcoin primero porque es la referencia contra la
+# que se compara todo lo demas.
+CATEGORIAS_ORDEN = ["bitcoin", "altcoin", "memecoin", "commodity", "stablecoin"]
+
+
+def filtro_categoria(clave: str, opciones=None, default=None) -> list:
+    """Un control de familia de moneda, hermano de ``filtro_periodo``.
+
+    Devuelve la lista de categorias elegidas. Va en la MISMA fila que el
+    filtro de periodo y arriba de los paneles que gobierna, por la misma
+    razon: dos paneles vecinos filtrados distinto se leen como si mostraran
+    lo mismo, y nadie se da cuenta.
+
+    `categoria` es un atributo de ``gold.dim_crypto``, no algo que calcule el
+    dashboard. Por eso el corte es un WHERE en SQL y no un filtro en pandas:
+    es exactamente para lo que existe la dimension en un star schema.
+
+    `clave` separa el estado entre paginas (Streamlit comparte session_state
+    entre todas): sin eso, cambiar el filtro en una lo cambiaria en las otras.
+    """
+    ops = list(opciones) if opciones else list(CATEGORIAS_ORDEN)
+    # Si la base trae una categoria que este orden no conoce, va al final en
+    # vez de desaparecer del control.
+    if opciones:
+        ops = ([c for c in CATEGORIAS_ORDEN if c in ops]
+               + [c for c in ops if c not in CATEGORIAS_ORDEN])
+    return st.multiselect(
+        "Categoría", ops, default=list(default) if default else ops,
+        key=f"categoria_{clave}", label_visibility="collapsed",
+        placeholder="Todas las categorías",
+    )
+
+
+def where_categoria(columna: str, seleccion, universo=None) -> str:
+    """El predicado SQL de la categoria, listo para pegar en un WHERE.
+
+    Devuelve "" cuando no hay que filtrar -- ni con la seleccion vacia (que
+    en un multiselect significa "no toque nada") ni cuando estan todas
+    elegidas. Asi la query sigue siendo valida y no se paga un IN inutil.
+    """
+    if not seleccion:
+        return ""
+    if universo and set(seleccion) >= set(universo):
+        return ""
+    # Las categorias salen de la dimension, no del usuario, pero el escape va
+    # igual: una comilla suelta en un dato rompe la query o algo peor.
+    lista = ", ".join("'" + str(c).replace("'", "''") + "'" for c in seleccion)
+    return f" AND {columna} IN ({lista})"
+
+
 # ---------------------------------------------------------------- frescura
 _COLOR_FRESCURA = {
     "al_dia": "--up",
