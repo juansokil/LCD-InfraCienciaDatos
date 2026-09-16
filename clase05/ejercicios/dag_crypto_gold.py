@@ -188,22 +188,83 @@ def crypto_gold():
     # snapshot_ts, NO ingested_at -> robusto a backfills).
     @task
     def build_dim_crypto():
-        """gold.dim_crypto via SQL (DISTINCT ON por snapshot_ts)."""
+        """gold.dim_crypto via SQL (DISTINCT ON por snapshot_ts).
+
+        Ademas de los datos semi-estaticos, la dimension trae `categoria`:
+        stablecoin / memecoin / commodity / bitcoin / altcoin.
+
+        PARA QUE SIRVE. Es lo que vuelve util al star schema: con esta
+        columna, CUALQUIER metrica de la fact se puede cortar por familia de
+        moneda sin tocar la fact -- exactamente como `dia_semana` en
+        `dim_tiempo` deja cortarla por dia. Sin la dimension, la pregunta
+        "como se movieron las memecoins esta semana" no tiene respuesta:
+        los hechos solos no saben que es una memecoin.
+
+        POR QUE UNA COLUMNA Y NO UNA TABLA APARTE. Un star schema mantiene
+        las dimensiones DESNORMALIZADAS a proposito: `categoria` es un
+        atributo de la cripto, igual que `symbol`. Sacarla a una
+        `dim_categoria` con FK seria un copo de nieve (snowflake): suma un
+        JOIN a cada consulta para ahorrar unos bytes en cinco valores.
+        Mismo criterio por el que `dim_tiempo` guarda `dia_semana` como
+        texto en vez de apuntar a una tabla de dias.
+
+        DE DONDE SALE EL MAPEO. De la taxonomia de CoinGecko
+        (`/coins/categories`), consultada el 2026-09-15. Va como dato de
+        REFERENCIA aca en Gold y no como ingesta: la familia de una moneda
+        cambia cada muchos anos, no cada 15 minutos, y pedirsela a la API en
+        cada corrida seria gastar cuota para traer siempre lo mismo (el tier
+        gratuito responde 429 enseguida). Lo que NO esta en la lista cae en
+        `altcoin`, asi que una cripto nueva en el top 50 no rompe nada.
+        """
         _run_ddl("""
             DROP TABLE IF EXISTS gold.dim_crypto CASCADE;
             CREATE TABLE gold.dim_crypto AS
-            SELECT DISTINCT ON (id)
-                   id           AS crypto_id,
-                   symbol,
-                   name,
-                   max_supply,
-                   total_supply,
-                   ath,
-                   ath_date,
-                   atl,
-                   atl_date
-            FROM silver.crypto_markets
-            ORDER BY id, snapshot_ts DESC, ingested_at DESC
+            WITH mapa_categoria (crypto_id, categoria) AS (
+                VALUES
+                    ('dai', 'stablecoin'),
+                    ('ethena-usde', 'stablecoin'),
+                    ('global-dollar', 'stablecoin'),
+                    ('paypal-usd', 'stablecoin'),
+                    ('ripple-usd', 'stablecoin'),
+                    ('tether', 'stablecoin'),
+                    ('usd-coin', 'stablecoin'),
+                    ('usd1-wlfi', 'stablecoin'),
+                    ('usds', 'stablecoin'),
+                    ('dogecoin', 'memecoin'),
+                    ('memecore', 'memecoin'),
+                    ('pump-fun', 'memecoin'),
+                    ('shiba-inu', 'memecoin'),
+                    ('pax-gold', 'commodity'),
+                    ('tether-gold', 'commodity'),
+                    -- Dolares tokenizados que CoinGecko NO archiva bajo
+                    -- "Stablecoins" (son fondos y treasuries tokenizados),
+                    -- pero cotizan clavados al dolar: volatilidad 0,000.
+                    -- La taxonomia del proveedor esta hecha para su negocio,
+                    -- no para este analisis; se la valida contra el dato y se
+                    -- corrige, dejando dicho por que.
+                    ('blackrock-usd-institutional-digital-liquidity-fund', 'stablecoin'),
+                    ('hashnote-usyc', 'stablecoin'),
+                    ('ondo-us-dollar-yield', 'stablecoin')
+            )
+            SELECT DISTINCT ON (s.id)
+                   s.id           AS crypto_id,
+                   s.symbol,
+                   s.name,
+                   s.max_supply,
+                   s.total_supply,
+                   s.ath,
+                   s.ath_date,
+                   s.atl,
+                   s.atl_date,
+                   -- Bitcoin va aparte: es su propia categoria en cualquier
+                   -- analisis cripto, y meterlo entre las altcoins
+                   -- (literalmente "las que no son bitcoin") seria un error.
+                   CASE WHEN s.id = 'bitcoin' THEN 'bitcoin'
+                        ELSE COALESCE(m.categoria, 'altcoin')
+                   END            AS categoria
+            FROM silver.crypto_markets s
+            LEFT JOIN mapa_categoria m ON m.crypto_id = s.id
+            ORDER BY s.id, s.snapshot_ts DESC, s.ingested_at DESC
         """)
         print("gold.dim_crypto reconstruida (DISTINCT ON id, por snapshot_ts)")
 
@@ -539,7 +600,7 @@ def crypto_gold():
             CREATE OR REPLACE VIEW gold.v_ultimo_snapshot AS
             SELECT DISTINCT ON (f.crypto_id)
                    f.*,
-                   d.symbol, d.name
+                   d.symbol, d.name, d.categoria
             FROM gold.fact_crypto_markets f
             JOIN gold.dim_crypto d USING (crypto_id)
             ORDER BY f.crypto_id, f.snapshot_ts DESC;
@@ -558,7 +619,7 @@ def crypto_gold():
                 ORDER BY crypto_id, snapshot_ts::date, snapshot_ts DESC
             )
             SELECT c.*,
-                   d.symbol, d.name,
+                   d.symbol, d.name, d.categoria,
                    t.dia_semana, t.es_fin_de_semana,
                    (c.current_price
                     / NULLIF(LAG(c.current_price) OVER w, 0) - 1) * 100
@@ -632,7 +693,7 @@ def crypto_gold():
             CREATE OR REPLACE VIEW gold.v_ohlc_diario AS
             SELECT
                 f.crypto_id,
-                d.symbol, d.name,
+                d.symbol, d.name, d.categoria,
                 t.fecha,
                 t.dia_semana, t.es_fin_de_semana,
                 count(*)                                                   AS snapshots,
@@ -649,7 +710,7 @@ def crypto_gold():
             FROM gold.fact_crypto_markets f
             JOIN gold.dim_crypto  d USING (crypto_id)
             JOIN gold.dim_tiempo  t USING (fecha_id)
-            GROUP BY f.crypto_id, d.symbol, d.name,
+            GROUP BY f.crypto_id, d.symbol, d.name, d.categoria,
                      t.fecha, t.dia_semana, t.es_fin_de_semana;
         """)
         _run_ddl("""
@@ -735,7 +796,7 @@ def crypto_gold():
             -- la pagina).
             CREATE OR REPLACE VIEW gold.v_intradia AS
             SELECT
-                f.crypto_id, d.symbol, d.name,
+                f.crypto_id, d.symbol, d.name, d.categoria,
                 f.snapshot_ts,
                 f.current_price, f.market_cap, f.total_volume, f.market_cap_rank,
                 f.spread_pct, f.ath_distance_pct,
@@ -771,6 +832,44 @@ def crypto_gold():
             JOIN gold.dim_tiempo   t USING (fecha)
             GROUP BY t.es_fin_de_semana, t.dia_semana
             ORDER BY t.es_fin_de_semana, t.dia_semana;
+        """)
+        _run_ddl("""
+            -- LA MISMA PREGUNTA, POR LA OTRA DIMENSION.
+            -- v_estacionalidad corta por un atributo de dim_tiempo (cuando);
+            -- esta corta por uno de dim_crypto (quien). Mismas metricas, para
+            -- que las dos se puedan leer una al lado de la otra.
+            --
+            -- Y agrega una que la temporal no puede dar: cuanto PESA cada
+            -- familia en el mercado. Son dos cosas distintas -- las
+            -- stablecoins son muchas monedas y casi nada de capitalizacion.
+            -- (Ojo: nada de escribir el signo de porcentaje en estos
+            --  comentarios; psycopg2 lo lee como placeholder de parametro.)
+            CREATE OR REPLACE VIEW gold.v_por_categoria AS
+            WITH mcap AS (
+                -- El peso se mide sobre la foto mas reciente, no sobre el
+                -- promedio historico: "cuanto pesa hoy", no "cuanto peso".
+                SELECT categoria,
+                       sum(market_cap)                                    AS mcap,
+                       sum(market_cap) / NULLIF(sum(sum(market_cap)) OVER (), 0) * 100
+                                                                          AS part_pct
+                FROM gold.v_ultimo_snapshot
+                GROUP BY categoria
+            )
+            SELECT
+                o.categoria,
+                count(DISTINCT o.crypto_id)                    AS criptos,
+                count(*)                                       AS observaciones,
+                round(avg(o.rango_pct)::numeric, 3)            AS rango_medio_pct,
+                round(avg((o.cierre / NULLIF(o.apertura, 0) - 1) * 100)::numeric, 3)
+                                                               AS retorno_medio_pct,
+                round(stddev_samp((o.cierre / NULLIF(o.apertura, 0) - 1) * 100)::numeric, 3)
+                                                               AS desvio_pct,
+                round(max(m.part_pct)::numeric, 2)             AS participacion_mcap_pct
+            FROM gold.v_ohlc_diario o
+            LEFT JOIN mcap m USING (categoria)
+            WHERE o.categoria IS NOT NULL
+            GROUP BY o.categoria
+            ORDER BY rango_medio_pct DESC;
         """)
         # NOTA: aca vivia `gold.v_correlacion_intradia`, y se retiro a
         # proposito. Una matriz de correlacion depende de que activos elige

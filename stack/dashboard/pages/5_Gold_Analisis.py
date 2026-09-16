@@ -367,8 +367,97 @@ else:
         },
     )
     de_donde_sale("gold.v_estacionalidad",
-                  "El JOIN de la fact con dim_tiempo por fecha_id. Es la única "
-                  "vista del dashboard que corta por un atributo de dimensión.")
+                  "El JOIN de la fact con dim_tiempo por fecha_id: corta por un "
+                  "atributo que vive en la dimensión, no en la fact.")
+
+# --- la MISMA leccion, con la OTRA dimension -------------------------------
+# dim_tiempo responde "cuando". dim_crypto responde "quien". Mismo mecanismo,
+# mismas metricas y misma forma de panel que arriba: ponerlos uno debajo del
+# otro es lo que hace evidente que es el mismo modelo, no dos trucos.
+cat = q("SELECT * FROM gold.v_por_categoria")
+
+if not cat.empty:
+    st.markdown("")
+    izq3, der3 = st.columns([.9, 1.1])
+    with izq3:
+        st.markdown(
+            "Arriba la dimensión respondía **cuándo**. La misma mecánica "
+            "responde **quién**: `dim_crypto.categoria` dice a qué familia "
+            "pertenece cada moneda — bitcoin, altcoin, memecoin, stablecoin — "
+            "y el `crypto_id` la une a la fact.\n\n"
+            "Fijate que el JOIN de arriba **ya traía las dos dimensiones** "
+            "(`-- quién` y `-- cuándo`) y usaba una sola. Esta es la otra, y "
+            "no hubo que tocar un solo hecho para tenerla.\n\n"
+            "La vista agrega algo que la temporal no puede dar: **cuánto pesa** "
+            "cada familia. Son dos preguntas distintas — *cuántas hay* y "
+            "*cuánto valen* — y la tabla de abajo las muestra juntas."
+        )
+        st.code(
+            "SELECT o.categoria,\n"
+            "       avg(o.rango_pct),\n"
+            "       count(DISTINCT o.crypto_id)\n"
+            "FROM gold.v_ohlc_diario o     -- fact + dims ya unidas\n"
+            "GROUP BY o.categoria",
+            language="sql",
+        )
+    with der3:
+        # El color sigue a la ENTIDAD, no a su posicion: si manana las
+        # memecoins se mueven mas que las altcoins, cada familia conserva su
+        # color y el grafico se sigue leyendo igual.
+        COLOR_CAT = {"bitcoin": SERIES[0], "altcoin": SERIES[1],
+                     "memecoin": SERIES[4], "commodity": SERIES[3],
+                     "stablecoin": SERIES[2]}
+        figc = go.Figure(go.Bar(
+            x=cat["categoria"], y=cat["rango_medio_pct"],
+            marker_color=[COLOR_CAT.get(c, GRIS) for c in cat["categoria"]],
+            text=[f"{v:.2f}%" for v in cat["rango_medio_pct"]],
+            textposition="outside",
+            customdata=cat[["criptos", "participacion_mcap_pct"]].to_numpy(),
+            hovertemplate="<b>%{x}</b><br>rango medio %{y:.2f}%"
+                          "<br>%{customdata[0]} criptos"
+                          "<br>%{customdata[1]:.1f}% del market cap<extra></extra>",
+        ))
+        figc.update_layout(**layout(
+            height=260,
+            yaxis=dict(title="Rango medio del día (%)", showgrid=True,
+                       gridcolor="rgba(128,128,128,.15)"),
+        ))
+        st.plotly_chart(figc, use_container_width=True)
+        st.caption(
+            "Mismo eje que el gráfico de arriba, para que se puedan comparar. "
+            "Las stablecoins casi no se mueven: para eso están. Que el orden "
+            "salga solo es la prueba de que la dimensión clasifica bien — "
+            "nadie le dijo al gráfico qué es una stablecoin, lo dice "
+            "`dim_crypto`."
+        )
+    st.dataframe(
+        cat, hide_index=True, use_container_width=True,
+        column_config={
+            "categoria": "Familia",
+            "criptos": st.column_config.NumberColumn("Criptos", width="small"),
+            "observaciones": st.column_config.NumberColumn("Obs.", width="small"),
+            "rango_medio_pct": st.column_config.NumberColumn("Rango medio", format="%.2f%%"),
+            "retorno_medio_pct": st.column_config.NumberColumn("Retorno medio", format="%+.2f%%"),
+            "desvio_pct": st.column_config.NumberColumn("Desvío", format="%.2f%%"),
+            "participacion_mcap_pct": st.column_config.NumberColumn(
+                "Del market cap", format="%.2f%%"),
+        },
+    )
+    _btc = cat[cat["categoria"] == "bitcoin"]
+    _alt = cat[cat["categoria"] == "altcoin"]
+    if not _btc.empty and not _alt.empty:
+        st.caption(
+            f"Las dos últimas columnas dicen cosas distintas: **{int(_alt['criptos'].iloc[0])} "
+            f"altcoins** suman {_alt['participacion_mcap_pct'].iloc[0]:.0f}% del market cap; "
+            f"**una sola moneda**, Bitcoin, pesa {_btc['participacion_mcap_pct'].iloc[0]:.0f}%. "
+            "Contar monedas y medir peso no son la misma pregunta — y la "
+            "dimensión deja hacer las dos sin tocar la fact."
+        )
+    de_donde_sale("gold.v_por_categoria",
+                  "La hermana de v_estacionalidad: mismas métricas, pero "
+                  "agrupando por un atributo de dim_crypto en vez de uno de "
+                  "dim_tiempo. La columna `categoria` sale de la taxonomía de "
+                  "CoinGecko y vive en la dimensión, no en la fact.")
 
 st.divider()
 seccion("Tabla de métricas")
