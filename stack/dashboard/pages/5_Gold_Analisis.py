@@ -27,6 +27,7 @@ import plotly.graph_objects as go
 from db import run_query
 from theme import (aplicar_tema, encabezado, seccion, de_donde_sale,
                    filtro_periodo, where_periodo, layout,
+                   filtro_categoria, where_categoria,
                    PLOTLY, SUBE, BAJA, GRIS, SERIES)
 
 aplicar_tema("Gold · Análisis", "🥇")
@@ -49,9 +50,28 @@ def faltan(actual, minimo, que):
 encabezado("🥇 Gold · Análisis",
            "Riesgo, correlación y amplitud · capa semántica de Gold")
 
-# El filtro va en UNA fila, arriba de todo lo que gobierna.
+# Los filtros van arriba de todo lo que gobiernan.
 periodo = filtro_periodo("analisis")
-st.caption("Riesgo, correlación y estructura del mercado · mostrando **" + periodo["etiqueta"] + "**")
+
+# Las categorias salen de la DIMENSION, no de una lista escrita aca.
+try:
+    cats = list(q("SELECT DISTINCT categoria FROM gold.dim_crypto "
+                  "WHERE categoria IS NOT NULL ORDER BY 1")["categoria"])
+except Exception:
+    cats = []
+categorias = filtro_categoria("analisis", opciones=cats) if cats else []
+W_CAT = where_categoria("categoria", categorias, universo=cats)
+
+st.caption("Riesgo, correlación y estructura del mercado · mostrando **"
+           + periodo["etiqueta"] + "**"
+           + (" · " + ", ".join(categorias) if W_CAT else ""))
+if W_CAT:
+    # Honestidad sobre el alcance del filtro: las vistas de mercado agregan
+    # TODAS las criptas en una sola fila por dia, asi que no hay columna
+    # `categoria` que filtrar. Decirlo es mejor que dejar dos paneles
+    # vecinos mostrando universos distintos sin avisar.
+    st.caption("↳ el filtro de categoría aplica a los paneles **por cripto**; "
+               "amplitud, concentración y estacionalidad son del mercado completo")
 
 try:
     riesgo = q("""
@@ -59,6 +79,7 @@ try:
                r.retorno_periodo_pct, r.max_drawdown_pct, u.market_cap, u.market_cap_rank
         FROM gold.v_metricas_riesgo r
         JOIN gold.v_ultimo_snapshot u USING (crypto_id)
+        WHERE 1=1 """ + W_CAT.replace("categoria", "u.categoria") + """
         ORDER BY u.market_cap_rank
     """)
     amplitud = q("SELECT * FROM gold.v_amplitud_mercado WHERE true"
