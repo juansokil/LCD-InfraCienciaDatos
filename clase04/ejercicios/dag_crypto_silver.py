@@ -246,7 +246,31 @@ def crypto_silver():
     # TAREA 1: LEER BRONZE (fuente de datos)
     # ============================================================
     @task
-    def read_bronze():
+    def fecha_del_run() -> str:
+        """La fecha que procesa este run, resuelta UNA SOLA VEZ.
+
+        Antes cada task llamaba a `_target_date()` por su cuenta. Parece
+        inofensivo -- es la misma funcion -- pero NO es determinista entre
+        llamadas: cuando el run viene de un asset no hay `ds`, y la funcion
+        cae a "hoy en UTC". Dos tasks del mismo run que corren a los dos
+        lados de medianoche UTC resuelven DIAS DISTINTOS.
+
+        El resultado es que `read_bronze` lee el dia N y `load_silver`
+        borra el dia N+1: el DELETE no limpia nada, el append escribe de
+        nuevo, y el dia N queda DUPLICADO en Silver. No falla ninguna task,
+        no hay error en los logs, y el tablero sigue en verde.
+
+        Resolverla una vez y pasarla por XCom la vuelve lo que siempre tuvo
+        que ser: un PARAMETRO del run. Todas las tasks ven el mismo valor,
+        y ademas queda registrado en el XCom -- se puede auditar despues
+        que dia proceso cada corrida.
+        """
+        ds = _target_date()
+        print(f"Fecha de este run: {ds} (una sola vez, para todas las tasks)")
+        return ds
+
+    @task
+    def read_bronze(ds: str):
         """
         Leer los snapshots del DIA que procesa este run.
 
@@ -309,8 +333,8 @@ def crypto_silver():
                 select_exprs.append(q)
         select_list = ",\n                   ".join(select_exprs)
 
-        # Fecha del run: incremental + backfill (solo los snapshots de ese dia).
-        ds = _target_date()
+        # `ds` llega como PARAMETRO (lo resolvio fecha_del_run). No se
+        # recalcula aca: ver el docstring de esa task.
 
         # DISTINCT ON (id, snapshot_ts) + ORDER BY ... ingested_at DESC =
         # "1 fila por (id, snapshot_ts): la de ingested_at mas reciente"
@@ -398,7 +422,7 @@ def crypto_silver():
     # TAREA 3: LIMPIAR Y SEPARAR (transformacion principal)
     # ============================================================
     @task
-    def clean_and_split(records: list):
+    def clean_and_split(records: list, ds: str):
         """
         Deduplicar, normalizar texto, validar contra Data Contract,
         y separar en Silver (validos) y Quarantine (invalidos).
@@ -537,9 +561,9 @@ def crypto_silver():
         # Un numero aislado no dice nada: 12 rechazos pueden ser lo normal o
         # una catastrofe. La senal es el CAMBIO, y para verlo hace falta la
         # historia. Append-only: es una tabla de auditoria.
-        # _target_date() respeta el `ds` del run cuando hay (cron/backfill) y
-        # cae a hoy cuando el run vino de un asset -- ver su docstring.
-        _guardar_metricas(_target_date(), contract, resultados)
+        # `ds` es el mismo valor que uso read_bronze y que van a usar las
+        # cargas: viene de fecha_del_run, no se recalcula.
+        _guardar_metricas(ds, contract, resultados)
 
         return {
             "silver": _clean_records(df_silver.to_dict(orient="records")),
@@ -550,7 +574,7 @@ def crypto_silver():
     # TAREA 4: CARGAR SILVER (datos validos)
     # ============================================================
     @task(outlets=[SILVER_CRYPTO])
-    def load_silver(split_data: dict):
+    def load_silver(split_data: dict, ds: str):
         """
         Cargar los validos del DIA en silver.crypto_markets.
 
@@ -575,7 +599,6 @@ def crypto_silver():
 
         df = pd.DataFrame(split_data["silver"])
         engine = sqlalchemy.create_engine(DB_URI)
-        ds = _target_date()
 
         # Idempotencia POR DIA: schema + DELETE de ese dia (si la tabla existe).
         # to_regclass devuelve NULL si la tabla no existe -> 1ra corrida no
@@ -619,7 +642,7 @@ def crypto_silver():
     # TAREA 5: CARGAR QUARANTINE (datos invalidos)
     # ============================================================
     @task
-    def load_quarantine(split_data: dict):
+    def load_quarantine(split_data: dict, ds: str):
         """
         Cargar registros invalidos en silver.quarantine_crypto_markets.
 
@@ -637,7 +660,6 @@ def crypto_silver():
 
         df = pd.DataFrame(split_data["quarantine"])
         engine = sqlalchemy.create_engine(DB_URI)
-        ds = _target_date()
 
         # Idempotencia POR DIA (igual patron que load_silver).
         with engine.begin() as conn:
@@ -695,11 +717,14 @@ def crypto_silver():
     #   [load_s, load_q] >> log_summary(split)
     # Significa: "log_summary solo se ejecuta cuando AMBAS cargas terminan"
 
-    bronze_data = read_bronze()              # Paso 1: Leer Bronze del dia (incremental)
+    # `ds` se resuelve UNA vez y lo reciben todas las tasks que escriben o
+    # filtran por dia. Antes cada una lo recalculaba y podian discrepar.
+    ds = fecha_del_run()                      # Paso 0: la fecha del run
+    bronze_data = read_bronze(ds)             # Paso 1: Leer Bronze del dia (incremental)
     evaluated = evaluate_quality(bronze_data) # Paso 2: Evaluar calidad
-    split = clean_and_split(evaluated)        # Paso 3: Limpiar y separar
-    load_s = load_silver(split)               # Paso 4a: Cargar Silver (paralelo)
-    load_q = load_quarantine(split)           # Paso 4b: Cargar Quarantine (paralelo)
+    split = clean_and_split(evaluated, ds)    # Paso 3: Limpiar y separar
+    load_s = load_silver(split, ds)           # Paso 4a: Cargar Silver (paralelo)
+    load_q = load_quarantine(split, ds)       # Paso 4b: Cargar Quarantine (paralelo)
     [load_s, load_q] >> log_summary(split)    # Paso 5: Resumen (espera a 4a y 4b)
 
 

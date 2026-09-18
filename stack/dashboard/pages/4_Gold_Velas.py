@@ -14,9 +14,9 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from db import run_query
-from theme import (aplicar_tema, encabezado, seccion, aviso, layout,
+from theme import (aplicar_tema, encabezado, seccion, aviso,
                    de_donde_sale, filtro_periodo, where_periodo, fecha_larga,
-                   PLOTLY, SUBE, BAJA, GRIS, SERIES)
+                   SUBE, BAJA, GRIS)
 
 aplicar_tema("Gold · Velas", "🥇")
 
