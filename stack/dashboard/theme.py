@@ -17,6 +17,7 @@ Lo que exporta este módulo, y nada más:
 
     aplicar_tema · encabezado · seccion · aviso · pill · kpi · hero ·
     tabla · ticker · frescura_pill · de_donde_sale · layout · fecha_larga ·
+    miles ·
     filtro_periodo · where_periodo
     SUBE · BAJA · GRIS · SERIES · PLOTLY
 """
@@ -340,6 +341,24 @@ def tabla(html_filas: str, encabezados: list) -> None:
         f"<tbody>{html_filas}</tbody></table></div>",
         unsafe_allow_html=True,
     )
+
+
+# ---------------------------------------------------------------- numeros
+def miles(n) -> str:
+    """El numero con PUNTO como separador de miles: 33600 -> "33.600".
+
+    Existe para reemplazar el atajo `f"{n:,}".replace(",", ".")`, que es
+    correcto para un numero suelto y silenciosamente destructivo dentro de
+    un parrafo: la concatenacion de literales adyacentes se resuelve ANTES
+    de la llamada, asi que el replace cae sobre TODO el texto y se lleva
+    puestas las comas de la prosa --
+
+        "<code>(id, snapshot_ts)</code>"  ->  "<code>(id. snapshot_ts)</code>"
+
+    El error no rompe nada, se ve en pantalla y no lo nota nadie. Formatear
+    solo el numero lo vuelve imposible.
+    """
+    return f"{int(n):,}".replace(",", ".")
 
 
 # ---------------------------------------------------------------- fechas
