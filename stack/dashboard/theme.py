@@ -16,7 +16,7 @@ Uso en una página:
 Lo que exporta este módulo, y nada más:
 
     aplicar_tema · encabezado · seccion · aviso · pill · kpi · hero ·
-    tabla · ticker · frescura_pill · de_donde_sale · layout ·
+    tabla · ticker · frescura_pill · de_donde_sale · layout · fecha_larga ·
     filtro_periodo · where_periodo
     SUBE · BAJA · GRIS · SERIES · PLOTLY
 """
@@ -342,6 +342,21 @@ def tabla(html_filas: str, encabezados: list) -> None:
     )
 
 
+# ---------------------------------------------------------------- fechas
+# `%B` de strftime usa el locale del PROCESO, y la imagen es python:3.11-slim:
+# no tiene locales instalados, asi que el mes sale en ingles ("18 de September
+# de 2026") en un tablero escrito entero en castellano. Instalar locales en la
+# imagen para formatear tres fechas es desproporcionado; un diccionario es
+# deterministico y no depende del sistema operativo de quien lo corra.
+MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+         "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+def fecha_larga(d) -> str:
+    """"18 de septiembre de 2026". Acepta date, datetime o Timestamp."""
+    return f"{d.day} de {MESES[d.month - 1]} de {d.year}"
+
+
 # ---------------------------------------------------------------- periodo
 PRESETS = {"7 días": 7, "30 días": 30, "90 días": 90, "Todo": None}
 
@@ -381,13 +396,19 @@ def filtro_periodo(clave: str, default: str = "90 días") -> dict:
         else:                       # el usuario eligió la primera fecha nomás
             desde, hasta = (rango if not isinstance(rango, (tuple, list))
                             else rango[0]), hoy
-        dias = (hasta - desde).days
+        # +1 porque el rango INCLUYE los dos extremos: del 10 al 10 es 1 dia,
+        # no 0. Es la misma cuenta que hace where_periodo abajo.
+        dias = (hasta - desde).days + 1
         etiqueta = f"{desde:%d-%b} → {hasta:%d-%b}"
     elif PRESETS[elegido] is None:
         desde, hasta, dias, etiqueta = None, None, None, "todo el histórico"
     else:
         dias = PRESETS[elegido]
-        desde, hasta = hoy - _dt.timedelta(days=dias), hoy
+        # dias - 1, no dias: el rango incluye HOY y el primer dia, asi que
+        # restar 7 daba OCHO fechas distintas. where_periodo cierra con
+        # `< hasta + 1` (ambos extremos adentro), y el off-by-one se veia en
+        # el tablero: el preset "7 dias" dibujaba 8 velas.
+        desde, hasta = hoy - _dt.timedelta(days=dias - 1), hoy
         etiqueta = f"últimos {dias} días"
 
     return {"desde": desde, "hasta": hasta, "dias": dias, "etiqueta": etiqueta}

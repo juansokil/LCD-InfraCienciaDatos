@@ -304,8 +304,40 @@ st.divider()
 # =============================================================
 # EL STAR SCHEMA, FUNCIONANDO
 # =============================================================
-seccion("El modelo por dentro",
-        "Para esto existe una dimensión: cortar por un atributo que no está en la fact")
+seccion("El star schema, funcionando",
+        "Una fact al centro, dimensiones colgando · y por qué eso te deja "
+        "preguntar cosas que la fact sola no contesta")
+
+# El esquema va ANTES de los ejemplos, no despues. Los dos paneles de abajo
+# son la misma operacion sobre dimensiones distintas, y eso solo se ve si
+# primero quedo claro cual es la operacion.
+st.markdown(
+    "En clase 05 modelaste un **star schema**. No es una formalidad de "
+    "diagrama: es lo que hace que las dos preguntas de abajo se contesten "
+    "**sin tocar un solo hecho**.\n\n"
+    "La regla es una sola: **los hechos van al centro, las descripciones van "
+    "afuera.**\n\n"
+    "- `fact_crypto_markets` guarda lo que *pasó*: un precio, un volumen, "
+    "en un instante. Y dos claves: `crypto_id` y `fecha_id`.\n"
+    "- `dim_crypto` describe **quién**: symbol, name, `categoria`.\n"
+    "- `dim_tiempo` describe **cuándo**: fecha, `dia_semana`, "
+    "`es_fin_de_semana`.\n\n"
+    "Ningún hecho guarda si fue sábado ni si la moneda es una stablecoin. "
+    "Lo saben las dimensiones, y la clave alcanza para traerlo."
+)
+
+st.markdown(
+    "**Lo que compra ese diseño:** para cortar por categoría *no hubo que "
+    "agregar una columna `categoria` a la fact*. Está en `dim_crypto`, la "
+    "fact tiene el `crypto_id`, y con eso alcanza. Lo mismo para el día de "
+    "la semana. Si mañana querés cortar por trimestre, por país del emisor o "
+    "por lo que sea, se agrega el atributo **a la dimensión** y **ningún "
+    "hecho se toca**.\n\n"
+    "Abajo están las dos preguntas, una al lado de la otra. Fijate que es "
+    "**el mismo SQL** — solo cambia de qué tabla sale el `GROUP BY`."
+)
+
+st.markdown("##### 1 · Cortando por `dim_tiempo` — *cuándo*")
 
 est = q("SELECT * FROM gold.v_estacionalidad ORDER BY es_fin_de_semana, dia_semana")
 
@@ -315,15 +347,10 @@ else:
     izq2, der2 = st.columns([.9, 1.1])
     with izq2:
         st.markdown(
-            "En clase 05 modelaste un **star schema**: una fact al centro y "
-            "dimensiones colgando de sus claves. Esta tabla es ese modelo "
-            "trabajando — la medida (`rango_pct`) vive en la **fact**, la "
-            "categoría (`es_fin_de_semana`) vive en la **dimensión**, y el "
-            "`fecha_id` las une.\n\n"
-            "Fijate lo que **no** hizo falta: agregar una columna "
-            "`es_fin_de_semana` a la fact. Si mañana querés cortar por "
-            "trimestre, o por día de la semana, ya está en `dim_tiempo` y la "
-            "fact no se toca. Eso es lo que compra el modelo dimensional."
+            "La medida (`rango_pct`) sale de la **fact**. El atributo por el "
+            "que se corta (`es_fin_de_semana`) vive en **`dim_tiempo`**. El "
+            "`fecha_id` es todo lo que hace falta para unirlos.\n\n"
+            "Ningún hecho guarda si fue sábado: lo sabe el calendario."
         )
         st.code(
             "SELECT t.es_fin_de_semana,\n"
@@ -377,20 +404,19 @@ else:
 cat = q("SELECT * FROM gold.v_por_categoria")
 
 if not cat.empty:
-    st.markdown("")
+    st.markdown("##### 2 · Cortando por `dim_crypto` — *quién*")
     izq3, der3 = st.columns([.9, 1.1])
     with izq3:
         st.markdown(
-            "Arriba la dimensión respondía **cuándo**. La misma mecánica "
-            "responde **quién**: `dim_crypto.categoria` dice a qué familia "
-            "pertenece cada moneda — bitcoin, altcoin, memecoin, stablecoin — "
-            "y el `crypto_id` la une a la fact.\n\n"
-            "Fijate que el JOIN de arriba **ya traía las dos dimensiones** "
-            "(`-- quién` y `-- cuándo`) y usaba una sola. Esta es la otra, y "
-            "no hubo que tocar un solo hecho para tenerla.\n\n"
-            "La vista agrega algo que la temporal no puede dar: **cuánto pesa** "
-            "cada familia. Son dos preguntas distintas — *cuántas hay* y "
-            "*cuánto valen* — y la tabla de abajo las muestra juntas."
+            "**Cambió una sola cosa**: el `GROUP BY` ahora apunta a "
+            "`dim_crypto.categoria` en vez de a `dim_tiempo`. Misma fact, "
+            "mismas medidas, misma query — otra dimensión.\n\n"
+            "El JOIN del ejemplo de arriba **ya traía las dos** (`-- quién` y "
+            "`-- cuándo`) y usaba una sola. Esta es la otra, y no hubo que "
+            "tocar un solo hecho para tenerla.\n\n"
+            "Encima agrega algo que la temporal no puede dar: **cuánto pesa** "
+            "cada familia. *Cuántas hay* y *cuánto valen* son dos preguntas "
+            "distintas, y la tabla de abajo las muestra juntas."
         )
         st.code(
             "SELECT o.categoria,\n"
