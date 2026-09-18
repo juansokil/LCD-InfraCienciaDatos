@@ -15,7 +15,8 @@ import streamlit as st
 import plotly.graph_objects as go
 from db import run_query
 from theme import (aplicar_tema, encabezado, pill, kpi, seccion, aviso,
-                   de_donde_sale, layout, PLOTLY, SUBE, BAJA, GRIS, SERIES)
+                   de_donde_sale, layout, miles,
+                   PLOTLY, SUBE, BAJA, GRIS, SERIES)
 
 aplicar_tema("Silver · Calidad", "🥈")
 
@@ -94,6 +95,92 @@ estado = pill("SIN RECHAZOS", "--up", "la fuente viene limpia") if rechazados ==
 encabezado("🥈 Silver · Calidad",
            "El dato validado contra un contrato · <code>silver.crypto_markets</code>", estado)
 
+# --- Los invariantes -------------------------------------------------------
+# Lo primero de la pagina, antes que cualquier numero lindo. Un invariante es
+# algo que el modelo GARANTIZA; si no se cumple, todo lo que viene abajo
+# describe datos rotos con mucha prolijidad.
+seccion("¿Se puede confiar en lo que sigue?",
+        "Tres cosas que el modelo medallion garantiza · verificadas, no supuestas")
+
+inv = q("""
+    SELECT
+      (SELECT count(*) FROM bronze.crypto_markets)                    AS b_filas,
+      (SELECT count(DISTINCT (id, snapshot_ts))
+         FROM bronze.crypto_markets)                                  AS b_pares,
+      (SELECT count(*) FROM silver.crypto_markets)                    AS s_filas,
+      (SELECT count(DISTINCT (id, snapshot_ts))
+         FROM silver.crypto_markets)                                  AS s_pares,
+      (SELECT count(*) FROM (
+          SELECT DISTINCT snapshot_ts::text FROM bronze.crypto_markets
+          EXCEPT
+          SELECT DISTINCT snapshot_ts::text FROM silver.crypto_markets
+       ) x)                                                           AS snaps_perdidos
+""").iloc[0]
+
+# Cada invariante: (titulo, se_cumple, que_dice_cuando_pasa, que_dice_cuando_falla)
+_sdup = int(inv["s_filas"]) - int(inv["s_pares"])
+_cabe = int(inv["s_filas"]) + rechazados <= int(inv["b_filas"])
+_perd = int(inv["snaps_perdidos"])
+
+INVARIANTES = [
+    ("Silver no puede tener más filas que Bronze",
+     _cabe,
+     f"{miles(inv['s_filas'])} + {miles(rechazados)} cuarentena ≤ "
+     f"{miles(inv['b_filas'])} de Bronze.",
+     f"Silver tiene <b>{miles(inv['s_filas'])}</b> filas y Bronze "
+     f"<b>{miles(inv['b_filas'])}</b>. Un embudo no puede sacar más de lo "
+     "que entra: hay filas escritas de más."),
+
+    ("Un registro por (activo, snapshot)",
+     _sdup == 0,
+     "Sin pares repetidos: la deduplicación de Silver hizo su trabajo.",
+     f"Hay <b>{miles(_sdup)}</b> filas duplicadas. Silver deduplica DENTRO "
+     "de cada corrida, pero si una corrida se repite y el DELETE previo no "
+     "alcanza el mismo día, el append escribe todo dos veces."),
+
+    ("Ningún snapshot de Bronze se perdió",
+     _perd == 0,
+     "Todo snapshot que entró a Bronze tiene su contraparte en Silver.",
+     f"<b>{_perd}</b> snapshot(s) de Bronze no llegaron a Silver. O el DAG "
+     "no corrió para ese día, o falló sin que nadie mirara."),
+]
+
+_fallan = [t for t, ok, _, _ in INVARIANTES if not ok]
+filas_inv = ""
+for titulo, ok, bien, mal in INVARIANTES:
+    icono = "✓" if ok else "✗"
+    color = "--up" if ok else "--down"
+    filas_inv += (
+        f"<div style='display:flex;gap:11px;padding:9px 0;"
+        f"border-bottom:1px solid var(--line)'>"
+        f"<span style='color:var({color});font-weight:700;font-size:15px;"
+        f"line-height:1.3'>{icono}</span><div>"
+        f"<div style='color:var(--ink);font-size:13px'>{titulo}</div>"
+        f"<div style='color:var(--ink-3);font-size:12px;margin-top:2px'>"
+        f"{bien if ok else mal}</div></div></div>"
+    )
+st.markdown(
+    f"<div style='background:var(--surface);border:1px solid var(--line);"
+    f"border-radius:12px;padding:6px 16px'>{filas_inv}</div>",
+    unsafe_allow_html=True,
+)
+
+if _fallan:
+    aviso(
+        f"<b>{len(_fallan)} invariante(s) roto(s). Todo lo que sigue describe "
+        "datos que no cumplen el modelo</b> — los porcentajes van a ser "
+        "prolijos igual, que es justamente el problema.<br><br>"
+        "Guardá esta escena: <b>un tablero en verde no prueba que el dato "
+        "esté bien, prueba que nadie lo chequeó.</b> La tasa de rechazo puede "
+        "dar 0,00% mientras la tabla tiene el doble de filas de las que "
+        "debería, porque «rechazo» y «correcto» no son lo mismo.",
+        "🚨",
+    )
+else:
+    st.caption("Los tres se cumplen. **No es decoración**: son las tres formas "
+               "en que este pipeline se rompió o se puede romper, y por eso se "
+               "verifican en cada carga en vez de darse por sentadas.")
+
 # --- El embudo -------------------------------------------------------------
 seccion("El embudo de calidad", "De lo que llegó, ¿cuánto pasó la validación?")
 
@@ -117,17 +204,33 @@ cols[3].markdown(kpi("Tasa de rechazo", f"{tasa:.2f} %",
 # exactamente lo que hace desconfiar de un tablero: no el numero feo, el numero
 # que no cierra.
 dedup = int(c["bronze"]) - int(c["silver"]) - rechazados
-if dedup > 0:
+if dedup < 0:
+    # El caso que antes caia en el vacio. `if dedup > 0` dejaba pasar el
+    # negativo sin decir una palabra, que es como un embudo imposible llego
+    # a mostrarse en verde.
     aviso(
-        f"<b>Bronze tiene {int(c['bronze']):,} filas y Silver {int(c['silver']):,}: "
-        f"faltan {dedup:,}.</b> No son rechazos — son <b>duplicados</b> que Silver "
+        f"<b>Silver tiene {miles(abs(dedup))} filas MÁS que Bronze.</b> No es "
+        "diferencia menor de conteo: es imposible por construcción, porque "
+        "Silver solo puede sacar filas de Bronze.<br><br>"
+        "Es el síntoma de una carga que se repitió sin borrar la anterior. "
+        "El crudo no está en riesgo — Bronze es append-only e inmutable — "
+        "pero <b>Silver hay que reconstruirlo</b>: se deduplica por "
+        "<code>(id, snapshot_ts)</code> o se reprocesa el día con un "
+        "backfill.",
+        "🚨",
+    )
+elif dedup > 0:
+    aviso(
+        f"<b>Bronze tiene {miles(c['bronze'])} filas y Silver "
+        f"{miles(c['silver'])}: faltan {miles(dedup)}.</b> No son rechazos — "
+        "son <b>duplicados</b> que Silver "
         "descartó. Bronze ingesta <i>todo lo que llega</i> (si un DAG se re-dispara, "
         "el mismo snapshot entra dos veces); Silver se queda con una fila por "
         "<code>(id, snapshot_ts)</code> usando <code>DISTINCT ON</code>.<br><br>"
         "Las dos cosas son correctas y a propósito: Bronze es <b>append-only e "
         "inmutable</b> (es la evidencia de qué devolvió la API), y la limpieza "
-        "ocurre después. Por eso se deduplica en Silver y no borrando en Bronze."
-        .replace(",", "."),
+        "ocurre después. Por eso se deduplica en Silver y no borrando en "
+        "Bronze.",
         "🧹",
     )
 
