@@ -13,9 +13,9 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from db import frescura, run_query
-from theme import (aplicar_tema, encabezado, pill, kpi, seccion, aviso,
+from theme import (aplicar_tema, encabezado, kpi, seccion, aviso,
                    de_donde_sale, filtro_periodo, where_periodo,
-                   frescura_pill, PLOTLY, SUBE, BAJA, GRIS)
+                   frescura_pill, miles, PLOTLY, SUBE, BAJA, GRIS)
 
 aplicar_tema("Bronze · Ingesta", "🥉")
 
@@ -121,11 +121,32 @@ por_dia = q("""
     GROUP BY 1 ORDER BY 1
 """)
 
+# El color lee la cadencia en los DOS sentidos. Antes todas las barras eran
+# azules y solo el texto de abajo avisaba si faltaban: un dia con 99 de 96
+# esperados se veia igual de sano que uno con 96 clavados, cuando en realidad
+# es IMPOSIBLE con un cron cada 15 minutos y significa que hubo re-disparos.
+AMBAR = "#c98500"
+
+
+def _color_cadencia(n, es_borde):
+    if es_borde:
+        return GRIS          # primer y ultimo dia: arrancan/terminan a mitad
+    if n > ESPERADOS_DIA:
+        return AMBAR         # DE MAS: corridas repetidas
+    if n >= ESPERADOS_DIA * .95:
+        return SUBE          # en regla
+    return BAJA              # faltaron corridas
+
+
+_bordes = {0, len(por_dia) - 1}
 fig = go.Figure()
 fig.add_trace(go.Bar(
     x=por_dia["fecha"], y=por_dia["snapshots"], name="Ingestados",
-    marker_color=SUBE,
-    hovertemplate="%{x|%d-%b}: %{y} snapshots<extra></extra>",
+    marker_color=[_color_cadencia(n, i in _bordes)
+                  for i, n in enumerate(por_dia["snapshots"])],
+    customdata=[[int(n) - ESPERADOS_DIA] for n in por_dia["snapshots"]],
+    hovertemplate="%{x|%d-%b}: %{y} snapshots "
+                  "(%{customdata[0]:+d} vs esperado)<extra></extra>",
 ))
 fig.add_hline(y=ESPERADOS_DIA, line_color=GRIS, line_dash="dot", line_width=1.5,
               annotation_text=f"esperados: {ESPERADOS_DIA}/día", annotation_position="top left",
@@ -137,14 +158,55 @@ st.plotly_chart(fig, use_container_width=True)
 completos = por_dia.iloc[1:-1] if len(por_dia) > 2 else pd.DataFrame()
 if not completos.empty:
     cumpl = completos["snapshots"].mean() / ESPERADOS_DIA * 100
-    if cumpl >= 95:
-        st.caption(f"✅ Cumplimiento del cron en días completos: **{cumpl:.0f}%**. El pipeline no se saltea corridas.")
+    _faltan = completos[completos["snapshots"] < ESPERADOS_DIA * .95]
+    _sobran = completos[completos["snapshots"] > ESPERADOS_DIA]
+    leyenda = ("🔵 en regla · 🔴 faltaron corridas · 🟠 corrió de más · "
+               "⚪ día incompleto (arranca/termina a mitad)")
+    if _faltan.empty and _sobran.empty:
+        st.caption(f"✅ Cumplimiento del cron en días completos: **{cumpl:.0f}%**. "
+                   f"El pipeline no se saltea corridas.  \n{leyenda}")
     else:
-        st.caption(f"⚠️ Cumplimiento del cron en días completos: **{cumpl:.0f}%** — "
-                   "hubo corridas que no ejecutaron. Revisá `crypto_bronze` en Airflow.")
+        partes = []
+        if not _faltan.empty:
+            partes.append(f"**{len(_faltan)} día(s) por debajo** — hubo corridas "
+                          "que no ejecutaron")
+        if not _sobran.empty:
+            # Esto NO es un problema de Bronze: es append-only y guardar dos
+            # veces el mismo snapshot es su comportamiento correcto. Pero es
+            # la evidencia que le sirve a Silver, que es quien deduplica.
+            partes.append(f"**{len(_sobran)} día(s) por encima de "
+                          f"{ESPERADOS_DIA}** — imposible con este cron: hubo "
+                          "re-disparos del DAG")
+        st.caption(f"⚠️ Cumplimiento en días completos: **{cumpl:.0f}%** · "
+                   + " · ".join(partes) + f".  \n{leyenda}")
 else:
     st.caption(f"📅 Con **{len(por_dia)} {'día' if len(por_dia) == 1 else 'días'}** todavía no hay un día "
                "completo para medir cumplimiento (el primero y el último arrancan/terminan a mitad).")
+
+# --- Re-ingestas: el mismo snapshot, guardado dos veces --------------------
+# Bronze NO deduplica, y esta bien que no lo haga: es append-only y el crudo
+# es la evidencia de lo que devolvio la API. Pero el que consume aguas abajo
+# tiene que SABER que estan, porque es su trabajo resolverlas.
+reing = q("""
+    SELECT count(*) - count(DISTINCT (id, snapshot_ts)) AS repetidas,
+           count(*)                                     AS filas
+    FROM bronze.crypto_markets
+""").iloc[0]
+_rep = int(reing["repetidas"])
+if _rep:
+    aviso(
+        f"<b>{miles(_rep)} filas son re-ingestas</b>: el mismo "
+        "<code>(activo, snapshot_ts)</code> guardado más de una vez, porque "
+        "el DAG se disparó dos veces para ese minuto.<br><br>"
+        "<b>Bronze las guarda a propósito y no es un error.</b> Es "
+        "append-only: el crudo es la evidencia de qué devolvió la API, y "
+        "borrar acá sería destruir esa evidencia. Quien deduplica es "
+        "<b>Silver</b>, con <code>DISTINCT ON (id, snapshot_ts)</code>.<br><br>"
+        "Pero conviene mirarlas: una re-ingesta aguas arriba es lo que "
+        "revienta la idempotencia aguas abajo si la capa siguiente no la "
+        "maneja bien.",
+        "♻️",
+    )
 
 # --- Pulso por hora --------------------------------------------------------
 seccion("Pulso de las últimas 24 horas", "Cada barra es una hora: ¿entraron los 4 snapshots?")
