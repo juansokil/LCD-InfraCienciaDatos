@@ -525,23 +525,77 @@ def crypto_ml():
             # (como `ventana`), falla con "cannot change name of view column".
             # DROP + CREATE, no CREATE OR REPLACE: reemplazar una vista solo
             # admite AGREGAR columnas al final, y aca cambian varias.
+            # ------------------------------------------------------------
+            # LA DEFINICION DE "VOLATIL", EN UN SOLO LUGAR.
+            #
+            # Dos pasos, y ninguno usa un umbral fijo:
+            #
+            #   1) CUANTO se movio cada cripto ese dia. Se mide con la
+            #      dispersion de los ~66 precios intradia contra su propio
+            #      promedio (coeficiente de variacion). Dividir por el
+            #      promedio es lo que lo hace comparable entre monedas: sin
+            #      eso, bitcoin a 121.000 dolares "se mueve" mil veces mas
+            #      que una moneda de 0,30 solo por la escala del precio.
+            #
+            #   2) La VARA es el propio mercado de ese dia: la mediana de
+            #      todas las vol. Por eso "volatil" es RELATIVO -- en un dia
+            #      de panico general no son todas volatiles, siempre hay una
+            #      mitad arriba y una abajo.
+            #
+            # Y por eso el target queda balanceado 50/50 POR CONSTRUCCION.
+            # (Que es justo lo que vuelve inutil al baseline mayoritario:
+            #  adivinar siempre la misma clase acierta la mitad sin mirar
+            #  un solo dato. La vara honesta es la persistencia.)
+            #
+            # Este dato SOLO existe porque la fact guarda un snapshot cada
+            # 15 minutos. El cierre diario -- un numero por dia -- no tiene
+            # dispersion: no hay nada de que tomarle el desvio.
+            # ------------------------------------------------------------
+            conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_volatilidad_diaria CASCADE")
+            conn.exec_driver_sql("""
+                CREATE VIEW gold.v_volatilidad_diaria AS
+                WITH intra AS (
+                    SELECT f.crypto_id,
+                           f.snapshot_ts::date            AS fecha,
+                           count(*)                       AS snapshots,
+                           avg(f.current_price)           AS precio_medio,
+                           stddev_samp(f.current_price)   AS desvio,
+                           min(f.current_price)           AS precio_min,
+                           max(f.current_price)           AS precio_max,
+                           stddev_samp(f.current_price)
+                               / NULLIF(avg(f.current_price), 0) * 100 AS vol
+                    FROM gold.fact_crypto_markets f
+                    GROUP BY 1, 2
+                    -- Menos de 10 mediciones no describen un dia: un desvio
+                    -- sobre 3 puntos es ruido, no volatilidad.
+                    HAVING count(*) > 10
+                ),
+                vara AS (
+                    SELECT fecha,
+                           percentile_cont(0.5) WITHIN GROUP (ORDER BY vol) AS mediana
+                    FROM intra GROUP BY fecha
+                )
+                SELECT i.crypto_id, d.symbol, d.name, d.categoria,
+                       i.fecha, i.snapshots,
+                       round(i.precio_medio::numeric, 6)  AS precio_medio,
+                       round(i.desvio::numeric, 6)        AS desvio,
+                       round(i.precio_min::numeric, 6)    AS precio_min,
+                       round(i.precio_max::numeric, 6)    AS precio_max,
+                       round(i.vol::numeric, 3)           AS vol,
+                       round(v.mediana::numeric, 3)       AS mediana_del_dia,
+                       (i.vol > v.mediana)::int           AS alta_vol
+                FROM intra i
+                JOIN vara v          ON v.fecha = i.fecha
+                LEFT JOIN gold.dim_crypto d USING (crypto_id)
+            """)
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_aciertos")
             conn.exec_driver_sql("""
                 CREATE VIEW gold.v_ml_aciertos AS
-                WITH intra AS (
-                    SELECT crypto_id, snapshot_ts::date AS fecha,
-                           stddev_samp(current_price)
-                               / NULLIF(avg(current_price), 0) * 100 AS vol
-                    FROM gold.fact_crypto_markets
-                    GROUP BY 1, 2 HAVING count(*) > 10
-                ),
-                mediana AS (
-                    -- La MISMA vara que usa el target al entrenar. Si aca se
-                    -- usara otra, se estaria corrigiendo el examen con una clave
-                    -- distinta a la de la pregunta.
-                    SELECT fecha, percentile_cont(0.5) WITHIN GROUP (ORDER BY vol) AS med
-                    FROM intra GROUP BY fecha
-                )
+                -- Ya no se recalcula la volatilidad aca: se LEE de
+                -- v_volatilidad_diaria. Antes este CTE repetia el mismo
+                -- SQL, y dos copias de una definicion son dos definiciones
+                -- esperando divergir -- justo en el lugar donde se corrige
+                -- el examen. Una sola vara, escrita una sola vez.
                 SELECT p.fecha_features                    AS predijo_con_datos_del,
                        p.fecha_features + 1                AS dia_predicho,
                        p.crypto_id,
@@ -551,14 +605,87 @@ def crypto_ml():
                        p.champion_version,
                        p.ventana,
                        p.origen,
-                       (i.vol > m.med)::int                AS realmente_alta_vol,
-                       round(i.vol::numeric, 3)            AS vol_real,
-                       round(m.med::numeric, 3)            AS mediana_del_dia,
-                       (p.predijo_alta_vol = (i.vol > m.med)::int) AS acerto
+                       v.alta_vol                          AS realmente_alta_vol,
+                       v.vol                               AS vol_real,
+                       v.mediana_del_dia,
+                       (p.predijo_alta_vol = v.alta_vol)   AS acerto
                 FROM gold.predicciones p
-                JOIN intra i   ON i.crypto_id = p.crypto_id
-                              AND i.fecha     = p.fecha_features + 1
-                JOIN mediana m ON m.fecha     = i.fecha
+                JOIN gold.v_volatilidad_diaria v
+                  ON v.crypto_id = p.crypto_id
+                 AND v.fecha     = p.fecha_features + 1
+            """)
+            # ------------------------------------------------------------
+            # EL VEREDICTO: el modelo contra las DOS varas.
+            #
+            # 1) MAYORITARIA: predecir siempre la clase que venia dominando.
+            #    Con el target balanceado por construccion ronda 0.50: es la
+            #    vara FACIL, y contra ella casi cualquier cosa "gana".
+            # 2) PERSISTENCIA: "manana se repite lo de hoy". Es volatility
+            #    clustering hecho regla -- sin features, sin entrenar, sin
+            #    MLflow. Es la vara que de verdad hay que superar: si el
+            #    modelo no le gana, entrenar no compro nada.
+            #
+            # Que la vista devuelva las DOS es deliberado. Elegir la vara
+            # facil y declarar victoria es el error mas comun del oficio, y se
+            # comete sin mala fe. Aca queda a la vista.
+            # ------------------------------------------------------------
+            conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_veredicto")
+            conn.exec_driver_sql("""
+                CREATE VIEW gold.v_ml_veredicto AS
+                WITH real AS (
+                    -- La verdad observada: una fila por cripta y dia.
+                    -- DISTINCT porque v_ml_aciertos repite el dia por ventana.
+                    SELECT DISTINCT crypto_id, dia_predicho AS fecha,
+                           realmente_alta_vol AS alta
+                    FROM gold.v_ml_aciertos
+                ),
+                persistencia AS (
+                    SELECT crypto_id, fecha, alta,
+                           LAG(alta) OVER (PARTITION BY crypto_id
+                                           ORDER BY fecha) AS alta_ayer
+                    FROM real
+                ),
+                base_pers AS (
+                    -- Acierto de la regla trivial: lo de ayer, aplicado a hoy.
+                    SELECT fecha, avg((alta = alta_ayer)::int) AS acc
+                    FROM persistencia
+                    WHERE alta_ayer IS NOT NULL
+                    GROUP BY fecha
+                ),
+                dia AS (
+                    SELECT ventana, dia_predicho,
+                           avg(acerto::int)                 AS acc,
+                           avg(realmente_alta_vol::numeric) AS tasa,
+                           count(*)                         AS n
+                    FROM gold.v_ml_aciertos
+                    GROUP BY ventana, dia_predicho
+                ),
+                con_pasado AS (
+                    -- La mayoritaria se elige con lo que se sabia ANTES del
+                    -- dia. Mirar el resultado del propio dia para decidir que
+                    -- predecir es leakage: elige el lado ganador despues del
+                    -- partido.
+                    SELECT d.*,
+                           avg(d.tasa) OVER (PARTITION BY d.ventana
+                                             ORDER BY d.dia_predicho
+                                             ROWS BETWEEN UNBOUNDED PRECEDING
+                                                      AND 1 PRECEDING) AS tasa_hist
+                    FROM dia d
+                )
+                SELECT
+                    c.ventana,
+                    count(*)                            AS dias,
+                    sum(c.n)                            AS predicciones,
+                    round(avg(c.acc)::numeric * 100, 1) AS accuracy,
+                    round(avg(CASE WHEN c.tasa_hist IS NULL THEN NULL
+                                   WHEN c.tasa_hist > 0.5 THEN c.tasa
+                                   ELSE 1 - c.tasa END)::numeric * 100, 1)
+                                                        AS base_mayoritaria,
+                    round(avg(b.acc)::numeric * 100, 1) AS base_persistencia
+                FROM con_pasado c
+                LEFT JOIN base_pers b ON b.fecha = c.dia_predicho
+                GROUP BY c.ventana
+                ORDER BY c.ventana
             """)
             n = conn.exec_driver_sql(
                 "SELECT count(*) FROM gold.v_ml_aciertos"
