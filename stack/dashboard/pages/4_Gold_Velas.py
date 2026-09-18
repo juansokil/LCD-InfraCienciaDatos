@@ -14,8 +14,8 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from db import run_query
-from theme import (aplicar_tema, encabezado, seccion, aviso,
-                   de_donde_sale, filtro_periodo, where_periodo,
+from theme import (aplicar_tema, encabezado, seccion, aviso, layout,
+                   de_donde_sale, filtro_periodo, where_periodo, fecha_larga,
                    PLOTLY, SUBE, BAJA, GRIS, SERIES)
 
 aplicar_tema("Gold · Velas", "🥇")
@@ -56,15 +56,125 @@ elegido_nombre = st.selectbox("Activo", options=[TODOS] + list(activos["name"]),
                               index=0)
 
 # =========================================================================
-# VISTA "TODOS": el ultimo dia, comparando activos entre si.
+# VISTA "TODOS": la vela del MERCADO ENTERO.
 #
-# No se dibujan 25 candlesticks: un OHLC compara CONTRA SI MISMO a lo largo
-# del tiempo, y encimar veinticinco no se lee. Con muchos activos la
-# pregunta cambia -- ya no es "como se movio este" sino "quien se movio
-# mas hoy" -- y esa se contesta con el rango del dia, que es justamente lo
-# que resume una vela en un solo numero.
+# No se dibujan 52 candlesticks encimados -- un OHLC compara contra si mismo
+# a lo largo del tiempo y veinticinco superpuestos no se leen. Pero tampoco
+# hace falta renunciar a la vela: el mercado TIENE la suya.
+#
+# La clave es que no es la suma de 52 velas. gold.fact_global_market guarda
+# la capitalizacion total en cada snapshot, y agrupar esos snapshots por dia
+# da apertura/maximo/minimo/cierre del mercado como un solo activo. Mismo
+# mecanismo que v_ohlc_diario, otro sujeto.
 # =========================================================================
 if elegido_nombre == TODOS:
+    mercado = q(f"""
+        SELECT fecha, snapshots, apertura, maximo, minimo, cierre, volumen,
+               rango_pct, btc_dominance, eth_dominance
+        FROM gold.v_ohlc_mercado
+        WHERE true {where_periodo("fecha", periodo)}
+        ORDER BY fecha
+    """)
+
+    if mercado.empty:
+        st.info("Sin velas del mercado en el período elegido. Se construyen "
+                "desde `gold.fact_global_market`, que escribe `crypto_gold`.")
+        st.stop()
+
+    ult_m = mercado.iloc[-1]
+    var_m = ((ult_m["cierre"] / ult_m["apertura"] - 1) * 100
+             if ult_m["apertura"] else 0)
+
+    k = st.columns(5)
+    k[0].metric("Apertura", f"US$ {ult_m['apertura'] / 1e9:,.0f} B")
+    k[1].metric("Máximo", f"US$ {ult_m['maximo'] / 1e9:,.0f} B")
+    k[2].metric("Mínimo", f"US$ {ult_m['minimo'] / 1e9:,.0f} B")
+    k[3].metric("Cierre", f"US$ {ult_m['cierre'] / 1e9:,.0f} B",
+                f"{var_m:+.2f}% en el día")
+    k[4].metric("Rango del día", f"{ult_m['rango_pct']:.2f}%",
+                help="(máximo − mínimo) / cierre, sobre la capitalización total.")
+
+    seccion("La vela del mercado",
+            f"Capitalización total · {len(mercado)} "
+            f"{'día' if len(mercado) == 1 else 'días'} · "
+            f"última armada con {int(ult_m['snapshots'])} snapshots")
+
+    figm = go.Figure(go.Candlestick(
+        x=mercado["fecha"],
+        open=mercado["apertura"], high=mercado["maximo"],
+        low=mercado["minimo"], close=mercado["cierre"],
+        increasing=dict(line=dict(color=SUBE, width=1.5), fillcolor=SUBE),
+        decreasing=dict(line=dict(color=BAJA, width=1.5), fillcolor=BAJA),
+        name="Mercado",
+        hovertext=[f"{int(x)} snapshots" for x in mercado["snapshots"]],
+    ))
+    if len(mercado) >= 5:
+        figm.add_trace(go.Scatter(
+            x=mercado["fecha"], y=mercado["cierre"].rolling(5).mean(),
+            mode="lines", name="Media móvil 5d",
+            line=dict(color=GRIS, width=1.6, dash="dot"),
+        ))
+    figm.update_layout(
+        height=420, margin=dict(l=0, r=0, t=10, b=0),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(rangeslider=dict(visible=False), title=None, showgrid=False),
+        yaxis=dict(title=None, showgrid=True, gridcolor="rgba(128,128,128,.15)",
+                   side="right"),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+        hovermode="x unified",
+    )
+    st.plotly_chart(figm, use_container_width=True)
+
+    aviso(
+        "<b>Esta vela no es la suma de las 52 velas de abajo.</b> Es su propia "
+        "vela: <code>gold.fact_global_market</code> guarda la capitalización "
+        "total del mercado en <b>cada snapshot</b>, y agrupar esos snapshots "
+        "por día da apertura, máximo, mínimo y cierre igual que para una "
+        "moneda suelta.<br><br>"
+        "Es exactamente el <b>mismo mecanismo</b> que <code>v_ohlc_diario</code> "
+        "aplicado a otro sujeto — y solo funciona porque la fact guarda "
+        "<b>una fila por snapshot</b>. Con una fila por día, el máximo y el "
+        "mínimo no existirían en ningún lado.",
+        "🕯",
+    )
+
+    # --- Volumen del mercado ---------------------------------------------
+    seccion("Volumen negociado del mercado")
+    figv = go.Figure(go.Bar(
+        x=mercado["fecha"], y=mercado["volumen"],
+        marker=dict(color=[SUBE if c >= a else BAJA
+                           for a, c in zip(mercado["apertura"], mercado["cierre"])]),
+        hovertemplate="%{x|%d-%m}: $%{y:,.0f}<extra></extra>",
+    ))
+    figv.update_layout(
+        height=180, margin=dict(l=0, r=0, t=6, b=0),
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        yaxis=dict(showgrid=True, gridcolor="rgba(128,128,128,.15)",
+                   title=None, side="right"),
+        xaxis=dict(title=None, showgrid=False),
+        bargap=0.45,
+    )
+    st.plotly_chart(figv, use_container_width=True)
+
+    with st.expander("Ver la tabla OHLC del mercado"):
+        st.dataframe(
+            mercado, hide_index=True, use_container_width=True,
+            column_config={
+                "fecha": "Fecha",
+                "snapshots": st.column_config.NumberColumn(
+                    "Snapshots", help="Cuántas mediciones formaron esta vela"),
+                "apertura": st.column_config.NumberColumn("Apertura", format="compact"),
+                "maximo": st.column_config.NumberColumn("Máximo", format="compact"),
+                "minimo": st.column_config.NumberColumn("Mínimo", format="compact"),
+                "cierre": st.column_config.NumberColumn("Cierre", format="compact"),
+                "volumen": st.column_config.NumberColumn("Volumen", format="compact"),
+                "rango_pct": st.column_config.NumberColumn("Rango %", format="%.2f%%"),
+                "btc_dominance": st.column_config.NumberColumn("Dom. BTC", format="%.1f%%"),
+                "eth_dominance": st.column_config.NumberColumn("Dom. ETH", format="%.1f%%"),
+            },
+        )
+
+    # --- el detalle del ultimo dia, por activo ---------------------------
     dia = q(f"""
         WITH ultimo AS (
             SELECT max(fecha) AS fecha
@@ -79,82 +189,37 @@ if elegido_nombre == TODOS:
         JOIN ultimo u ON u.fecha = o.fecha
         ORDER BY o.rango_pct DESC
     """)
-
-    if dia.empty:
-        st.info("Sin velas en el período elegido.")
-        st.stop()
-
-    fecha_dia = dia["fecha"].iloc[0]
-    mas, menos = dia.iloc[0], dia.iloc[-1]
-
-    k = st.columns(4)
-    k[0].metric("Activos", len(dia))
-    k[1].metric("Rango medio del día", f"{dia['rango_pct'].mean():.2f}%")
-    k[2].metric("El más movido", mas["symbol"], f"{mas['rango_pct']:.2f}% de rango")
-    k[3].metric("El más quieto", menos["symbol"], f"{menos['rango_pct']:.2f}% de rango",
-                delta_color="off")
-
-    seccion("Quién se movió más",
-            f"Rango del día · {fecha_dia:%d de %B de %Y} · {len(dia)} activos")
-
-    # El color sale de dim_crypto: la misma dimension que se explica en la
-    # pagina de Analisis, acá haciendo trabajo util. Sigue a la ENTIDAD, no
-    # al ranking, asi que una moneda conserva su color aunque cambie de
-    # posicion entre dias.
-    COLOR_CAT = {"bitcoin": SERIES[0], "altcoin": SERIES[1],
-                 "memecoin": SERIES[4], "commodity": SERIES[3],
-                 "stablecoin": SERIES[2]}
-    figt = go.Figure(go.Bar(
-        x=dia["symbol"], y=dia["rango_pct"],
-        marker_color=[COLOR_CAT.get(c, GRIS) for c in dia["categoria"]],
-        customdata=dia[["name", "categoria", "var_pct"]].to_numpy(),
-        hovertemplate="<b>%{customdata[0]}</b> (%{customdata[1]})"
-                      "<br>rango %{y:.2f}%"
-                      "<br>cerró %{customdata[2]:+.2f}% vs apertura<extra></extra>",
-    ))
-    figt.update_layout(
-        height=330, margin=dict(l=0, r=0, t=6, b=0),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        yaxis=dict(title="Rango del día (%)", showgrid=True,
-                   gridcolor="rgba(128,128,128,.15)"),
-        xaxis=dict(title=None, showgrid=False, tickangle=-60),
-        bargap=0.35,
-    )
-    st.plotly_chart(figt, use_container_width=True)
-    st.caption(
-        "Cada barra es una vela resumida en un número: cuánto separó el máximo "
-        "del mínimo, relativo al cierre. El color es la familia de la moneda "
-        "(`dim_crypto.categoria`) — las stablecoins quedan pegadas al piso, que "
-        "es exactamente lo que se espera de ellas.<br><br>"
-        "Acá están **todos** los activos con vela ese día; el desplegable de "
-        "arriba lista las 25 más grandes por capitalización, para que se pueda "
-        "recorrer. Elegí una y vas a ver su vela completa a lo largo del tiempo.",
-        unsafe_allow_html=True,
-    )
-
-    with st.expander("Ver la tabla OHLC de todos"):
-        st.dataframe(
-            dia.drop(columns=["fecha"]), hide_index=True, use_container_width=True,
-            column_config={
-                "symbol": st.column_config.TextColumn("Símbolo", width="small"),
-                "name": "Activo",
-                "categoria": st.column_config.TextColumn("Familia", width="small"),
-                "apertura": st.column_config.NumberColumn("Apertura", format="$%.2f"),
-                "maximo": st.column_config.NumberColumn("Máximo", format="$%.2f"),
-                "minimo": st.column_config.NumberColumn("Mínimo", format="$%.2f"),
-                "cierre": st.column_config.NumberColumn("Cierre", format="$%.2f"),
-                "volumen": st.column_config.NumberColumn("Volumen", format="compact"),
-                "snapshots": st.column_config.NumberColumn(
-                    "Snapshots", help="Cuántas mediciones formaron esta vela"),
-                "rango_pct": st.column_config.NumberColumn("Rango %", format="%.2f%%"),
-                "var_pct": st.column_config.NumberColumn("Cierre vs apertura", format="%+.2f%%"),
-            },
+    if not dia.empty:
+        with st.expander(f"Ver las {len(dia)} velas individuales de "
+                         f"{fecha_larga(dia['fecha'].iloc[0])}"):
+            st.dataframe(
+                dia.drop(columns=["fecha"]), hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "symbol": st.column_config.TextColumn("Símbolo", width="small"),
+                    "name": "Activo",
+                    "categoria": st.column_config.TextColumn("Familia", width="small"),
+                    "apertura": st.column_config.NumberColumn("Apertura", format="$%.2f"),
+                    "maximo": st.column_config.NumberColumn("Máximo", format="$%.2f"),
+                    "minimo": st.column_config.NumberColumn("Mínimo", format="$%.2f"),
+                    "cierre": st.column_config.NumberColumn("Cierre", format="$%.2f"),
+                    "volumen": st.column_config.NumberColumn("Volumen", format="compact"),
+                    "snapshots": st.column_config.NumberColumn(
+                        "Snapshots", help="Cuántas mediciones formaron esta vela"),
+                    "rango_pct": st.column_config.NumberColumn("Rango %", format="%.2f%%"),
+                    "var_pct": st.column_config.NumberColumn(
+                        "Cierre vs apertura", format="%+.2f%%"),
+                },
+            )
+        st.caption(
+            "Elegí un activo en el desplegable de arriba para ver **su** vela "
+            "a lo largo del tiempo. El desplegable lista las 25 más grandes "
+            "por capitalización, para que se pueda recorrer."
         )
 
-    de_donde_sale("gold.v_ohlc_diario",
-                  "La misma vista que alimenta las velas de un activo: acá se "
-                  "lee a lo ancho (todos los activos de un día) en vez de a lo "
-                  "largo (un activo a través de los días).")
+    de_donde_sale("gold.v_ohlc_mercado",
+                  "La vela del mercado: los mismos first/max/min/last, pero "
+                  "sobre gold.fact_global_market en vez de sobre una cripto.")
     st.stop()
 
 cid = next(k for k, v in nombre_de.items() if v == elegido_nombre)

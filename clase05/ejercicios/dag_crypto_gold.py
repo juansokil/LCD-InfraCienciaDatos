@@ -871,6 +871,105 @@ def crypto_gold():
             GROUP BY o.categoria
             ORDER BY rango_medio_pct DESC;
         """)
+        _run_ddl("""
+            -- VELA DIARIA DEL MERCADO ENTERO.
+            -- Mismo mecanismo que v_ohlc_diario (first/max/min/last sobre los
+            -- snapshots del dia), pero sobre el agregado macro en vez de sobre
+            -- una cripto. Es la respuesta a "como se movio el MERCADO hoy",
+            -- que no es la suma de 53 velas: es su propia vela.
+            --
+            -- Solo existe porque fact_global_market guarda 1 fila por SNAPSHOT.
+            -- Con una fila por dia no habria maximo ni minimo del dia, igual
+            -- que con las criptas.
+            CREATE OR REPLACE VIEW gold.v_ohlc_mercado AS
+            SELECT
+                t.fecha,
+                t.dia_semana, t.es_fin_de_semana,
+                count(*)                                                      AS snapshots,
+                (array_agg(g.total_market_cap_usd ORDER BY g.snapshot_ts))[1] AS apertura,
+                max(g.total_market_cap_usd)                                   AS maximo,
+                min(g.total_market_cap_usd)                                   AS minimo,
+                (array_agg(g.total_market_cap_usd ORDER BY g.snapshot_ts DESC))[1]
+                                                                              AS cierre,
+                (array_agg(g.total_volume_usd ORDER BY g.snapshot_ts DESC))[1]
+                                                                              AS volumen,
+                (max(g.total_market_cap_usd) - min(g.total_market_cap_usd))
+                    / NULLIF((array_agg(g.total_market_cap_usd
+                              ORDER BY g.snapshot_ts DESC))[1], 0) * 100      AS rango_pct,
+                (array_agg(g.btc_dominance ORDER BY g.snapshot_ts DESC))[1]   AS btc_dominance,
+                (array_agg(g.eth_dominance ORDER BY g.snapshot_ts DESC))[1]   AS eth_dominance
+            FROM gold.fact_global_market g
+            JOIN gold.dim_tiempo t USING (fecha_id)
+            GROUP BY t.fecha, t.dia_semana, t.es_fin_de_semana;
+        """)
+        _run_ddl("""
+            -- EL MISMO NUMERO, CALCULADO POR NOSOTROS.
+            -- La API trae `price_change_percentage_24h` ya masticado: una
+            -- ventana MOVIL de 24 horas contra el instante actual. No se puede
+            -- auditar ni reproducir -- es un numero que te dan.
+            --
+            -- Esta vista pone al lado el equivalente construido con los hechos
+            -- propios: CIERRE contra CIERRE, con el corte en el dia calendario.
+            -- Los dos son validos y NO coinciden, porque miden ventanas
+            -- distintas. La diferencia es que este se puede explicar linea por
+            -- linea y el otro no.
+            --
+            -- Es la frontera medallion hecha una columna: Bronze copia lo que
+            -- le dan, Gold construye su propia verdad.
+            CREATE OR REPLACE VIEW gold.v_mercado_24h AS
+            WITH cierres AS (
+                SELECT
+                    crypto_id, fecha, cierre,
+                    LAG(cierre) OVER (PARTITION BY crypto_id ORDER BY fecha) AS cierre_prev,
+                    ROW_NUMBER() OVER (PARTITION BY crypto_id ORDER BY fecha DESC) AS recencia
+                FROM gold.v_ohlc_diario
+            )
+            SELECT
+                u.crypto_id, u.symbol, u.name, u.categoria,
+                u.market_cap_rank, u.current_price, u.market_cap, u.snapshot_ts,
+                u.price_change_percentage_24h                       AS var_api_pct,
+                (c.cierre / NULLIF(c.cierre_prev, 0) - 1) * 100     AS var_gold_pct,
+                u.price_change_percentage_24h
+                    - (c.cierre / NULLIF(c.cierre_prev, 0) - 1) * 100
+                                                                    AS brecha_pts,
+                c.fecha                                             AS fecha_cierre
+            FROM gold.v_ultimo_snapshot u
+            LEFT JOIN cierres c
+                   ON c.crypto_id = u.crypto_id AND c.recencia = 1;
+        """)
+        _run_ddl("""
+            -- DONDE CAE EL VALOR DE HOY DENTRO DE LO ACUMULADO.
+            -- "El volumen de hoy es el 2do mas alto de 9 dias" es una frase que
+            -- la API NO puede decir: CoinGecko no guarda tu historia. El
+            -- warehouse si, y esto es lo unico que hace con ella.
+            --
+            -- Formato largo (una fila por metrica) a proposito: agregar una
+            -- metrica mas es sumar un UNION, no una columna en cada consumidor.
+            CREATE OR REPLACE VIEW gold.v_mercado_contexto AS
+            WITH d AS (
+                SELECT 'capitalizacion' AS metrica, fecha, cierre  AS valor
+                FROM gold.v_ohlc_mercado
+                UNION ALL
+                SELECT 'volumen',        fecha, volumen FROM gold.v_ohlc_mercado
+                UNION ALL
+                SELECT 'dominancia_btc', fecha, btc_dominance FROM gold.v_ohlc_mercado
+            ),
+            r AS (
+                SELECT
+                    metrica, fecha, valor,
+                    -- puesto 1 = el mas alto de toda la serie acumulada
+                    ROW_NUMBER() OVER (PARTITION BY metrica ORDER BY valor DESC)  AS puesto,
+                    count(*)     OVER (PARTITION BY metrica)                      AS dias,
+                    min(valor)   OVER (PARTITION BY metrica)                      AS minimo,
+                    max(valor)   OVER (PARTITION BY metrica)                      AS maximo,
+                    avg(valor)   OVER (PARTITION BY metrica)                      AS promedio,
+                    ROW_NUMBER() OVER (PARTITION BY metrica ORDER BY fecha DESC)  AS recencia
+                FROM d
+            )
+            SELECT metrica, fecha, valor, puesto, dias, minimo, maximo, promedio
+            FROM r
+            WHERE recencia = 1;
+        """)
         # NOTA: aca vivia `gold.v_correlacion_intradia`, y se retiro a
         # proposito. Una matriz de correlacion depende de que activos elige
         # quien mira: es una consulta AD-HOC, no una metrica gobernada. Vive en
