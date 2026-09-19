@@ -21,7 +21,6 @@ Lo que sí necesita días (drawdown, amplitud) sigue diciendo cuántos faltan.
 """
 
 import numpy as np
-import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from db import run_query
@@ -212,7 +211,10 @@ else:
                 HAVING count(*) >= 5
             """)
             if pares.empty:
-                faltan(ndias, 1, "La matriz de correlación")
+                st.caption("⏳ **La matriz de correlación** necesita al menos "
+                           "5 snapshots en común por par de activos. Con menos, "
+                           "un `corr()` es ruido. Se habilita sola en la "
+                           "próxima corrida del pipeline.")
             else:
                 # pandas SOLO reordena para dibujar: el corr() lo hizo Postgres.
                 m = pares.pivot(index="symbol_a", columns="symbol_b",
@@ -352,14 +354,23 @@ else:
             "`fecha_id` es todo lo que hace falta para unirlos.\n\n"
             "Ningún hecho guarda si fue sábado: lo sabe el calendario."
         )
+        # `v_ohlc_diario` ES la fact con sus dos dimensiones ya unidas: su
+        # definicion hace JOIN dim_crypto USING (crypto_id) + JOIN dim_tiempo
+        # USING (fecha_id). Se muestra la vista y no el JOIN crudo para que
+        # las dos queries de esta seccion sean de verdad LA MISMA, que es lo
+        # que el texto afirma -- y para que se puedan copiar y pegar en psql.
         st.code(
-            "SELECT t.es_fin_de_semana,\n"
+            "SELECT o.es_fin_de_semana,\n"
             "       avg(o.rango_pct)\n"
-            "FROM gold.fact_crypto_markets f\n"
-            "JOIN gold.dim_crypto  d USING (crypto_id)   -- quién\n"
-            "JOIN gold.dim_tiempo  t USING (fecha_id)    -- cuándo\n"
-            "GROUP BY t.es_fin_de_semana",
+            "FROM gold.v_ohlc_diario o   -- la fact + dim_crypto + dim_tiempo\n"
+            "GROUP BY o.es_fin_de_semana",
             language="sql",
+        )
+        st.caption(
+            "`v_ohlc_diario` no es una tabla: es la fact **con las dos "
+            "dimensiones ya enganchadas** (`JOIN dim_crypto USING (crypto_id)` "
+            "+ `JOIN dim_tiempo USING (fecha_id)`). Abrí «¿de dónde sale esto?» "
+            "abajo y vas a ver el JOIN completo."
         )
     with der2:
         est["etiqueta"] = est["dia_semana"].str.strip()
@@ -422,7 +433,7 @@ if not cat.empty:
             "SELECT o.categoria,\n"
             "       avg(o.rango_pct),\n"
             "       count(DISTINCT o.crypto_id)\n"
-            "FROM gold.v_ohlc_diario o     -- fact + dims ya unidas\n"
+            "FROM gold.v_ohlc_diario o   -- la MISMA fuente que arriba\n"
             "GROUP BY o.categoria",
             language="sql",
         )

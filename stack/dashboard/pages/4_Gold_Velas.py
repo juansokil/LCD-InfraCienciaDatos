@@ -10,7 +10,6 @@ De dónde sale: gold.v_ohlc_diario agrupa los ~96 snapshots de cada día.
 una fila por día, el máximo y el mínimo no existirían en ningún lado.
 """
 
-import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from db import run_query
@@ -58,11 +57,11 @@ elegido_nombre = st.selectbox("Activo", options=[TODOS] + list(activos["name"]),
 # =========================================================================
 # VISTA "TODOS": la vela del MERCADO ENTERO.
 #
-# No se dibujan 52 candlesticks encimados -- un OHLC compara contra si mismo
+# No se dibujan decenas de candlesticks encimados -- un OHLC compara contra si mismo
 # a lo largo del tiempo y veinticinco superpuestos no se leen. Pero tampoco
 # hace falta renunciar a la vela: el mercado TIENE la suya.
 #
-# La clave es que no es la suma de 52 velas. gold.fact_global_market guarda
+# La clave es que no es la suma de las velas de abajo. gold.fact_global_market guarda
 # la capitalizacion total en cada snapshot, y agrupar esos snapshots por dia
 # da apertura/maximo/minimo/cierre del mercado como un solo activo. Mismo
 # mecanismo que v_ohlc_diario, otro sujeto.
@@ -125,8 +124,18 @@ if elegido_nombre == TODOS:
     )
     st.plotly_chart(figm, use_container_width=True)
 
+    # El conteo se lee de la base y no se escribe a mano: el material decia
+    # 50, 52 y 53 en distintos lugares y hoy son mas. Un numero fijo al lado
+    # de un expander que muestra el conteo real se desmiente solo.
+    n_activos = int(q(f"""
+        SELECT count(*) AS n FROM gold.v_ohlc_diario
+        WHERE fecha = (SELECT max(fecha) FROM gold.v_ohlc_diario
+                       WHERE true {where_periodo("fecha", periodo)})
+    """).iloc[0]["n"])
+
     aviso(
-        "<b>Esta vela no es la suma de las 52 velas de abajo.</b> Es su propia "
+        f"<b>Esta vela no es la suma de las {n_activos} velas de abajo.</b> "
+        "Es su propia "
         "vela: <code>gold.fact_global_market</code> guarda la capitalización "
         "total del mercado en <b>cada snapshot</b>, y agrupar esos snapshots "
         "por día da apertura, máximo, mínimo y cierre igual que para una "

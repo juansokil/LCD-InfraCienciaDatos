@@ -162,7 +162,8 @@ El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde l
 
 Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
 
-- **Las páginas 3–6 no leen tablas: leen vistas `gold.v_*`.** Esa es la **capa semántica** — la API pública de Gold. El KPI se define **una sola vez, en SQL**, y no se recalcula en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
+- **Los KPIs de las páginas 3–6 salen de vistas `gold.v_*`, no de tablas.** Esa es la **capa semántica** — la **API pública** de Gold: la métrica se define **una sola vez, en SQL**, y no se recalcula en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
+  Hay tres excepciones, y son deliberadas: la página 3 lee `gold.dim_crypto` para llenar el selector de categorías (es la dimensión, no una métrica), y la 6 lee `gold.gold_abt_crypto` y `gold.predicciones` **porque su tema ES la ABT y la tabla de predicciones** — no las está consumiendo, las está mostrando.
 - **La demo de ventas NO es una página del dashboard, y es deliberado.** Esas tablas `gold.*_demo` son **sintéticas**: el dashboard muestra el pipeline **productivo** de criptomonedas, y mezclarle una demo de juguete confunde las dos cosas. El notebook de la clase la grafica ahí mismo — el patrón de consumo es idéntico, lo que cambia es dónde vive.
 
 ### ¿Querés agregar tu propia visualización?
@@ -206,7 +207,9 @@ SELECT column_name
 FROM information_schema.columns
 WHERE table_schema = 'gold' AND table_name = 'gold_abt_crypto'
 ORDER BY ordinal_position;
--- Esperado: ~20 features (id, symbol, price, market_cap, volatility, supply_ratio, ath_distance, ...)
+-- Esperado: 30 columnas = 28 features + _processed_at + _source_table
+-- (id, current_price, market_cap, total_volume, price_std, supply_ratio,
+--  ath_distance_pct, volatility_category, market_cap_tier, ...)
 ```
 
 Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funcional + íntegro + listo para consumo BI/ML**.

@@ -327,7 +327,8 @@ _W = where_categoria("categoria", _sel, universo=_cats)
 
 # Se vuelve a consultar en vez de filtrar el DataFrame en pandas: el corte por
 # `categoria` es un WHERE contra la dimension, que es para lo que existe el
-# star schema. Filtrar en el cliente traeria las 53 criptas para tirar 40.
+# star schema. Filtrar en el cliente traeria TODAS las criptas para tirar
+# la mayoria.
 rank = q("""
     SELECT name, symbol, current_price, var_api_pct, var_gold_pct, brecha_pts,
            market_cap, market_cap_rank
