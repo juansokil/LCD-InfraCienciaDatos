@@ -43,12 +43,12 @@ graph LR
 
     subgraph PIPE["dag_crypto_silver"]
         P1[1. Deduplicar<br/>por id + snapshot_ts]
-        P2[2. Normalizar strings<br/>symbol → UPPER<br/>name → Title]
+        P2[2. Normalizar strings<br/>symbol → UPPER<br/>trim + vacío → NULL]
         P3[3. Validar con Pydantic<br/>generado dinamicamente<br/>desde crypto_markets.yaml]
     end
 
     subgraph SV["silver.crypto_markets (validos)"]
-        SVOK[Columnas originales<br/>+ _processed_at<br/>+ _source_table<br/>+ _contract_version]
+        SVOK[Columnas originales<br/>+ _processed_at<br/>+ _source_table<br/>+ _contract_version<br/>+ _quality_flags]
     end
 
     subgraph SQ["silver.quarantine_crypto_markets (rechazados)"]
@@ -88,7 +88,7 @@ Abrí `clase04.ipynb`. La primera parte explica conceptos (Contratos de Datos, P
 | 01 | `silver_01_basico.py` | `stack/dags/02-silver/` | Limpieza básica: strip + Title Case + fillna + parser flexible de fechas |
 | 02 | `silver_02_contrato.py` | `stack/dags/02-silver/` | **Contract-driven**: Pydantic generado en runtime desde `ventas.yaml` + Pattern Quarantine + Audit metadata |
 
-Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`). En la UI, filtrá por **tag `silver`** para verlos juntos. Activalos y verás los datos en `silver.ventas_demo` y `silver.quarantine_ventas_demo`.
+Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`). En la UI, filtrá por **tag `silver`** para verlos juntos. Activalos y verás los datos en `silver.ventas_basico` (del primer DAG) y en `silver.ventas_contrato` + `silver.quarantine_ventas_contrato` (del segundo).
 
 > **Convención de carpetas**: cada DAG vive en la carpeta de su **capa Medallion destino** (`02-silver/` para todo lo que escribe a `silver.*`). Mismo patrón que `01-bronze/` en la clase 03.
 >

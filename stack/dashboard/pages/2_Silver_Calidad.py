@@ -8,7 +8,6 @@ La pregunta de esta capa no es "¿cuánto vale Bitcoin?" sino
 "¿puedo creerle a este número?".
 """
 
-import pandas as pd
 from pathlib import Path
 
 import streamlit as st
@@ -199,7 +198,7 @@ cols[3].markdown(kpi("Tasa de rechazo", f"{tasa:.2f} %",
 
 # Bronze y Silver casi nunca dan el mismo numero, y el hueco NO es rechazo.
 # Silver deduplica: `read_bronze` hace DISTINCT ON (id, snapshot_ts) porque una
-# reingesta del mismo minuto trae las mismas 50 criptas otra vez. Ese trabajo no
+# reingesta del mismo minuto trae las mismas criptas otra vez. Ese trabajo no
 # se reportaba en ningun lado y dejaba un hueco sin explicar -- que es
 # exactamente lo que hace desconfiar de un tablero: no el numero feo, el numero
 # que no cierra.
