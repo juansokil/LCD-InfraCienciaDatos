@@ -694,6 +694,9 @@ with st.expander("🔮 Las predicciones · `gold.predicciones`"):
         else:
             st.dataframe(pred, hide_index=True, use_container_width=True, height=320)
 
-de_donde_sale("gold.v_series_diaria",
-              "La fuente de las features: el cierre de cada día por cripto, con "
-              "el retorno ya calculado. El modelo no ve el dato crudo, ve esto.")
+de_donde_sale("gold.v_volatilidad_diaria",
+              "La fuente de las features y del target: la dispersión intradía de "
+              "cada cripto y la mediana con la que se corta. Sale de "
+              "`gold.fact_crypto_markets`, NO del cierre diario — un cierre es "
+              "un solo número por día y no tiene dispersión de la que tomar "
+              "el desvío.")
