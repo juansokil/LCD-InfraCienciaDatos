@@ -132,9 +132,17 @@ Las **páginas Gold del dashboard ya vienen en el stack** (`stack/dashboard/page
 cp clase05/ejercicios/dashboard/pages/7_<apellido>-<nombre>.py stack/dashboard/pages/
 ```
 
-El DAG **arranca solo** (`is_paused_upon_creation=False`): apenas Airflow lo detecta se suma a la **cadena data-aware**: se dispara cuando `crypto_silver` actualiza el asset `silver_crypto_markets`, sin cron propio. En la corrida siguiente vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` poblándose con datos reales, más las **10 vistas semánticas** `gold.v_*` que crea la task `build_views` — la "API pública" de Gold que consumen el dashboard y el modelo. Van en dos grupos: las que **agregan a día** (`v_series_diaria`, `v_ohlc_diario`, `v_metricas_riesgo`, `v_amplitud_mercado`, `v_kpis_mercado`) y las que conservan el **grano fino de snapshot** (`v_ultimo_snapshot`, `v_intradia`, `v_global_serie`, `v_concentracion`). Las segundas existen porque con pocos días de historia un análisis diario tiene 3 puntos y uno intradía tiene ~200: el pipeline ya recolecta cada 15 minutos, tirar esa resolución es gratis de evitar. Refrescá `localhost:8501` y las páginas Gold pasan de vacías a pobladas.
+El DAG **arranca solo** (`is_paused_upon_creation=False`): apenas Airflow lo detecta se suma a la **cadena data-aware**: se dispara cuando `crypto_silver` actualiza el asset `silver_crypto_markets`, sin cron propio. En la corrida siguiente vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` poblándose con datos reales, más las **14 vistas semánticas** `gold.v_*` que crea la task `build_views` — la "API pública" de Gold que consumen el dashboard y el modelo. Van en tres grupos:
+>
+> - **Agregan a día**: `v_series_diaria`, `v_ohlc_diario`, `v_metricas_riesgo`, `v_amplitud_mercado`, `v_kpis_mercado`, `v_ohlc_mercado` (la vela del mercado entero, no la suma de las 50).
+> - **Conservan el grano fino de snapshot**: `v_ultimo_snapshot`, `v_intradia`, `v_global_serie`, `v_concentracion`, `v_mercado_24h` (el 24 h calculado por nosotros al lado del que manda la API) y `v_mercado_contexto` (dónde cae el valor de hoy en la serie acumulada).
+> - **Cortan por una dimensión**: `v_estacionalidad` (por `dim_tiempo`) y `v_por_categoria` (por `dim_crypto`). Son la misma pregunta con dos `GROUP BY` distintos, y existen para que el star schema se vea **funcionando** y no solo dibujado.
+>
+> Las del segundo grupo existen porque con pocos días de historia un análisis diario tiene 3 puntos y uno intradía tiene ~200: el pipeline ya recolecta cada 15 minutos, tirar esa resolución es gratis de evitar. Refrescá `localhost:8501` y las páginas Gold pasan de vacías a pobladas.
 
 > El `docker-compose.yml` del stack tiene `./dashboard/pages:/app/pages` como bind-mount, así que el `cp` se ve en vivo sin rebuild de la imagen.
+>
+> ⚠️ **Ojo: el bind-mount es SOLO `pages/`.** `theme.py`, `db.py` y `app.py` van `COPY` dentro de la imagen (ver el `Dockerfile`). Si tocás uno de esos, editarlo y reiniciar el contenedor **no hace nada**: hay que `docker compose build dashboard`. Es un error fácil de cometer y difícil de ver, porque no falla — simplemente seguís mirando la versión vieja.
 
 ---
 
@@ -146,10 +154,10 @@ El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde l
 |---|---|---|
 | **1 · 🥉 Bronze — Ingesta** | ¿Llegó el dato? | `bronze.crypto_markets` |
 | **2 · 🥈 Silver — Calidad** | ¿Sirve el dato? | `silver.crypto_markets` + `silver.quarantine_*` vs `bronze.*` |
-| **3 · 🥇 Gold — Mercado** | ¿Qué dice el negocio? | `gold.v_kpis_mercado`, `gold.v_ultimo_snapshot` |
-| **4 · 🥇 Gold — Velas** | ¿Cómo se movió cada activo? | `gold.v_ohlc_diario` |
-| **5 · 🥇 Gold — Análisis** | ¿Qué estructura hay detrás? | `gold.v_metricas_riesgo`, `gold.v_amplitud_mercado` |
-| **6 · 🤖 Gold — ML** | ¿Qué dice el modelo? | `gold.gold_abt_crypto`, `gold.predicciones` |
+| **3 · 🥇 Gold — Mercado** | ¿Qué dice el negocio? | `gold.v_kpis_mercado`, `gold.v_ultimo_snapshot`, `gold.v_mercado_24h`, `gold.v_mercado_contexto` |
+| **4 · 🥇 Gold — Velas** | ¿Cómo se movió el mercado, y cada activo? | `gold.v_ohlc_mercado`, `gold.v_ohlc_diario` |
+| **5 · 🥇 Gold — Análisis** | ¿Qué estructura hay detrás? | `gold.v_metricas_riesgo`, `gold.v_amplitud_mercado`, `gold.v_intradia`, `gold.v_concentracion`, `gold.v_estacionalidad`, `gold.v_por_categoria` |
+| **6 · 🤖 Gold — ML** | ¿El modelo sirve? | `gold.v_ml_veredicto`, `gold.v_ml_aciertos`, `gold.v_volatilidad_diaria`, `gold.gold_abt_crypto` |
 | **7 · 👤 Tu página (G10)** | la que vos elijas | **tu** tabla Gold de G9 |
 
 Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
