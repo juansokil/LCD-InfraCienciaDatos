@@ -182,7 +182,7 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 
 | | |
 |---|---|
-| **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tp/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. El paso a paso completo esta en "Como entregar el TP, de principio a fin", al final de este documento. |
+| **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tpfinal/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. El paso a paso completo esta en "Como entregar el TP, de principio a fin", al final de este documento. |
 | **Politica de APIs** | Pueden repetir la misma API entre grupos (no es excluyente). Si quieren proponer una API fuera de la lista, consultar con el docente. |
 | **Fecha de entrega** | **Domingo 15 de noviembre de 2026, hasta las 23:59 (hora Argentina)** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
 | **Presentacion oral** | **Jueves 19 de noviembre de 2026, remota (por videollamada)**, **7 a 10 minutos por grupo**, mas una breve ronda de preguntas. Camara prendida durante la exposicion. |
@@ -392,14 +392,14 @@ TpFinal/grupos/G<NN>/
 
 > **Patron de referencia**: la estructura sigue la misma logica del `stack/` del curso (Airflow 3.1.5 + Postgres 17 Alpine + Streamlit). Pueden mirar `stack/` para inspirarse en el `docker-compose.yml`, `Dockerfile`, `init.sql`, etc. 
 
-> **Por que `G<NN>`?** El numero de grupo tiene que coincidir en la branch y en la carpeta (`tp/G01` ↔ `TpFinal/grupos/G01/`), para que el docente pueda comparar entregas lado a lado al evaluar. Se pide al docente antes de empezar — ver el Paso 0 del instructivo de entrega.
+> **Por que `G<NN>`?** El numero de grupo tiene que coincidir en la branch y en la carpeta (`tpfinal/G01` ↔ `TpFinal/grupos/G01/`), para que el docente pueda comparar entregas lado a lado al evaluar. Se pide al docente antes de empezar — ver el Paso 0 del instructivo de entrega.
 
 > **Donde corre el stack del grupo?** En la maquina de cada estudiante. Cuando hagan `docker compose up` dentro de `TpFinal/grupos/G<NN>/`, levanta SU propio Postgres, Airflow y Streamlit aislados — no se mezcla con el stack del curso ni con el de otros grupos. **Ojo con los puertos**: si tienen el stack del curso levantado en paralelo, va a haber conflicto en 5432/8080/8501 — apaguen uno antes de levantar el otro, o cambien los mapeos en `docker-compose.yml`.
 
 ## Como entregar el TP, de principio a fin
 
 El TP se desarrolla y se entrega **en este mismo repo** (no en un repo propio).
-Cada grupo trabaja en su propia branch `tp/G<NN>`, dentro de su carpeta
+Cada grupo trabaja en su propia branch `tpfinal/G<NN>`, dentro de su carpeta
 `TpFinal/grupos/G<NN>/`, y abre un **Pull Request** que oficia de aviso durante
 el cuatrimestre y de entrega al final.
 
@@ -420,7 +420,7 @@ el de la carpeta y en el titulo del PR. Si lo eligen por su cuenta y dos grupos
 agarran el mismo, hay que renombrar las tres cosas.
 
 > `G` = Grupo, `NN` = numero de 2 digitos. La branch y la carpeta **tienen que
-> coincidir** (`tp/G01` ↔ `TpFinal/grupos/G01/`): asi el docente compara
+> coincidir** (`tpfinal/G01` ↔ `TpFinal/grupos/G01/`): asi el docente compara
 > branches lado a lado al evaluar. `G00` es el template de referencia, no es una
 > entrega real.
 
@@ -444,15 +444,15 @@ Con el numero ya asignado, reemplazando `NN` por el suyo:
 
 ```bash
 git checkout main && git pull
-git checkout -b tp/G01              # <- su numero
+git checkout -b tpfinal/G01              # <- su numero
 
 mkdir -p TpFinal/grupos/G01
 cp TpFinal/grupos/G00/README.md TpFinal/grupos/G01/README.md   # el template
 # editenlo: integrantes, API elegida, idea Gold
 
 git add TpFinal/grupos/G01/
-git commit -m "tp/G01: setup inicial (API: OpenAQ)"
-git push -u origin tp/G01
+git commit -m "tpfinal/G01: setup inicial (API: OpenAQ)"
+git push -u origin tpfinal/G01
 ```
 
 La estructura completa de archivos que va adentro de esa carpeta esta en

@@ -22,12 +22,12 @@ Esta guia explica los conceptos minimos para evitarlos. **No es una guia general
 | Concepto | Que es | Cuando lo usas en el TP |
 |---|---|---|
 | **Repo** | Un proyecto en GitHub. Tiene archivos, historia, branches. | El repo del curso es `juansokil/LCD-InfraCienciaDatos`. |
-| **Branch** (rama) | Una linea de trabajo paralela dentro de un repo. | Cada grupo tiene la suya: `tp/G<NN>`. |
+| **Branch** (rama) | Una linea de trabajo paralela dentro de un repo. | Cada grupo tiene la suya: `tpfinal/G<NN>`. |
 | **Commit** | Una "foto" de los cambios en un momento del tiempo, con un mensaje. | Cada vez que terminas algo, haces un commit. |
 | **Push** | Mandar tus commits locales a GitHub. | Despues de cada commit (o varios), `git push`. |
 | **Pull** | Traer commits de GitHub a tu maquina. | Antes de empezar a trabajar y antes de cada push. |
 | **`main`** | La branch principal del repo. Lo que esta en `main` es "lo oficial". | La branch del grupo se crea **siempre desde `main`** recien actualizado. |
-| **PR** (Pull Request) | Propuesta de mergear los commits de una branch a otra. Tiene codigo, comentarios, reviewers. | El TP se entrega como PR-draft de `tp/G<NN>` contra `main`. |
+| **PR** (Pull Request) | Propuesta de mergear los commits de una branch a otra. Tiene codigo, comentarios, reviewers. | El TP se entrega como PR-draft de `tpfinal/G<NN>` contra `main`. |
 | **Issue** | Un post de discusion en GitHub. **No lleva codigo.** Sirve para preguntas, bugs, propuestas. | Opcional para dudas conceptuales sueltas. |
 | **Fork** | Una **copia completa** del repo bajo tu cuenta personal. | **No se usa en el TP**. Detalle abajo. |
 | **Draft PR** | Un PR marcado como "en progreso". Sigue siendo publico y muestra el codigo, pero indica "todavia no esta para revisar". | Asi se mantiene el PR desde el dia 1 hasta la entrega. |
@@ -107,7 +107,7 @@ git checkout main
 git pull origin main
 
 # 2. Crear la branch del grupo (despues de que el docente te asigne el numero G<NN>)
-git checkout -b tp/G07
+git checkout -b tpfinal/G07
 
 # 3. Crear la carpeta del grupo y copiar el README template
 mkdir -p TpFinal/grupos/G07
@@ -118,17 +118,17 @@ cp TpFinal/grupos/G00/README.md TpFinal/grupos/G07/README.md
 
 # 5. Primer commit
 git add TpFinal/grupos/G07/
-git commit -m "tp/G07: setup inicial (API: <X>)"
+git commit -m "tpfinal/G07: setup inicial (API: <X>)"
 
 # 6. Push (la primera vez con -u para asociar la branch local con la remota)
-git push -u origin tp/G07
+git push -u origin tpfinal/G07
 ```
 
 GitHub te va a responder con un link para abrir el PR:
 
 ```
-remote: Create a pull request for 'tp/G07' on GitHub by visiting:
-remote:      https://github.com/juansokil/LCD-InfraCienciaDatos/pull/new/tp/G07
+remote: Create a pull request for 'tpfinal/G07' on GitHub by visiting:
+remote:      https://github.com/juansokil/LCD-InfraCienciaDatos/pull/new/tpfinal/G07
 ```
 
 Click ahi, completas titulo (`TP Final - G07 - <API>`) y body (integrantes + API + idea Gold), y eliges **"Create draft pull request"** (la flechita ▼ al lado del boton verde).
@@ -147,21 +147,21 @@ Cuando son varios integrantes commiteando a la misma branch, hay una regla simpl
 Alice empieza a trabajar:
    commit A (Alice)
    commit B (Alice)
-   git push origin tp/G07          ✓
+   git push origin tpfinal/G07          ✓
 
 Mientras tanto Bob trabaja en otra computadora:
-   git pull origin tp/G07           ← trae A y B
+   git pull origin tpfinal/G07           ← trae A y B
    commit C (Bob)
    commit D (Bob)
-   git push origin tp/G07          ✓
+   git push origin tpfinal/G07          ✓
 
 Alice quiere pushear mas:
    commit E (Alice)
-   git push origin tp/G07          ❌ ERROR: tu branch local esta atras
+   git push origin tpfinal/G07          ❌ ERROR: tu branch local esta atras
 
    → tiene que hacer:
-   git pull --rebase origin tp/G07  ← trae C y D, pone E despues
-   git push origin tp/G07          ✓
+   git pull --rebase origin tpfinal/G07  ← trae C y D, pone E despues
+   git push origin tpfinal/G07          ✓
 ```
 
 ### El comando clave
@@ -169,7 +169,7 @@ Alice quiere pushear mas:
 Antes de hacer `git push`:
 
 ```bash
-git pull --rebase origin tp/G07
+git pull --rebase origin tpfinal/G07
 ```
 
 Eso trae los commits que otros pushearon mientras vos trabajabas, y pone tus commits despues de los de ellos. Despues sí podes hacer push tranquilo.
@@ -197,7 +197,7 @@ Eliges cual version queda (o las combinas a mano), borras las marcas (`<<<<<<<`,
 ```bash
 git add <archivo-resuelto>
 git rebase --continue
-git push origin tp/G07
+git push origin tpfinal/G07
 ```
 
 Si te perdes en el conflicto y queres salir sin resolver:
@@ -216,29 +216,29 @@ Te deja como estabas antes del `pull --rebase`.
 
 **Sintoma**: el PR del grupo muestra muchos archivos que no son del TP (notebooks de clases anteriores, entregas personales, archivos del stack del curso).
 
-**Por que pasa**: el estudiante estaba parado en su rama personal (`estudiante/apellido-nombre`, la de las entregas semanales) y hizo `git checkout -b tp/G<NN>` directo, sin pasar antes por `main`. La branch nueva parte de donde estaba parado, no de `main`.
+**Por que pasa**: el estudiante estaba parado en su rama personal (`estudiante/apellido-nombre`, la de las entregas semanales) y hizo `git checkout -b tpfinal/G<NN>` directo, sin pasar antes por `main`. La branch nueva parte de donde estaba parado, no de `main`.
 
 ```
 main:                       A───B───C───D───E───F   (con los merges de todos al dia)
                                  \
 estudiante/apellido-nombre:       G───H              (rama personal, atrasada)
                                        \
-tp/G07:                           I───J───K    (TP + arrastra G, H, archivos viejos)
+tpfinal/G07:                           I───J───K    (TP + arrastra G, H, archivos viejos)
 ```
 
-**Como evitarlo**: SIEMPRE hacer `git checkout main && git pull origin main` antes del `git checkout -b tp/G<NN>`.
+**Como evitarlo**: SIEMPRE hacer `git checkout main && git pull origin main` antes del `git checkout -b tpfinal/G<NN>`.
 
 **Como arreglarlo si ya paso**: rehacer la branch desde cero. Guardar copia de `TpFinal/grupos/G<NN>/` aparte, borrar la branch local, recrearla desde `main` actualizado, pegar los archivos copiados, hacer push con `--force-with-lease`. Ver seccion **7. Troubleshooting**.
 
 ### 6.2. "Edite un archivo desde la UI de GitHub y se creo un fork"
 
-**Sintoma**: el PR aparece con `<usuario>:<branch>` en vez de simplemente `<branch>`. Ej: `tu-usuario:patch-1` en vez de `tp/G07`.
+**Sintoma**: el PR aparece con `<usuario>:<branch>` en vez de simplemente `<branch>`. Ej: `tu-usuario:patch-1` en vez de `tpfinal/G07`.
 
 **Por que pasa**: cuando editas un archivo desde el boton "Edit this file" en la web de GitHub, si GitHub no detecta bien tus permisos te ofrece automaticamente "Fork and edit" y crea un fork sin avisarte. Despues de editar, te abre un PR desde el fork al repo original.
 
 **Como evitarlo**: **no usar el boton "Edit this file"** en GitHub web. Trabajar siempre desde local con `git clone` + editor + commits + push.
 
-**Como arreglarlo si ya paso**: como casi no hay codigo todavia, arrancar de nuevo en el repo del curso: alguno del grupo clona el repo del curso (no el fork), crea `tp/G<NN>` desde `main`, copia el contenido del README del fork (a mano o con `git remote add fork ...`), commit + push, abre PR nuevo. El docente cierra el PR del fork sin mergear. El fork queda abandonado.
+**Como arreglarlo si ya paso**: como casi no hay codigo todavia, arrancar de nuevo en el repo del curso: alguno del grupo clona el repo del curso (no el fork), crea `tpfinal/G<NN>` desde `main`, copia el contenido del README del fork (a mano o con `git remote add fork ...`), commit + push, abre PR nuevo. El docente cierra el PR del fork sin mergear. El fork queda abandonado.
 
 ### 6.3. "Mi commit aparece como 'Tu Nombre' sin email"
 
@@ -277,26 +277,26 @@ Si tu branch arrastro archivos que no son del TP y queres dejarla solo con lo de
 
 ```bash
 # 1. Backup local (por si algo sale mal)
-git checkout tp/G07
-git checkout -b tp/G07-backup    # snapshot local
-git push origin tp/G07-backup    # tambien en el remoto, por las dudas
+git checkout tpfinal/G07
+git checkout -b tpfinal/G07-backup    # snapshot local
+git push origin tpfinal/G07-backup    # tambien en el remoto, por las dudas
 
 # 2. Recrear la branch desde main
 git checkout main
 git pull origin main
-git branch -D tp/G07             # borrar la rota
-git checkout -b tp/G07           # crear de nuevo desde main
+git branch -D tpfinal/G07             # borrar la rota
+git checkout -b tpfinal/G07           # crear de nuevo desde main
 
 # 3. Traer SOLO la carpeta del grupo desde el backup
-git checkout tp/G07-backup -- TpFinal/grupos/G07/
+git checkout tpfinal/G07-backup -- TpFinal/grupos/G07/
 
 # 4. Verificar: solo TpFinal/grupos/G07/ deberia aparecer
 git status
 
 # 5. Commit y force-push
 git add TpFinal/grupos/G07/
-git commit -m "tp/G07: limpieza de scope"
-git push --force-with-lease origin tp/G07
+git commit -m "tpfinal/G07: limpieza de scope"
+git push --force-with-lease origin tpfinal/G07
 ```
 
 El PR existente se actualiza automaticamente y ahora muestra solo el contenido correcto.
@@ -326,16 +326,16 @@ git reset --hard d4e5f6g
 
 ```bash
 # Branch local existe, remoto no: pushear
-git push -u origin tp/G07
+git push -u origin tpfinal/G07
 
 # Branch remoto existe, local no: traerlo
-git checkout -b tp/G07 origin/tp/G07
+git checkout -b tpfinal/G07 origin/tpfinal/G07
 
 # Borrar branch local (la remota queda)
-git branch -D tp/G07
+git branch -D tpfinal/G07
 
 # Borrar branch remota (la local queda)
-git push origin --delete tp/G07
+git push origin --delete tpfinal/G07
 ```
 
 ---
@@ -350,14 +350,14 @@ git clone https://github.com/juansokil/LCD-InfraCienciaDatos.git
 
 # Antes de empezar a trabajar cada vez
 git checkout main && git pull origin main
-git checkout tp/G07
-git pull --rebase origin tp/G07
+git checkout tpfinal/G07
+git pull --rebase origin tpfinal/G07
 
 # Hacer cambios
 # (editar archivos con tu editor)
 git add <archivos>
 git commit -m "descripcion clara de que hiciste"
-git push origin tp/G07
+git push origin tpfinal/G07
 ```
 
 ---
