@@ -1,6 +1,8 @@
-# Clase 06: Workshop End-to-End — Pipeline + ML sobre Gold
+# Clase 06: MLOps — del pipeline al modelo en producción
 
-> **Clase de cierre del cuatrimestre**. Workshop magistral: el docente recorre el pipeline completo — de la orquestación en producción al ML honesto sobre Gold. **No hay entrega comprometida** — el objetivo es consolidar lo aprendido y ver el cuadro completo.
+> **Clase de cierre del cuatrimestre**. Workshop magistral: el docente cierra el pipeline y le enchufa un modelo — **tracking, registry, serving y monitoreo**. **No hay entrega comprometida**: el objetivo es ver cómo se opera un modelo, no cómo se entrena uno bueno.
+
+> El modelo que se usa **pierde contra una regla de una línea**, y está puesto a propósito. Lo que se enseña es la maquinaria que permite *darse cuenta* de eso — que es exactamente lo que un pipeline de MLOps tiene que hacer.
 
 ---
 
@@ -38,49 +40,102 @@ El docente recorre el notebook en vivo. Estructura real:
 7. **🔎 El punta a punta en una foto**: una celda recorre API → Bronze → Silver → Gold → salidas y diagnostica dónde se cortó el dato.
 8. **📊 Monitoring**: tres niveles de observabilidad (infra / datos / negocio), el dashboard como cierre del ciclo, roadmap MLOps.
 
-### Parte 2 — ML honesto sobre Gold
+### Parte 2 — MLOps: del notebook a producción
 
-1. **La pregunta correcta antes que el modelo.** Se arranca prediciendo *¿sube mañana?* y **no funciona ni puede funcionar**: la dirección del precio no está en los datos públicos de precio y volumen. Se pasa a **¿cuáles van a ser las criptos más movidas mañana?** — la volatilidad **se agrupa en el tiempo**, y eso sí se aprende (medido sobre los datos del curso: correlación día a día de +0,45). **Elegir bien la pregunta rinde más que cambiar de algoritmo.**
+> El modelo es **el vehículo**, no el tema. Lo que se enseña acá es cómo un
+> modelo deja de ser una celda de notebook y pasa a ser **una pieza del
+> pipeline**: versionada, servida por un DAG, y corregida por un tablero.
 
-2. **Dataset con el dato fino que el pipeline ya junta.** La volatilidad se calcula con los **~66 snapshots por cripto por día** que `gold.fact_crypto_markets` acumula y que el cierre diario descarta. Features en SQL con `LAG`/ventanas (solo info ≤ t, disciplina *as-of* de clase01); target con `LEAD`, por cripto y ordenado por fecha real.
+**1. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
+(`localhost:5000`, backend Postgres, artifacts persistentes). La grilla cruza
+**4 algoritmos × 3 ventanas** de historia: 12 runs con params, métricas y
+artifacts registrados. Cada run lleva la **ventana como tag**, para poder
+aislarlos en la UI. Sin esto, "el modelo que anduvo bien la semana pasada" es
+una carpeta con un `.pkl` y la memoria de alguien.
 
-3. **Target cross-sectional**: `vol_mañana > mediana de la volatilidad de mañana`. La mitad le gana por definición, así que queda **balanceado siempre** y la clase mayoritaria se clava en 50%. Con un target absoluto esa referencia se movía con el humor del día y dejaba de ser comparable. **Pero ojo con la conclusión fácil**: que se clave en 50% la vuelve una vara *trivial de superar*, no una buena vara — ver el punto 5.
+**2. 🏆 Model Registry y aliases — qué modelo va a producción.** Un modelo
+registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`), cada uno con su
+alias `@champion`. La promoción es una **decisión humana explícita**, no un
+efecto secundario de correr una celda. Cambiar el champion en el Registry
+**cambia lo que predice el pipeline sin tocar una línea de código** — ese es el
+punto entero de tener un registry.
 
-4. **🔭 ¿Mirar más atrás ayuda?** — la grilla cruza **4 algoritmos × 3 ventanas** (1, 3 y 7 días): 12 runs, la **misma** pregunta, distinta cantidad de historia. La respuesta **la da el dato del día, no el apunte**: la celda compara el salto entre ventanas contra lo que mueve una sola predicción, y si no lo supera dice que no hay diferencia. Los 12 se evalúan sobre las **mismas fechas**: si cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las features o del test set.
+**3. ⚙️ Serving — el modelo como task de un DAG.**
+[`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): scoring batch disparado **por
+el asset `gold_abt`**, no por reloj. Lee el champion del Registry, escribe
+`gold.predicciones` de forma **idempotente** (DELETE del día + INSERT), y
+**saltea con log claro** cuando todavía no hay champion, en vez de ponerse en
+rojo. El mismo encadenado por Assets de las clases 03-05, ahora con un modelo
+adentro.
 
-5. **Validación honesta, y contra DOS varas.** Split temporal por **fechas únicas** (walk-forward), jamás por posición de fila. Y el modelo se mide contra dos referencias, porque elegir la fácil y cantar victoria es el error más común del oficio:
+**4. 🔀 Training-serving skew — el error que no avisa.** La ventana con la que
+armar las features **no está hardcodeada**: el DAG la lee del param
+`ventana_dias` del propio champion. Si el champion fue entrenado con otras
+features, **lo detecta y saltea** en vez de escribir basura. Y el SQL de las
+features es **la misma query** en el notebook y en el DAG — no dos copias que
+divergen. Verlo ocurrir vale más que explicarlo.
 
-   - **La fácil** — la *clase mayoritaria de lo que ya pasó* (nunca la del día que se quiere predecir: eso sería elegir el lado ganador después del partido). Ronda 50% porque el target está balanceado por construcción, así que ganarle no prueba nada.
-   - **La difícil** — la *persistencia*: «mañana se repite lo de hoy». Es la hipótesis de volatility clustering hecha regla, sin features, sin entrenar y sin MLflow. **Y acá está el filo**: si la volatilidad se agrupa —que es la razón por la que esta pregunta tiene respuesta— entonces repetir lo de ayer ya acierta mucho. Superarla es lo que justifica haber entrenado algo.
+**5. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
+con el **veredicto**: accuracy contra lo que efectivamente pasó, medida contra
+**dos varas**, y recién después muestra la maquinaria. Porque elegir la vara
+fácil y cantar victoria es el error más común del oficio:
 
-   Con los datos del curso el modelo **le gana a la fácil por ~20 puntos y pierde contra la difícil por ~6** (ventana 7d: 73,5% contra 51,9% y 79,7%). No es un fracaso de la clase: **es la clase**.
+- **La fácil** — la clase mayoritaria. Ronda 50% porque el target está
+  balanceado por construcción: ganarle no prueba nada.
+- **La difícil** — la persistencia, *«mañana se repite lo de hoy»*. Sin
+  features, sin entrenar, sin MLflow. **Superarla es lo que justifica haber
+  entrenado algo.**
 
-6. **MLflow del stack**: tracking server real (`localhost:5000`, backend Postgres, artifacts persistentes) → un modelo registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`), cada uno con su alias `@champion` → recarga por alias. Cada run lleva la **ventana como tag**, para aislarlos en la UI.
+Hoy el modelo **le gana a la fácil por ~20 puntos y pierde contra la difícil por
+~6**. No es un fracaso de la clase: **es la clase**. Un pipeline de MLOps que
+solo sabe decir "todo bien" no sirve para nada.
 
-7. **⚙️ El cierre del fan-out**: `dag_crypto_ml.py` — scoring batch disparado **por el asset `gold_abt`**, que lee el champion del Registry y escribe `gold.predicciones` (idempotente). **La ventana no está hardcodeada**: el DAG la lee del param `ventana_dias` del propio champion. Si el champion fue entrenado con otras features, **lo detecta y saltea con log claro** en vez de escribir basura — es *training-serving skew*, y verlo ocurrir vale más que explicarlo.
+---
 
-8. **📊 El tablero corrige al modelo, y da un veredicto.** La página `6_Gold_ML` abre con el resultado —accuracy por ventana contra **las dos varas**— y recién después muestra la maquinaria. También explica, con los datos del día, **qué significa ser volátil**: la dispersión intradía de una cripto y el corte en la mediana del mercado, dibujados.
+#### El modelo, en breve (el contexto mínimo para entender lo de arriba)
 
-   Abajo aparece lo que el promedio esconde: el modelo la clava en las que **siempre** son volátiles y en las que **nunca** lo son (DAI es una stablecoin), y sufre en las que alternan — que son las únicas donde hay algo que decidir. Y ahí se entiende por qué la persistencia es tan difícil de superar: **para la mayoría de las monedas, «mañana igual que hoy» es literalmente cierto**.
+No es el foco, pero sin esto los puntos 1 a 5 no se leen:
+
+- **La pregunta correcta antes que el modelo.** Se arranca prediciendo *¿sube
+  mañana?* y **no funciona ni puede funcionar**: la dirección del precio no está
+  en los datos públicos de precio y volumen. Se pasa a **¿cuáles van a ser las
+  criptos más movidas mañana?** — la volatilidad **se agrupa en el tiempo**, y
+  eso sí se aprende. **Elegir bien la pregunta rinde más que cambiar de
+  algoritmo.**
+- **El dato fino que el pipeline ya junta.** La volatilidad se calcula con los
+  **~66 snapshots por cripto por día** que `gold.fact_crypto_markets` acumula y
+  que el cierre diario descarta. Es exactamente lo que se decidió guardar en la
+  clase 05, cobrando sentido una clase después.
+- **Target cross-sectional**: `vol_mañana > mediana de la volatilidad de
+  mañana`. Balanceado siempre, por construcción.
+- **Validación honesta**: split temporal por **fechas únicas** (walk-forward),
+  jamás por posición de fila. Los 12 runs se evalúan sobre **las mismas
+  fechas**: si cada uno usara las que le alcanzan, no se sabría si la diferencia
+  viene de las features o del test set.
 
 ### Cierre
 
-- **🎁 Bonus Track**: mapa de MLOps en producción (Feature Stores, Drift, Serving). No se enseña — es la próxima frontera.
+- **🎁 Bonus Track**: el mapa completo de MLOps, con **cinco piezas marcadas como ya hechas** en esta clase y tres que quedan para después (Feature Stores, Drift, Observability Gate).
 - **🎓 Mensaje final**: qué construiste este cuatrimestre y qué hacer con eso (última celda del notebook).
 
 ---
 
-## 🎁 Bonus Track: ¿Y producción?
+## 🎁 Bonus Track: el mapa de MLOps, y dónde estás parado
 
-| Concepto | Para qué sirve |
-|----------|----------------|
-| **Feature Stores** (Feast, Tecton) | Reuso consistente de features entre training y serving |
-| **Model Registry** | Versionado de modelos y promoción con aliases (lo usamos hoy, de verdad) |
-| **Data Drift detection** | Alertar cuando los datos de inferencia se alejan del training |
-| **Training-Serving Skew** | Features idénticas en training y serving (hoy lo resolvimos con **una sola query SQL** compartida entre notebook y DAG) |
-| **Observability Gate** | Validación automática previa a deploy |
+La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no para asustarte:
 
-Estos temas son **carrera completa**. Si te interesa profundizar:
+| Concepto | Para qué sirve | ¿En esta clase? |
+|----------|----------------|-----------------|
+| **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 12 runs con params, métricas y artifacts |
+| **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana, cada uno con su `@champion` |
+| **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
+| **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — una sola query SQL compartida, y el DAG detecta y saltea si no coinciden |
+| **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos varas |
+| **Feature Stores** (Feast, Tecton) | Reuso de features entre equipos y proyectos | ❌ No — con un solo pipeline, una vista de Gold alcanza |
+| **Data Drift detection** | Alertar cuando los datos de inferencia se alejan del training | ❌ No — necesita meses de historia para calibrar |
+| **Observability Gate** | Bloquear un deploy automáticamente si las métricas no dan | ❌ No — acá la promoción del champion es manual, a propósito |
+
+Lo que falta es **carrera completa**. Si te interesa profundizar:
 - Material MLOps avanzado (Feature Stores, Drift, Model Serving): en preparación para próximas ediciones.
 - Cursos: "Machine Learning Engineering for Production (MLOps)" (Coursera/DeepLearning.AI), "Made With ML" (Goku Mohandas).
 
