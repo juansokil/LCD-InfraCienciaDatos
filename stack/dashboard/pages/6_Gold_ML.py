@@ -238,9 +238,6 @@ else:
                    "vez y volver es ruido.")
 
 # =========================================================================
-# 2) LO QUE HAY QUE SABER PARA LEER LO DE ARRIBA — colapsado
-# =========================================================================
-# =========================================================================
 # 2) QUE SIGNIFICA SER VOLATIL — mostrado, no explicado
 # =========================================================================
 # Antes esto era un expander con dos formulas adentro. La definicion es

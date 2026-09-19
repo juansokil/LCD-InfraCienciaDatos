@@ -14,7 +14,7 @@
 ## 🚀 Setup mínimo
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`) — incluye Postgres, Airflow, el dashboard **y el MLflow Tracking Server** (`localhost:5000`).
-- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets** (bronze con cron cada 15 minutos: `:00` → `:05` → `:10`). Gold deja, además de las tablas, las **vistas semánticas** que usa esta clase: `gold.v_ultimo_snapshot`, **`gold.v_series_diaria`** (1 fila = cripto × día, la materia prima del ML) y `gold.v_kpis_mercado`.
+- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que usa esta clase: `gold.v_ultimo_snapshot`, **`gold.v_series_diaria`** (1 fila = cripto × día, la materia prima del ML) y `gold.v_kpis_mercado`.
 - Entorno Python local con `scikit-learn`, `mlflow`, `pandas` (`pip install -r requirements.txt`, raíz del repo).
 
 > ⚠️ **clase06 requiere el stack Docker levantado y el pipeline productivo ya corrido.** Si en los ejercicios 03/04/05 hiciste la variante con **DuckDB** (sin Docker), eso **no alcanza acá**: clase06 no usa las tablas `*_demo` del ejercicio personal, sino el **pipeline productivo** completo. DuckDB sirvió para practicar cada capa; el cierre necesita el stack real.
@@ -34,7 +34,7 @@ El docente recorre el notebook en vivo. Estructura real:
 3. **⚠️ Errores típicos**: qué sale mal en cada capa — incluida la **orquestación** (mismo cron en las 3 capas, dos dueños de una tabla, consumidor de asset pausado).
 4. **🔀 Flujo final del pipeline**: el mapa completo y por qué `global_market` se salta Silver (cuándo romper el patrón).
 5. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
-6. **🚀 Switch a modo producción**: se despausan las ramas por asset, se retira el andamiaje (gold por cron + DAGs de ejemplo). El tablero queda limpio: 4 DAGs que significan algo.
+6. **🚀 Switch a modo producción**: se despausan las ramas por asset, se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
 7. **🔎 El punta a punta en una foto**: una celda recorre API → Bronze → Silver → Gold → salidas y diagnostica dónde se cortó el dato.
 8. **📊 Monitoring**: tres niveles de observabilidad (infra / datos / negocio), el dashboard como cierre del ciclo, roadmap MLOps.
 
