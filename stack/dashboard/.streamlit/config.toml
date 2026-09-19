@@ -1,0 +1,13 @@
+# Tema del dashboard: oscuro fijo, estetica de terminal financiera.
+# Los valores coinciden con los tokens de theme.py (--ground, --surface, etc.)
+# para que los componentes nativos de Streamlit y el CSS propio no peleen.
+[theme]
+base = "dark"
+primaryColor = "#3987e5"
+backgroundColor = "#0e1219"
+secondaryBackgroundColor = "#151b24"
+textColor = "#e9eef5"
+font = "sans serif"
+
+[server]
+runOnSave = true
