@@ -27,7 +27,7 @@ import plotly.graph_objects as go
 from db import run_query
 from theme import (aplicar_tema, encabezado, seccion, de_donde_sale,
                    filtro_periodo, where_periodo, layout,
-                   PLOTLY, SUBE, BAJA, GRIS, SERIES)
+                   SUBE, BAJA, GRIS, SERIES)
 
 aplicar_tema("Gold · Análisis", "🥇")
 # La correlacion ya no espera dias: se calcula sobre snapshots intradia y

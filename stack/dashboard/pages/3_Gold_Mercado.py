@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 from db import frescura, run_query
-from theme import (aplicar_tema, encabezado, pill, hero, kpi, seccion, tabla,
+from theme import (aplicar_tema, encabezado, hero, kpi, seccion, tabla,
                    filtro_categoria, where_categoria, aviso, layout,
                    de_donde_sale, frescura_pill,
                    PLOTLY, SUBE, BAJA, GRIS)
