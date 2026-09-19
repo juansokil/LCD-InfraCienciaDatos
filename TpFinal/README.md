@@ -38,9 +38,12 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 
 1. **Repositorio** con el codigo completo
 2. **docker-compose.yml** funcional: `docker compose up` y listo
-3. **DAGs de Airflow**: minimo un DAG por capa (bronze, silver, gold), todos con **schedule definido** y **activos por default** (no en pausa)
+3. **DAGs de Airflow**: minimo un DAG por capa (bronze, silver, gold), **encadenados por Assets** (bronze con cron y `outlets=`; silver y gold con `schedule=[ASSET]`, sin cron) y **activos por default** (no en pausa)
 4. **Dashboard en Streamlit** sobre las tablas **Gold** (el dashboard consume el modelo final, no Bronze ni Silver)
 5. **README** del proyecto explicando: API elegida, modelo de datos, como levantar el stack
+   
+   *(Y la **presentacion**, que ademas de exponerse hay que **subirla al campus** en
+   un formato descargable — ver `consigna_presentacion.html`.)*
 6. **Trabajo repartido en git**: que **commiteen varios integrantes**, con commits del dominio
    distribuidos en el tiempo — no un unico commit gigante el ultimo dia, ni un solo autor
    subiendo todo. El historial es parte de la entrega: muestra como trabajo el grupo, y se mira.
@@ -103,12 +106,18 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 >   > la primera semana, los links de abajo todavia no resuelven — vuelvan cuando
 >   > tengan el stack levantado, que es cuando esto se entiende de verdad.
 >
->   | Archivo | Que mirar |
->   |---|---|
->   | `stack/dags/common/assets.py` | los assets definidos una sola vez, con el mapa de la cadena arriba de todo |
->   | `stack/dags/01-bronze/dag_crypto_bronze.py` | el unico con cron, y el `outlets=` en `load_markets` |
->   | `stack/dags/02-silver/dag_crypto_silver.py` | `schedule=[BRONZE_CRYPTO]` + emite el suyo |
->   | `stack/dags/03-gold/dag_crypto_gold.py` | `schedule=[SILVER_CRYPTO]` + emite dos assets, uno por consumidor |
+>   | Archivo | Que mirar | Llega con |
+>   |---|---|---|
+>   | `stack/dags/common/assets.py` | los assets definidos una sola vez, con el mapa de la cadena arriba de todo | clase 03 |
+>   | `clase03/ejercicios/dag_crypto_bronze.py` | el unico con cron, y el `outlets=` en `load_markets` | clase 03 |
+>   | `clase04/ejercicios/dag_crypto_silver.py` | `schedule=[BRONZE_CRYPTO]` + emite el suyo | clase 04 |
+>   | `clase05/ejercicios/dag_crypto_gold.py` | `schedule=[SILVER_CRYPTO]` + emite dos assets, uno por consumidor | clase 05 |
+>
+>   > Los tres DAGs viven en `claseNN/ejercicios/`. Aparecen bajo `stack/dags/`
+>   > recien cuando los copies vos, siguiendo el README de cada clase (`cp
+>   > clase03/ejercicios/dag_crypto_bronze.py stack/dags/01-bronze/`). Es a
+>   > proposito: el `.gitignore` no versiona `stack/dags/**/*.py` para que cada
+>   > clase llegue a su tiempo.
 >
 >   **Tres trampas que ya nos comimos** (les van a ahorrar una tarde):
 >   1. **Un run disparado por asset NO tiene `logical_date`**, asi que `ds` no existe en el contexto: pedirlo tira `KeyError('ds')`. Si su DAG es incremental por dia, prevean el caso — miren `_target_date()` en `dag_crypto_silver.py`.

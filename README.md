@@ -53,13 +53,21 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 - Integridad referencial completa
 - Dashboard Streamlit pre-construido (consume tablas Gold)
 
+### 🎓 **El TP Final**
+
+Se entrega en grupo al final del cuatrimestre, pero **conviene leerlo desde la clase 01**: lo primero que hay que hacer es elegir la API, y esa decisión condiciona todo lo demás.
+
+- **[Consigna completa](TpFinal/README.md)** — qué se entrega, los 5 criterios de evaluación, ideas de API y el esqueleto sugerido
+- **[Consigna de la presentación](TpFinal/consigna_presentacion.html)** — qué mostrar y cómo, el día de la defensa
+- **[Guía de git para el grupo](TpFinal/git-guia.md)** — trabajar en la misma rama sin pisarse
+
 ### 🏁 **Cierre**
 
-#### Clase 06: Workshop End-to-End — ML sobre Gold
+#### Clase 06: Workshop End-to-End — Pipeline + ML sobre Gold
 - Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
 - **Elegir la pregunta antes que el modelo**: predecir la *dirección* del precio no funciona ni puede funcionar; predecir **qué criptos van a ser las más movidas** sí, porque la volatilidad se agrupa en el tiempo
 - Tres modelos con la misma pregunta y distinta historia (**1, 3 y 7 días**): mirar más atrás ayuda, y se ve
-- Validación honesta: walk-forward por fechas, baseline de clase mayoritaria, lección de target leakage
+- Validación honesta: walk-forward por fechas, **dos baselines** (la clase mayoritaria, que es la vara fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar), lección de target leakage
 - Tracking con MLflow: un modelo registrado por ventana, cada uno con su alias `@champion`
 - El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
 - 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
@@ -80,7 +88,7 @@ Las clases del cuatrimestre que arman el pipeline (**Bronze → Silver → Gold*
 
 | Clase | Notebook teórico genera | Ejercicio práctico (entrega) | DAG productivo |
 |---|---|---|---|
-| **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple → idempotente → multi-formato → contrato) | Top 50 cryptos (CoinGecko) → `bronze.crypto_markets` | `dag_crypto_bronze.py` |
+| **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → `bronze.crypto_markets` | `dag_crypto_bronze.py` |
 | **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 11 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join, dedup y cuarentena) | `dag_crypto_silver.py` |
 | **05 — Gold** | 2 DAGs sobre `silver.ventas_demo` sintético (Star Schema → ABT) + consumo BI/ML en el notebook | 11 ítems sobre Northwind: 9 queries SQL Gold (agregaciones, JOIN star, ranking, LAG) + tu tabla Gold + tu página Streamlit | `dag_crypto_gold.py` |
 
