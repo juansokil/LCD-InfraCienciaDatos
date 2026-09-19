@@ -59,8 +59,8 @@ git checkout -b estudiante/apellido-nombre
 | Juan Sokil | `estudiante/sokil-juan` |
 | Juan Pablo Sokil | `estudiante/sokil-juanpablo` |
 | María José García López | `estudiante/garcialopez-mariajose` |
-| Lautaro Di Lacio | `estudiante/dilacio-lautaro` |
-| Ana Lucía D'Angelo | `estudiante/dangelo-analucia` |
+| Tomás Del Río | `estudiante/delrio-tomas` |
+| Ana Lucía D'Amato | `estudiante/damato-analucia` |
 
 > **¿Por qué pegados?** Porque el guión es el separador entre apellido y nombre. Si escribieras `garcia-lopez-maria-jose`, no habría forma de saber dónde termina el apellido. Por eso la rama lleva **exactamente un guión** — y un robot de GitHub cierra automáticamente los PRs de ramas que no cumplen la convención (te avisa con un comentario y te dice cómo arreglarlo).
 

@@ -53,7 +53,7 @@ jobs:
             | Juan Sokil | `estudiante/sokil-juan` |
             | Juan Pablo Sokil | `estudiante/sokil-juanpablo` |
             | María José García López | `estudiante/garcialopez-mariajose` |
-            | Lautaro Di Lacio | `estudiante/dilacio-lautaro` |
+            | Tomás Del Río | `estudiante/delrio-tomas` |
 
             Sin tildes ni eñes (José → `jose`, Núñez → `nunez`). El guion se usa **solo** para separar el apellido del nombre: por eso la rama lleva exactamente uno.
 
