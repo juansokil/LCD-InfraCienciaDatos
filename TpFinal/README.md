@@ -56,7 +56,11 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 > no hay filas en Bronze, no se sale a buscar por que — se anota que no arranco.
 >
 > - DAGs **activados por default** (en el `@dag(...)` poner `is_paused_upon_creation=False`).
-> - Cada DAG con **schedule definido** (NO `schedule=None`) — elegir el intervalo segun el `Refresh` de la API que eligieron (ej: `@hourly` si la API actualiza cada hora, `"*/15 * * * *"` para cada 15 min, `@daily`, etc.).
+> - **Ningun DAG con `schedule=None`.** Pero ojo con la forma: el cron va **solo en Bronze** —
+>   elegi el intervalo segun el `Refresh` de tu API (ej: `@hourly`, `"*/15 * * * *"`, `@daily`)—
+>   y **silver y gold NO llevan cron**: van con `schedule=[ASSET]`, que es lo que los
+>   despierta cuando la capa de arriba termino. Esta explicado abajo, en "UN SOLO CRON,
+>   EN EL BORDE".
 > - **`start_date` en el PASADO.** Esta es la trampa que mas silencio hace, asi que va
 >   medida y no de palabra: con `catchup=False` y `start_date` viejo, Airflow crea la
 >   corrida del **ultimo intervalo ya cerrado** y la ejecuta **al instante** — lo medimos en
@@ -436,7 +440,15 @@ git push -u origin tp/G01
 4. **Crear la branch** `tp/G<NN>` desde `main` y la carpeta `TpFinal/grupos/G<NN>/` (ver "Como entregar el TP" arriba). **Tip**: arrancá copiando el README template ([`grupos/G00/README.md`](grupos/G00/README.md)) como `TpFinal/grupos/G<NN>/README.md` para tener la plantilla de los datos del proyecto.
 5. **Abrir el PR-draft** contra `main` con el titulo y body sugeridos.
 6. Armar el `docker-compose.yml` con los 4 servicios: postgres (warehouse), postgres (airflow), airflow, dashboard. Inspirarse en `stack/docker-compose.yml` (disponible desde la clase 02).
-7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa) — definir `schedule` segun la frecuencia de la API (ver el `Refresh` de cada API en la seccion arriba) y `is_paused_upon_creation=False` para que arranque solo.
+7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa), **encadenados por Assets**:
+   - **Bronze** con cron segun el `Refresh` de la API (ver la seccion de arriba) y `outlets=[TU_ASSET]`.
+   - **Silver** con `schedule=[TU_ASSET]` (sin cron) y su propio `outlets=[...]`.
+   - **Gold** con `schedule=[ASSET_DE_SILVER]` (sin cron).
+   - Los tres con `is_paused_upon_creation=False` para que arranquen solos.
+
+   El cron escalonado (`:00` / `:05` / `:10`) **no cumple la consigna**: esta explicado
+   en "UN SOLO CRON, EN EL BORDE". La implementacion de referencia esta en los DAGs del
+   curso (clases 03 a 05).
 8. Construir el dashboard en Streamlit **sobre las tablas Gold** (KPIs / vistas de negocio — no se visualizan Bronze ni Silver, eso es backend del pipeline).
 9. Documentar todo en `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar el stack, decisiones tecnicas.
 10. **Entregar** antes del **domingo 15 de noviembre, 23:59** y **presentar** el **jueves 19 de noviembre** (7-10 min).
