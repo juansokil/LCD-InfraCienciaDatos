@@ -104,23 +104,31 @@ st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
 # =============================================================================
 # LAS PÁGINAS
 # =============================================================================
+# Esta lista tiene que coincidir con lo que hay en `pages/`. No es decorativo:
+# es lo primero que ve quien abre el tablero, y una tarjeta que promete algo
+# que no existe (o que describe una pagina que ya cambio) hace perder tiempo
+# antes de mostrar un solo dato.
 PAGINAS = [
     ("🥉", "Bronze · Ingesta", "¿Llegó el dato?",
-     "Cadencia real contra la esperada, frescura, crecimiento y peso del crudo. "
-     "Acá no se miran precios: se mira el acto de ingerir."),
+     "Cadencia real contra la esperada — y también cuando corre de MÁS —, "
+     "re-ingestas, frescura y peso del crudo. Acá no se miran precios: se "
+     "mira el acto de ingerir."),
     ("🥈", "Silver · Calidad", "¿Sirve el dato?",
-     "El embudo Bronze→Silver→cuarentena, el contrato que se aplica, completitud "
-     "por columna y la trazabilidad que agrega la capa."),
+     "Los invariantes del modelo verificados contra la base, el embudo "
+     "Bronze→Silver→cuarentena, el contrato que se aplica y la trazabilidad "
+     "que agrega la capa."),
     ("🥇", "Gold · Mercado", "¿Qué dice el negocio?",
-     "KPIs del momento, mapa de capitalización, ganadores/perdedores y ranking."),
-    ("🥇", "Gold · Velas", "¿Cómo se movió cada activo?",
-     "Apertura, máximo, mínimo y cierre por día — armados desde los snapshots."),
+     "El mismo 24 h calculado por la API y por vos, uno al lado del otro. "
+     "Más KPIs del momento, mapa de capitalización y ranking."),
+    ("🥇", "Gold · Velas", "¿Cómo se movió el mercado?",
+     "La vela del mercado entero, y la de cada activo: apertura, máximo, "
+     "mínimo y cierre por día, armados desde los snapshots."),
     ("🥇", "Gold · Análisis", "¿Qué estructura hay detrás?",
-     "Riesgo contra retorno, correlación intradía, amplitud y concentración."),
-    ("🤖", "Gold · ML", "¿Qué dice el modelo?",
-     "La ABT, los experimentos de MLflow, el champion y las predicciones."),
-    ("🎓", "Demo Ventas", "El ejemplo de clase 05",
-     "Star Schema y ABT sobre datos sintéticos, generados desde el notebook."),
+     "Riesgo contra retorno, correlación intradía, concentración — y el star "
+     "schema funcionando: la misma pregunta cortada por dos dimensiones."),
+    ("🤖", "Gold · ML", "¿El modelo sirve?",
+     "El veredicto primero: el modelo contra las dos varas, la fácil y la "
+     "difícil. Debajo, la maquinaria (ABT, MLflow, champion, predicciones)."),
 ]
 
 st.markdown(

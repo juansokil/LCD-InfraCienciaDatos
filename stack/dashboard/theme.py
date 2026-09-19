@@ -15,11 +15,13 @@ Uso en una página:
 
 Lo que exporta este módulo, y nada más:
 
-    aplicar_tema · encabezado · seccion · aviso · pill · kpi · hero ·
-    tabla · ticker · frescura_pill · de_donde_sale · layout · fecha_larga ·
-    miles ·
-    filtro_periodo · where_periodo
-    SUBE · BAJA · GRIS · SERIES · PLOTLY
+    estructura   aplicar_tema · encabezado · seccion · aviso
+    bloques      pill · kpi · hero · tabla · ticker · frescura_pill
+    contexto     de_donde_sale
+    gráficos     layout · PLOTLY · SUBE · BAJA · GRIS · SERIES
+    filtros      filtro_periodo · where_periodo
+                 filtro_categoria · where_categoria · CATEGORIAS_ORDEN · PRESETS
+    formato      fecha_larga · miles · MESES
 """
 
 import streamlit as st
