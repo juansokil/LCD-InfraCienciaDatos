@@ -2,7 +2,7 @@
 DAG: crypto_ml
 Clase 06 - Scoring (inferencia batch) con el modelo @champion del Registry
 
-Pipeline:  gold.v_series_diaria + MLflow Registry  ->  gold.predicciones
+Pipeline:  gold.fact_crypto_markets + MLflow Registry  ->  gold.predicciones
 
 Es la 4ta capa del pipeline productivo (SERVING) y el ultimo eslabon de la
 cadena data-aware: se dispara POR DATO (asset GOLD_ABT), no por reloj.
@@ -89,7 +89,19 @@ DB_URI = (
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 # Un modelo registrado POR VENTANA: cada uno tiene su propio @champion.
 # Asi se pueden promover y comparar por separado, que es el punto de la clase.
-MODEL_NAME_TPL = "crypto_volatilidad_{W}d"
+# El Registry tiene un modelo POR VENTANA (crypto_volatilidad_1d/3d/7d),
+# cada uno con su alias @champion. Pero este DAG sirve UNO SOLO: el de la
+# ventana mas larga, que es la que mas historia mira.
+#
+# No es un olvido: servir los tres significaria escribir tres predicciones
+# por cripto y por dia, y la tabla ya tiene la ventana en la PK para
+# soportarlo -- pero la decision de que modelo va a produccion es humana y
+# se toma promoviendo el alias, no multiplicando el scoring.
+#
+# Si manana se quiere servir otra ventana, se cambia esta constante (o se
+# parametriza con una Variable de Airflow). La ventana con la que entrenar
+# las features NO se hardcodea: sale del propio modelo, leyendo su param
+# `ventana_dias` -- eso es lo que evita el training-serving skew.
 MODEL_NAME = "crypto_volatilidad_7d"   # el de la ventana mas larga
 MODEL_ALIAS = "champion"
 
@@ -285,7 +297,7 @@ def crypto_ml():
         engine = sqlalchemy.create_engine(DB_URI)
         df = pd.read_sql(features_sql(ventana), engine, parse_dates=["fecha"])
         if df.empty:
-            print("[SKIP] gold.v_series_diaria sin filas: el pipeline todavia "
+            print("[SKIP] gold.fact_crypto_markets sin filas: el pipeline todavia "
                   "no poblo Gold. Nada que scorear.")
             return {"status": "sin_datos", "fecha": None, "rows": []}
 

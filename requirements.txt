@@ -40,6 +40,11 @@ notebook==7.3.2
 # su entorno local: sin declararlo, clase04 no arranca (ModuleNotFoundError).
 pydantic[email]>=2.0                 # el extra [email] lo pide EmailStr del contrato
 
+# Mismo criterio: llega transitivamente, pero la clase03 lo usa DIRECTO.
+# `from common.contracts import ...` dispara un `import yaml` a nivel de
+# modulo, y eso corre en el entorno LOCAL del estudiante, no en Docker.
+PyYAML>=6.0                          # los contratos son .yaml
+
 # --- Parseo de fechas (clase04: normalizar formatos mezclados) ---
 # Mismo criterio que pydantic y pyarrow: llega transitivamente con pandas, pero
 # la clase04 lo usa DIRECTO (`from dateutil import parser` para leer fechas en

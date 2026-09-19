@@ -316,7 +316,7 @@ git reflog
 # d4e5f6g HEAD@{1}: commit: TP G07 silver listo
 # ...
 
-# Si queres volver al estado a1b2c3d:
+# Si queres volver al commit "TP G07 silver listo" (d4e5f6g):
 git reset --hard d4e5f6g
 ```
 

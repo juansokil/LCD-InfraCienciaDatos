@@ -279,7 +279,7 @@ def crypto_silver():
         backfilleable: `airflow dags backfill crypto_silver -s <ini>
         -e <fin>` reprocesa cada dia por separado.
 
-        Dedup y normalizacion (symbol->UPPER, name->Title, trim,
+        Dedup y normalizacion (symbol->UPPER, name SIN tocar, trim,
         ''->NULL) se hacen en SQL -- pushdown: el worker recibe los
         datos ya deduplicados y normalizados (solo la validacion de
         contrato corre en Python, por diseno contract-driven).
@@ -293,7 +293,7 @@ def crypto_silver():
 
         # SQL PUSHDOWN: dedup + normalizacion se hacen en Postgres, no en pandas.
         # Armamos la lista de columnas desde el catalogo para:
-        #   - normalizar en SQL (symbol->UPPER, name->Title, trim, ''->NULL)
+        #   - normalizar en SQL (symbol->UPPER, name tal cual, trim, ''->NULL)
         #   - NO perder columnas extra (ath, atl, ...) -> evolution-safe
         #     (no se puede `SELECT *, upper(symbol) AS symbol`: columnas duplicadas)
         cols = pd.read_sql(
@@ -409,11 +409,11 @@ def crypto_silver():
 
         # Decision basada en el score
         if quality_score >= 95:
-            print(f"-> PROCESS_TO_SILVER")
+            print("-> PROCESS_TO_SILVER")
         elif quality_score >= 85:
-            print(f"-> PROCESS_WITH_WARNING")
+            print("-> PROCESS_WITH_WARNING")
         else:
-            print(f"-> HALT_AND_ALERT")
+            print("-> HALT_AND_ALERT")
 
         # Pasamos los datos sin modificar a la siguiente tarea
         return records
@@ -432,7 +432,8 @@ def crypto_silver():
         1. DEDUPLICAR: si hay 2 registros con mismo (id, snapshot_ts),
            se queda con el ultimo por ingested_at.
 
-        2. NORMALIZAR: estandarizar strings (UPPER, Title case, strip).
+        2. NORMALIZAR: estandarizar strings (UPPER en symbol, strip).
+           OJO: `name` NO se toca -- ver el comentario de read_bronze.
 
         3. VALIDAR contra el contrato YAML: Pydantic se construye en
            runtime desde `crypto_markets.yaml` (no hay clase hardcodeada).
@@ -462,7 +463,7 @@ def crypto_silver():
         # No repetimos el dedup en pandas: el set-based lo hizo Postgres.
 
         # --- 3. NORMALIZACION DE STRINGS ---
-        # Ya hecha en SQL (read_bronze): symbol->UPPER, name->Title,
+        # Ya hecha en SQL (read_bronze): symbol->UPPER, name sin tocar,
         # trim y blancos->NULL -- pushdown. No se repite en pandas.
 
         # --- 4. VALIDACION fila por fila con Pydantic dinamico ---
@@ -580,8 +581,8 @@ def crypto_silver():
 
         DATA-AWARE: `outlets=[SILVER_CRYPTO]` -> al terminar OK, Airflow marca el
         asset `silver_crypto_markets` como actualizado y dispara solos a TODOS
-        los consumidores que lo escuchan: `crypto_gold` (el productivo) y las
-        dos ramas de demo del fan-out de clase06.
+        los consumidores que lo escuchan -- hoy `crypto_gold`, y cualquier DAG
+        que en el futuro declare `schedule=[SILVER_CRYPTO]` sin tocar esta task.
 
         El asset se emite ACA, en la task que ESCRIBE el dato, no al final del
         DAG: lo que se publica es "el dato existe", no "el DAG termino".

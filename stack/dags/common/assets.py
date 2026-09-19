@@ -57,7 +57,7 @@ from airflow.sdk import Asset
 # Consecuencia buscada: si Silver falla, Gold NO corre. Antes corria igual
 # (cron) y publicaba Gold sobre datos viejos sin que nadie se enterara.
 
-# Producido por crypto_bronze (la tarea load_bronze declara outlets=[BRONZE_CRYPTO]).
+# Producido por crypto_bronze (la tarea load_markets declara outlets=[BRONZE_CRYPTO]).
 BRONZE_CRYPTO = Asset(name="bronze_crypto_markets")
 
 # Producido por crypto_silver (la tarea load_silver declara outlets=[SILVER_CRYPTO]).

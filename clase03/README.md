@@ -89,7 +89,7 @@ Airflow detecta el archivo automáticamente (volumen montado) y lo muestra en la
 > [!WARNING]
 > Apenas copiás el archivo, el DAG empieza a pegarle a la API de CoinGecko **cada 15 minutos** (`schedule="0,15,30,45 * * * *"`) y sigue haciéndolo mientras el stack esté levantado. Si no querés eso corriendo de fondo, **pausalo con el toggle** en la UI después de la primera corrida.
 
-> Filtrá por tag **`prod`** en la UI para ver solo los DAGs productivos (separa el "DAG real" de la escalera didáctica `01_*` → `04_*`).
+> Filtrá por tag **`prod`** en la UI para ver solo los DAGs productivos (separa el "DAG real" de la escalera didáctica `bronze_01_*` → `bronze_04_*`).
 
 ---
 

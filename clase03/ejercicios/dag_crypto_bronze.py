@@ -222,7 +222,7 @@ def _clean_records(records):
 #     pendientes desde start_date. Para APIs en tiempo real como precios,
 #     esto no tiene sentido porque los datos historicos ya no estan disponibles.
 #
-#   tags=["bronze", "crypto"]
+#   tags=["prod", "bronze", "crypto"]
 #     Etiquetas para filtrar y organizar DAGs en la UI de Airflow.
 #     "bronze" indica la capa del data lake; "crypto" el dominio de datos.
 #
@@ -500,10 +500,10 @@ def crypto_bronze():
 
 
         # =============================================================
-        # SELECCION DE COLUMNAS: POR QUE ESTAS 22 COLUMNAS?
+        # SELECCION DE COLUMNAS: POR QUE ESTAS 24 COLUMNAS?
         # =============================================================
         # La API devuelve ~30+ columnas por moneda, pero no todas son utiles
-        # para nuestro analisis. Seleccionamos 22 columnas organizadas en
+        # para nuestro analisis. Seleccionamos 24 columnas organizadas en
         # categorias tematicas:
         #
         # -- IDENTIFICACION (3 columnas): id, symbol, name --
