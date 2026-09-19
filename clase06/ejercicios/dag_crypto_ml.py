@@ -341,53 +341,80 @@ def crypto_ml():
         return {"status": "ok", "fecha": str(ultima_fecha.date()),
                 "ventana": ventana, "rows": rows}
 
+    def _asegurar_tabla(conn):
+        """Crea gold.predicciones si no existe. Idempotente, llamable N veces.
+
+        Vive aca afuera y no adentro de write_predicciones porque
+        `completar_historico` TAMBIEN la necesita: esa task empieza con
+        cuatro ALTER TABLE, y `ADD COLUMN IF NOT EXISTS` protege la columna
+        pero NO la tabla -- un ALTER sobre una relacion inexistente es error
+        42P01, no un no-op.
+
+        El caso se da solo en un stack nuevo: sin champion (o con las
+        ventanas todavia "calentando") write_predicciones saltea con un
+        return temprano, la tabla nunca se creaba, y la task siguiente
+        moria. Es exactamente el escenario que el header de este archivo
+        promete que NO tiene que fallar.
+        """
+        import sqlalchemy  # noqa: F401  (el caller ya lo importo)
+
+        conn.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS gold")
+        conn.exec_driver_sql("""
+            CREATE TABLE IF NOT EXISTS gold.predicciones (
+                fecha_features   date             NOT NULL,
+                crypto_id        text             NOT NULL,
+                symbol           text,
+                predijo_alta_vol integer,
+                proba_alta_vol   double precision,
+                champion_version text,
+                scored_at        timestamptz,
+                origen           text             DEFAULT 'produccion',
+                ventana          integer          NOT NULL,
+                -- La ventana entra en la PK: las tres (1/3/7) predicen la
+                -- misma cripto el mismo dia, y son filas distintas.
+                PRIMARY KEY (fecha_features, crypto_id, ventana)
+            )
+        """)
+        # La tabla nacio con el target anterior (direccion del precio).
+        # RENAME conserva los datos y el IF lo hace idempotente: en una base
+        # nueva el CREATE de arriba ya la crea con los nombres correctos.
+        for viejo, nuevo in (("pred_sube_manana", "predijo_alta_vol"),
+                             ("proba_sube", "proba_alta_vol")):
+            conn.exec_driver_sql(f'''
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM information_schema.columns
+                               WHERE table_schema = 'gold'
+                                 AND table_name   = 'predicciones'
+                                 AND column_name  = '{viejo}') THEN
+                        ALTER TABLE gold.predicciones
+                            RENAME COLUMN {viejo} TO {nuevo};
+                    END IF;
+                END $$;
+            ''')
+
     @task
     def write_predicciones(payload: dict):
         """Escribe gold.predicciones de forma idempotente (DELETE del dia + INSERT)."""
         import sqlalchemy
 
+        engine = sqlalchemy.create_engine(DB_URI)
+
+        # La tabla se crea SIEMPRE, incluso cuando no hay nada que escribir.
+        # Antes esto vivia despues del return de abajo, y en un stack nuevo
+        # (sin champion todavia) la tabla no llegaba a existir: la task
+        # siguiente arranca con ALTER TABLE y moria con 42P01. Crearla vacia
+        # es gratis y deja el pipeline consistente desde la primera corrida.
+        with engine.begin() as conn:
+            _asegurar_tabla(conn)
+
         if payload["status"] != "ok" or not payload["rows"]:
             print(f"Sin predicciones para escribir (status={payload['status']}). "
-                  "gold.predicciones queda como estaba. NO es un error.")
+                  "gold.predicciones queda como estaba (vacia si es la primera "
+                  "corrida). NO es un error.")
             return
 
-        engine = sqlalchemy.create_engine(DB_URI)
         with engine.begin() as conn:
-            conn.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS gold")
-            conn.exec_driver_sql("""
-                CREATE TABLE IF NOT EXISTS gold.predicciones (
-                    fecha_features   date             NOT NULL,
-                    crypto_id        text             NOT NULL,
-                    symbol           text,
-                    predijo_alta_vol integer,
-                    proba_alta_vol   double precision,
-                    champion_version text,
-                    scored_at        timestamptz,
-                    origen           text             DEFAULT 'produccion',
-                    ventana          integer          NOT NULL,
-                    -- La ventana entra en la PK: las tres (1/3/7) predicen la
-                    -- misma cripto el mismo dia, y son filas distintas.
-                    PRIMARY KEY (fecha_features, crypto_id, ventana)
-                )
-            """)
-            # La tabla nacio con el target anterior (direccion del precio).
-            # RENAME conserva los datos y el IF lo hace idempotente: en una base
-            # nueva el CREATE de arriba ya la crea con los nombres correctos.
-            for viejo, nuevo in (("pred_sube_manana", "predijo_alta_vol"),
-                                 ("proba_sube", "proba_alta_vol")):
-                conn.exec_driver_sql(f'''
-                    DO $$
-                    BEGIN
-                        IF EXISTS (SELECT 1 FROM information_schema.columns
-                                   WHERE table_schema = 'gold'
-                                     AND table_name   = 'predicciones'
-                                     AND column_name  = '{viejo}') THEN
-                            ALTER TABLE gold.predicciones
-                                RENAME COLUMN {viejo} TO {nuevo};
-                        END IF;
-                    END $$;
-                ''')
-
             # Idempotencia: si el DAG corre dos veces el mismo dia,
             # borra ese dia y lo reescribe (mismo principio que Bronze).
             conn.execute(
@@ -431,6 +458,11 @@ def crypto_ml():
 
         engine = sqlalchemy.create_engine(DB_URI)
         with engine.begin() as conn:
+            # Antes que los ALTER: si la tabla no existe, `ADD COLUMN IF NOT
+            # EXISTS` NO la crea -- falla con 42P01. write_predicciones ya la
+            # asegura, pero repetirlo aca cuesta nada y vuelve a esta task
+            # independiente del camino que haya tomado la anterior.
+            _asegurar_tabla(conn)
             conn.exec_driver_sql(
                 "ALTER TABLE gold.predicciones "
                 "ADD COLUMN IF NOT EXISTS origen text DEFAULT 'produccion'")
