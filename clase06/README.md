@@ -44,17 +44,24 @@ El docente recorre el notebook en vivo. Estructura real:
 
 2. **Dataset con el dato fino que el pipeline ya junta.** La volatilidad se calcula con los **~66 snapshots por cripto por día** que `gold.fact_crypto_markets` acumula y que el cierre diario descarta. Features en SQL con `LAG`/ventanas (solo info ≤ t, disciplina *as-of* de clase01); target con `LEAD`, por cripto y ordenado por fecha real.
 
-3. **Target cross-sectional**: `vol_mañana > mediana de la volatilidad de mañana`. La mitad le gana por definición, así que queda **balanceado siempre** y el baseline se clava en 50%. Con un target absoluto el baseline se movía con el humor del día y dejaba de ser comparable.
+3. **Target cross-sectional**: `vol_mañana > mediana de la volatilidad de mañana`. La mitad le gana por definición, así que queda **balanceado siempre** y la clase mayoritaria se clava en 50%. Con un target absoluto esa referencia se movía con el humor del día y dejaba de ser comparable. **Pero ojo con la conclusión fácil**: que se clave en 50% la vuelve una vara *trivial de superar*, no una buena vara — ver el punto 5.
 
 4. **🔭 ¿Mirar más atrás ayuda?** — la grilla cruza **4 algoritmos × 3 ventanas** (1, 3 y 7 días): 12 runs, la **misma** pregunta, distinta cantidad de historia. La respuesta **la da el dato del día, no el apunte**: la celda compara el salto entre ventanas contra lo que mueve una sola predicción, y si no lo supera dice que no hay diferencia. Los 12 se evalúan sobre las **mismas fechas**: si cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las features o del test set.
 
-5. **Validación honesta**: split temporal por **fechas únicas** (walk-forward), jamás por posición de fila. El baseline es la **clase mayoritaria de lo que ya pasó** — nunca la del día que se quiere predecir, que sería elegir el lado ganador después del partido.
+5. **Validación honesta, y contra DOS varas.** Split temporal por **fechas únicas** (walk-forward), jamás por posición de fila. Y el modelo se mide contra dos referencias, porque elegir la fácil y cantar victoria es el error más común del oficio:
+
+   - **La fácil** — la *clase mayoritaria de lo que ya pasó* (nunca la del día que se quiere predecir: eso sería elegir el lado ganador después del partido). Ronda 50% porque el target está balanceado por construcción, así que ganarle no prueba nada.
+   - **La difícil** — la *persistencia*: «mañana se repite lo de hoy». Es la hipótesis de volatility clustering hecha regla, sin features, sin entrenar y sin MLflow. **Y acá está el filo**: si la volatilidad se agrupa —que es la razón por la que esta pregunta tiene respuesta— entonces repetir lo de ayer ya acierta mucho. Superarla es lo que justifica haber entrenado algo.
+
+   Con los datos del curso el modelo **le gana a la fácil por ~20 puntos y pierde contra la difícil por ~6** (ventana 7d: 73,5% contra 51,9% y 79,7%). No es un fracaso de la clase: **es la clase**.
 
 6. **MLflow del stack**: tracking server real (`localhost:5000`, backend Postgres, artifacts persistentes) → un modelo registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`), cada uno con su alias `@champion` → recarga por alias. Cada run lleva la **ventana como tag**, para aislarlos en la UI.
 
 7. **⚙️ El cierre del fan-out**: `dag_crypto_ml.py` — scoring batch disparado **por el asset `gold_abt`**, que lee el champion del Registry y escribe `gold.predicciones` (idempotente). **La ventana no está hardcodeada**: el DAG la lee del param `ventana_dias` del propio champion. Si el champion fue entrenado con otras features, **lo detecta y saltea con log claro** en vez de escribir basura — es *training-serving skew*, y verlo ocurrir vale más que explicarlo.
 
-8. **📊 El tablero corrige al modelo.** La página `6_Gold_ML` compara cada predicción contra **lo que efectivamente pasó**: accuracy por ventana contra el baseline, evolución en el tiempo y desagregado **por cripto**. Ahí se ve algo que el promedio esconde: el modelo la clava en las que **siempre** son volátiles y en las que **nunca** lo son (DAI es una stablecoin), y sufre en las que alternan — que son las únicas donde hay algo que decidir.
+8. **📊 El tablero corrige al modelo, y da un veredicto.** La página `6_Gold_ML` abre con el resultado —accuracy por ventana contra **las dos varas**— y recién después muestra la maquinaria. También explica, con los datos del día, **qué significa ser volátil**: la dispersión intradía de una cripto y el corte en la mediana del mercado, dibujados.
+
+   Abajo aparece lo que el promedio esconde: el modelo la clava en las que **siempre** son volátiles y en las que **nunca** lo son (DAI es una stablecoin), y sufre en las que alternan — que son las únicas donde hay algo que decidir. Y ahí se entiende por qué la persistencia es tan difícil de superar: **para la mayoría de las monedas, «mañana igual que hoy» es literalmente cierto**.
 
 ### Cierre
 
