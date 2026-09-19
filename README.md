@@ -53,17 +53,9 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 - Integridad referencial completa
 - Dashboard Streamlit pre-construido (consume tablas Gold)
 
-### 🎓 **El TP Final**
-
-Se entrega en grupo al final del cuatrimestre, pero **conviene leerlo desde la clase 01**: lo primero que hay que hacer es elegir la API, y esa decisión condiciona todo lo demás.
-
-- **[Consigna completa](TpFinal/README.md)** — qué se entrega, los 5 criterios de evaluación, ideas de API y el esqueleto sugerido
-- **[Consigna de la presentación](TpFinal/consigna_presentacion.html)** — qué mostrar y cómo, el día de la defensa
-- **[Guía de git para el grupo](TpFinal/git-guia.md)** — trabajar en la misma rama sin pisarse
-
 ### 🏁 **Cierre**
 
-#### Clase 06: Workshop End-to-End — Pipeline + ML sobre Gold
+#### Clase 06: MLOps — del pipeline al modelo en producción
 - Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
 - **Elegir la pregunta antes que el modelo**: predecir la *dirección* del precio no funciona ni puede funcionar; predecir **qué criptos van a ser las más movidas** sí, porque la volatilidad se agrupa en el tiempo
 - Tres modelos con la misma pregunta y distinta historia (**1, 3 y 7 días**): mirar más atrás ayuda, y se ve
@@ -103,6 +95,14 @@ Las clases del cuatrimestre que arman el pipeline (**Bronze → Silver → Gold*
 > a propósito: el entregable de esa semana sería spoilear el TP Final. Sí tiene
 > DAG productivo (`ejercicios/dag_crypto_ml.py`), que cierra la cadena consumiendo
 > la ABT de Gold.
+
+### 🎓 **El TP Final**
+
+Se entrega en grupo al final del cuatrimestre, pero **conviene leerlo desde la clase 01**: lo primero que hay que hacer es elegir la API, y esa decisión condiciona todo lo demás.
+
+- **[Consigna completa](TpFinal/README.md)** — qué se entrega, los 5 criterios de evaluación, ideas de API y el esqueleto sugerido
+- **[Consigna de la presentación](TpFinal/consigna_presentacion.html)** — qué mostrar y cómo, el día de la defensa
+- **[Guía de git para el grupo](TpFinal/git-guia.md)** — trabajar en la misma rama sin pisarse
 
 ---
 

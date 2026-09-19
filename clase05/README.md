@@ -216,7 +216,7 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 
 ---
 
-## 🔮 Forward reference a clase 06 (Workshop End-to-End)
+## 🔮 Forward reference a clase 06 (MLOps)
 
 **Clase 06** es la **clase de cierre del cuatrimestre** — workshop magistral, sin entrega comprometida. El objetivo es **consolidar lo aprendido y ver el cuadro completo**. Lo que vas a ver:
 
