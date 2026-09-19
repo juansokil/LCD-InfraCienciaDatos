@@ -14,7 +14,7 @@ DAGs de aprendizaje y demos. Los estudiantes generan los suyos en la **Clase 02*
 - `demo_02_secuencia.py` — pasaje de datos entre tareas (XComs implícitos)
 - `demo_03_branching.py` — decisiones con `@task.branch`
 
-> El patrón **Dynamic Task Mapping** (`.expand()`) se ve en **Clase 03** aplicado a un caso real: ingesta de N archivos del landing → ver `01-bronze/dag_ingesta_dynamic.py`.
+> El patrón **Dynamic Task Mapping** (`.expand()`) se ve en **Clase 03** aplicado a un caso real: ingesta de N archivos del landing → ver `01-bronze/bronze_03_dynamic.py`.
 
 > A medida que avancemos en el cuatrimestre van a aparecer más carpetas con DAGs reales:
 > - `01-bronze/` (Clase 03 — Ingesta)
@@ -27,6 +27,6 @@ DAGs de aprendizaje y demos. Los estudiantes generan los suyos en la **Clase 02*
 
 - **TaskFlow API**: Airflow 3 usa decoradores `@dag` y `@task` para definir flujos de manera limpia.
 - **Configuración desde `.env`**: las credenciales vienen de variables de entorno, no se hardcodean.
-- **Conexiones**: los DAGs reales (de clase 03 en adelante) usan `PostgresHook` con la conexión `database` configurada en Airflow UI.
+- **Conexiones**: los DAGs **no usan Hooks ni Airflow Connections**. Arman la URI a mano desde variables de entorno (`SOURCE_DB_USER`, `SOURCE_DB_PASS`, `SOURCE_DB_HOST`, `SOURCE_DB_NAME`), que el `docker-compose.yml` inyecta desde `.env`. Es deliberado: una Connection hay que crearla a mano en la UI la primera vez, y el stack tiene que levantar sin configuración manual. Si abrís **Admin → Connections** no vas a encontrar ninguna, y está bien.
 
 **¡A orquestar se ha dicho! 🚀🫡**

@@ -30,7 +30,7 @@ Todos los servicios se comunican a traves de la red `de_stack_network` (bridge).
 
 ```
 dags/
-├── 00-playground/              # DAGs de aprendizaje (TaskFlow API, branching, ingesta multi-formato)
+├── 00-playground/              # Demos del API de Airflow que NO escriben a la DB
 ├── 01-bronze/                  # Ingesta: CSV/JSON/APIs -> bronze
 ├── 02-silver/                  # Refinamiento: limpieza, validacion, cuarentena
 └── 03-gold/                    # Analitica: star schema, ABT
@@ -41,7 +41,7 @@ dags/
 Al levantar el stack, se crea automaticamente:
 
 - **Base de datos** `InfraCienciaDatos`: creada por la variable `POSTGRES_DB` en el docker-compose
-- **Schemas**: creados por `init.sql` (montado en `/docker-entrypoint-initdb.d/`)
+- **Schemas**: creados por `init.sql`, que se **copia adentro** de la imagen (`Dockerfile.postgres`) y Postgres ejecuta al inicializar el volumen. No es un bind-mount: en Windows daban problemas.
 
 | Schema | Proposito |
 |--------|-----------|
