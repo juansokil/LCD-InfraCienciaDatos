@@ -523,7 +523,10 @@ def crypto_gold():
         print(f"gold.gold_abt_crypto reconstruida (global={'si' if tiene_global else 'no'})")
 
     # ============================================================
-    # VERIFICAR INTEGRIDAD REFERENCIAL + RESUMEN
+    # DESDE ACA: LA CAPA SEMANTICA (build_views)
+    # La verificacion de integridad referencial vive al final del archivo,
+    # despues de las vistas: se chequea lo que quedo armado, no lo que
+    # se esta por armar.
     # ============================================================
     # Integridad = toda FK de la fact apunta a una PK existente en la dim.
     # Se mide con LEFT JOIN + WHERE d.crypto_id IS NULL (huerfanos).
@@ -876,7 +879,7 @@ def crypto_gold():
             -- Mismo mecanismo que v_ohlc_diario (first/max/min/last sobre los
             -- snapshots del dia), pero sobre el agregado macro en vez de sobre
             -- una cripto. Es la respuesta a "como se movio el MERCADO hoy",
-            -- que no es la suma de 53 velas: es su propia vela.
+            -- que no es la suma de las velas individuales: es su propia vela.
             --
             -- Solo existe porque fact_global_market guarda 1 fila por SNAPSHOT.
             -- Con una fila por dia no habria maximo ni minimo del dia, igual
