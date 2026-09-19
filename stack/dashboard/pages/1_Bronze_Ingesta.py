@@ -66,8 +66,6 @@ if g.empty or g.iloc[0]["filas"] == 0:
 
 b = g.iloc[0]
 ultima = pd.to_datetime(b["ultima"])
-lag = (pd.Timestamp.utcnow().tz_localize(None) - ultima).total_seconds() / 60
-
 # Una sola definicion de frescura para todo el dashboard: mismos umbrales y
 # misma redaccion que el home y que la pagina de Mercado. Antes cada pantalla
 # armaba la suya y el mismo estado se llamaba "INGESTA AL DIA" aca y "AL DIA"
