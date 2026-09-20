@@ -361,8 +361,8 @@ TpFinal/grupos/G<NN>/
 ├── Dockerfile.postgres             # opcional: si quieren pre-cargar init.sql en la imagen
 ├── init.sql                        # CREATE SCHEMA bronze, silver, gold
 ├── requirements.txt                # deps Python para Airflow (pandas, sqlalchemy, requests, etc.)
-├── .env.example                    # variables de entorno (cada uno copia a .env)
-├── .gitignore                      # ignorar .env, credentials/, __pycache__, etc.
+├── .env                            # variables de entorno — SI se versiona (ver abajo)
+├── .gitignore                      # ignorar credentials/, __pycache__, data/, etc.
 ├── dags/
 │   ├── 01-bronze/
 │   │   └── <api>_bronze.py         # ingesta cruda de la API a schema bronze
@@ -378,6 +378,20 @@ TpFinal/grupos/G<NN>/
     └── pages/                       # vistas adicionales sobre tablas GOLD
         └── 1_Gold.py                # dashboard de KPIs / vistas de negocio sobre el modelo final
 ```
+
+> ⚠️ **El `.env` SI va al repo, a proposito.** El criterio 4 pide que el stack
+> arranque con **un solo** `docker compose up`, y un `cp .env.example .env` previo
+> son dos comandos. Ademas el docente tiene que poder levantar su entrega sin
+> adivinar que variables hacen falta. El `.gitignore` del repo ya tiene la excepcion
+> (`!TpFinal/grupos/*/.env`), asi que su `.env` se commitea sin hacer nada especial.
+>
+> **Esto vale porque son credenciales de juguete** (`admin/admin`, un Postgres que
+> corre en su maquina). Una **API key real NO va en el `.env` versionado**: se pasa
+> como variable de entorno del host y el `.env` la lee con `${MI_API_KEY}` —
+> o, si la API lo permite, usen el tier sin auth. Commitear un token es de las
+> cosas que **restan** en la evaluacion, y ademas GitGuardian lo detecta en el PR.
+>
+> Fuera del curso la regla es la contraria: el `.env` **nunca** se versiona.
 
 > **Patron de referencia**: la estructura sigue la misma logica del `stack/` del curso (Airflow 3.1.5 + Postgres 17 Alpine + Streamlit). Pueden mirar `stack/` para inspirarse en el `docker-compose.yml`, `Dockerfile`, `init.sql`, etc. 
 

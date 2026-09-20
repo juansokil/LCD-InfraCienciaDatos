@@ -157,6 +157,16 @@ stack/data/quarantine/**
 stack/credentials/*.json
 stack/credentials/*.key
 
-# --- Excepcion: el .env del stack del laboratorio si se versiona ---
+# --- Excepcion: los .env que SI se versionan ---
 # Son credenciales locales-only (admin/admin) sin info sensible real.
 !stack/.env
+
+# El .env de cada grupo del TP tambien va al repo, a proposito: el criterio
+# de evaluacion pide que el stack arranque con UN SOLO `docker compose up`, y
+# un `cp .env.example .env` previo son dos. Ademas el docente tiene que poder
+# levantar la entrega sin adivinar que variables hacen falta.
+#
+# OJO: esto vale porque son credenciales de juguete. Una API key real NO va
+# aca -- va como variable de entorno del host, y el .env la lee con
+# `${MI_API_KEY}`. Ver la consigna del TP.
+!TpFinal/grupos/*/.env
