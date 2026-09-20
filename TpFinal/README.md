@@ -182,12 +182,12 @@ Datos modelados para consumo: tablas pensadas para responder preguntas de negoci
 
 | | |
 |---|---|
-| **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tp/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. Ver seccion "Como entregar el TP" mas abajo. |
+| **Donde se entrega** | En **este mismo repo**, en una branch del grupo: `tpfinal/G<NN>`. Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/` y entrega via **Pull Request en draft** contra `main`. El paso a paso completo esta en "Como entregar el TP, de principio a fin", al final de este documento. |
 | **Politica de APIs** | Pueden repetir la misma API entre grupos (no es excluyente). Si quieren proponer una API fuera de la lista, consultar con el docente. |
 | **Fecha de entrega** | **Domingo 15 de noviembre de 2026, hasta las 23:59 (hora Argentina)** — entrega = PR del grupo marcado como **"Ready for review"** en GitHub. |
 | **Presentacion oral** | **Jueves 19 de noviembre de 2026, remota (por videollamada)**, **7 a 10 minutos por grupo**, mas una breve ronda de preguntas. Camara prendida durante la exposicion. |
 
-> **Sobre `G<NN>`**: `G` = Grupo, `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y confirma el siguiente libre). `G00` es el template de referencia, no es una entrega real.
+> **Sobre `G<NN>`**: `G` = Grupo, `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). **El numero se pide al docente ANTES de crear la branch** (Paso 0 del instructivo): aparece en la branch, en la carpeta y en el titulo del PR, asi que cambiarlo despues obliga a renombrar las tres. `G00` es el template de referencia, no es una entrega real.
 
 ## APIs publicas disponibles
 
@@ -201,18 +201,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 1. Open Exchange Rates — Divisas
-- **URL:** openexchangerates.org/api
-- **Auth:** API key gratis | **Refresh:** Cada hora
-
-> 💡 **Ideas orientativas** (no son requisitos):
-> - **Bronze:** Tipos de cambio de ~170 monedas contra USD. Un snapshot por ingesta.
-> - **Silver:** Pivotear la tabla (una columna por moneda → filas), calcular tipo de cambio cruzado (ej: EUR/ARS).
-> - **Gold:** `fact_tipo_cambio_diario` (apertura, cierre, variacion), `dim_moneda`. Dashboard: evolucion de monedas seleccionadas, volatilidad, comparacion regional.
-
----
-
-### 2. Open-Meteo — Clima
+### 1. Open-Meteo — Clima
 - **URL:** open-meteo.com
 - **Auth:** Sin auth, sin limite | **Refresh:** Cada hora
 
@@ -223,7 +212,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 3. OpenWeatherMap — Clima (alternativa)
+### 2. OpenWeatherMap — Clima (alternativa)
 - **URL:** api.openweathermap.org
 - **Auth:** API key gratis | **Refresh:** Cada 10 min
 
@@ -234,7 +223,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 4. OpenAQ — Calidad del Aire
+### 3. OpenAQ — Calidad del Aire
 - **URL:** api.openaq.org/v2
 - **Auth:** Sin auth | **Refresh:** Cada hora
 
@@ -245,7 +234,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 5. USGS Earthquakes — Sismos
+### 4. USGS Earthquakes — Sismos
 - **URL:** earthquake.usgs.gov/fdsnws
 - **Auth:** Sin auth | **Refresh:** Tiempo real
 
@@ -256,7 +245,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 6. GitHub Events — Actividad Open Source
+### 5. GitHub Events — Actividad Open Source
 - **URL:** api.github.com
 - **Auth:** Sin auth (60 req/h) | **Refresh:** Tiempo real
 
@@ -267,7 +256,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 7. Citybikes — Bicicletas Publicas
+### 6. Citybikes — Bicicletas Publicas
 - **URL:** api.citybik.es/v2
 - **Auth:** Sin auth | **Refresh:** Cada 2-5 min
 
@@ -278,7 +267,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 8. OpenSky Network — Trafico Aereo
+### 7. OpenSky Network — Trafico Aereo
 - **URL:** opensky-network.org/api
 - **Auth:** Sin auth (anonimo) | **Refresh:** Cada 10s
 
@@ -289,7 +278,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 9. NASA FIRMS — Focos de incendio (satelital)
+### 8. NASA FIRMS — Focos de incendio (satelital)
 - **URL:** firms.modaps.eosdis.nasa.gov/api/area
 - **Auth:** MAP_KEY gratis | **Refresh:** Near real-time (~cada hora, tras cada pasada satelital)
 
@@ -300,7 +289,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 10. API Transporte Buenos Aires — Transporte en tiempo real
+### 9. API Transporte Buenos Aires — Transporte en tiempo real
 - **URL:** api-transporte.buenosaires.gob.ar
 - **Auth:** Registro gratis (client_id + client_secret) | **Refresh:** Tiempo real (~30s)
 
@@ -312,7 +301,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 11. Where the ISS at? — Estacion Espacial Internacional
+### 10. Where the ISS at? — Estacion Espacial Internacional
 - **URL:** api.wheretheiss.at/v1/satellites/25544
 - **Auth:** Sin auth | **Refresh:** Tiempo real (posicion instantanea)
 
@@ -392,72 +381,122 @@ TpFinal/grupos/G<NN>/
 
 > **Patron de referencia**: la estructura sigue la misma logica del `stack/` del curso (Airflow 3.1.5 + Postgres 17 Alpine + Streamlit). Pueden mirar `stack/` para inspirarse en el `docker-compose.yml`, `Dockerfile`, `init.sql`, etc. 
 
-> **Por que `G<NN>`?** `G` = Grupo y `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). El numero te lo asigna el docente cuando abren el PR-draft (mira los grupos ya registrados y te confirma el siguiente libre). Tiene que coincidir con el nombre de la branch (`tp/G01` ↔ `TpFinal/grupos/G01/`) — asi el docente puede comparar branches lado a lado al evaluar.
+> **Por que `G<NN>`?** El numero de grupo tiene que coincidir en la branch y en la carpeta (`tpfinal/G01` ↔ `TpFinal/grupos/G01/`), para que el docente pueda comparar entregas lado a lado al evaluar. Se pide al docente antes de empezar — ver el Paso 0 del instructivo de entrega.
 
 > **Donde corre el stack del grupo?** En la maquina de cada estudiante. Cuando hagan `docker compose up` dentro de `TpFinal/grupos/G<NN>/`, levanta SU propio Postgres, Airflow y Streamlit aislados — no se mezcla con el stack del curso ni con el de otros grupos. **Ojo con los puertos**: si tienen el stack del curso levantado en paralelo, va a haber conflicto en 5432/8080/8501 — apaguen uno antes de levantar el otro, o cambien los mapeos en `docker-compose.yml`.
 
-## Como entregar el TP: branch + PR
+## Como entregar el TP, de principio a fin
 
-El TP se desarrolla y se entrega **en este mismo repo** (no en repo propio). Cada grupo trabaja en su propia branch, y abre un **PR** que oficia como aviso + entrega.
+El TP se desarrolla y se entrega **en este mismo repo** (no en un repo propio).
+Cada grupo trabaja en su propia branch `tpfinal/G<NN>`, dentro de su carpeta
+`TpFinal/grupos/G<NN>/`, y abre un **Pull Request** que oficia de aviso durante
+el cuatrimestre y de entrega al final.
 
-### Paso a paso
+> **Branch (rama)** = copia paralela del codigo donde se desarrolla, antes de mergear a `main`.
+> **PR (Pull Request)** = propuesta de mergear los commits de una branch a otra; lleva codigo, se puede revisar linea por linea y se mergea cuando esta lista.
+>
+> 💡 Dudas de Git/GitHub aplicadas al TP (como crear la branch bien, resolver conflictos, trabajar de a varios en la misma rama) → [`git-guia.md`](git-guia.md).
 
-**1. Crear la branch** desde `main`:
+---
+
+### Paso 0 — Armar el grupo y **pedir el numero**
+
+Antes de tocar git: junten el grupo y **pidanle el numero al docente**. El los
+asigna mirando cuales ya estan tomados y les confirma el suyo (`G01`, `G02`, ...).
+
+**Esto va primero a proposito**: el numero aparece en el nombre de la branch, en
+el de la carpeta y en el titulo del PR. Si lo eligen por su cuenta y dos grupos
+agarran el mismo, hay que renombrar las tres cosas.
+
+> `G` = Grupo, `NN` = numero de 2 digitos. La branch y la carpeta **tienen que
+> coincidir** (`tpfinal/G01` ↔ `TpFinal/grupos/G01/`): asi el docente compara
+> branches lado a lado al evaluar. `G00` es el template de referencia, no es una
+> entrega real.
+
+### Paso 1 — Elegir y explorar la API
+
+Una de la lista de [APIs publicas disponibles](#apis-publicas-disponibles), o
+propongan otra consultando con el docente (pueden repetir API entre grupos).
+
+Miren **antes de empezar**: endpoints, estructura de la respuesta, rate limits,
+si pide API key, y cada cuanto se actualiza (`Refresh`) — ese ultimo dato define
+el cron de Bronze en el Paso 5.
+
+### Paso 2 — Disenar el modelo de datos
+
+Que tablas van en bronze, que limpieza en silver, y que `fact` / `dim` /
+metricas en gold. No hace falta que sea definitivo: es para saber a donde van.
+
+### Paso 3 — Crear la branch y la carpeta
+
+Con el numero ya asignado, reemplazando `NN` por el suyo:
 
 ```bash
 git checkout main && git pull
-git checkout -b tp/G<NN>
-# ej: git checkout -b tp/G01
-```
+git checkout -b tpfinal/G01              # <- su numero
 
-**2. Crear la subcarpeta del grupo** en `TpFinal/grupos/G<NN>/` y pushear el primer commit con el esqueleto minimo (ver "Esqueleto de entrega" mas abajo):
-
-```bash
 mkdir -p TpFinal/grupos/G01
-# crear TpFinal/grupos/G01/README.md con: integrantes + API + idea Gold
+cp TpFinal/grupos/G00/README.md TpFinal/grupos/G01/README.md   # el template
+# editenlo: integrantes, API elegida, idea Gold
+
 git add TpFinal/grupos/G01/
-git commit -m "tp/G01: setup inicial (API: OpenAQ)"
-git push -u origin tp/G01
+git commit -m "tpfinal/G01: setup inicial (API: OpenAQ)"
+git push -u origin tpfinal/G01
 ```
 
-**3. Abrir un PR** contra `main`:
+La estructura completa de archivos que va adentro de esa carpeta esta en
+[Esqueleto de entrega](#esqueleto-de-entrega), mas arriba. Ahora alcanza con el
+README.
 
-- **Titulo exacto**: `TP Final - G<NN> - <API>`
-  Ejemplo: `TP Final - G01 - OpenAQ`
-- **Body sugerido**:
+### Paso 4 — Abrir el PR **en draft**
+
+Contra `main`, desde la branch recien pusheada.
+
+- **Titulo exacto**: `TP Final - G<NN> - <API>` — ej: `TP Final - G01 - OpenAQ`
+- **Body**:
   - **Integrantes**: nombre completo + usuario de GitHub de cada uno.
   - **API elegida**: nombre + URL.
-  - **Idea Gold (1-2 oraciones)**: que pregunta de negocio van a responder con su dashboard.
+  - **Idea Gold** (1-2 oraciones): que pregunta de negocio responde el dashboard.
 
-**4. Trabajar en la branch**: commits chicos y frecuentes mejor que pocos grandes. Cada `git push` actualiza el PR automaticamente.
+Queda en **draft** hasta la entrega. Cada `git push` lo actualiza solo: no abren
+uno nuevo nunca mas.
 
-**5. Entrega final (domingo 15 de noviembre, hasta las 23:59)**: en el PR, hacer click en el boton **"Ready for review"**. Eso transforma el draft en PR formal — esa accion es la entrega.
+### Paso 5 — Construir el pipeline
 
-**6. Presentacion (jueves 19 de noviembre, remota)**: 7-10 minutos con el dashboard corriendo en sus maquinas. Ver [`consigna_presentacion.html`](consigna_presentacion.html) para que mostrar.
+1. **`docker-compose.yml`** con los 4 servicios: postgres (warehouse), postgres
+   (airflow), airflow y dashboard. Inspirense en
+   [`stack/docker-compose.yml`](../../stack/docker-compose.yml), disponible desde
+   la clase 02.
+2. **Los DAGs, encadenados por Assets** (minimo uno por capa):
+   - **Bronze** con cron segun el `Refresh` de su API, y `outlets=[TU_ASSET]`.
+   - **Silver** con `schedule=[TU_ASSET]` (**sin cron**) y su propio `outlets=[...]`.
+   - **Gold** con `schedule=[ASSET_DE_SILVER]` (**sin cron**).
+   - Los tres con `is_paused_upon_creation=False`, para que arranquen solos.
 
+   El cron escalonado (`:00` / `:05` / `:10`) **no cumple la consigna**: esta
+   explicado en *"UN SOLO CRON, EN EL BORDE"*, mas arriba. La implementacion de
+   referencia son los DAGs del curso (clases 03 a 05).
+3. **El dashboard en Streamlit, sobre las tablas Gold**. Bronze y Silver no se
+   visualizan: son backend del pipeline.
 
-> **PR (Pull Request)** = propuesta de mergear los commits de una branch a otra; lleva codigo, se puede revisar linea por linea, tiene aprobaciones y se puede mergear.
-> **Branch (rama)** = copia paralela del codigo donde se desarrolla, antes de mergear a `main`.
+Commits chicos y frecuentes, de todos los integrantes. **El historial es parte
+de la entrega** y se mira.
 
-> 💡 **Si tenes dudas de Git/GitHub aplicadas al TP** (que es un fork, como crear branch desde main bien, como resolver errores comunes, conflictos al trabajar en equipo) → ver [`git-guia.md`](git-guia.md) en esta misma carpeta.
+### Paso 6 — Documentar
 
-## Como empezar
+En `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar
+el stack y las decisiones tecnicas que tomaron (por que esa limpieza, por que
+ese modelo dimensional, que dejaron afuera).
 
-1. **Elegir API**: una de la lista (o proponer otra, consultando con el docente).
-2. **Explorar la API**: endpoints, estructura de respuesta, rate limits, auth.
-3. **Disenar el modelo de datos**: que tablas en bronze, que limpieza en silver, que metricas / fact / dim en gold.
-4. **Crear la branch** `tp/G<NN>` desde `main` y la carpeta `TpFinal/grupos/G<NN>/` (ver "Como entregar el TP" arriba). **Tip**: arrancá copiando el README template ([`grupos/G00/README.md`](grupos/G00/README.md)) como `TpFinal/grupos/G<NN>/README.md` para tener la plantilla de los datos del proyecto.
-5. **Abrir el PR-draft** contra `main` con el titulo y body sugeridos.
-6. Armar el `docker-compose.yml` con los 4 servicios: postgres (warehouse), postgres (airflow), airflow, dashboard. Inspirarse en `stack/docker-compose.yml` (disponible desde la clase 02).
-7. Desarrollar los DAGs de Airflow para cada capa (1 DAG minimo por capa), **encadenados por Assets**:
-   - **Bronze** con cron segun el `Refresh` de la API (ver la seccion de arriba) y `outlets=[TU_ASSET]`.
-   - **Silver** con `schedule=[TU_ASSET]` (sin cron) y su propio `outlets=[...]`.
-   - **Gold** con `schedule=[ASSET_DE_SILVER]` (sin cron).
-   - Los tres con `is_paused_upon_creation=False` para que arranquen solos.
+### Paso 7 — Entregar
 
-   El cron escalonado (`:00` / `:05` / `:10`) **no cumple la consigna**: esta explicado
-   en "UN SOLO CRON, EN EL BORDE". La implementacion de referencia esta en los DAGs del
-   curso (clases 03 a 05).
-8. Construir el dashboard en Streamlit **sobre las tablas Gold** (KPIs / vistas de negocio — no se visualizan Bronze ni Silver, eso es backend del pipeline).
-9. Documentar todo en `TpFinal/grupos/G<NN>/README.md`: API elegida, modelo de datos, como levantar el stack, decisiones tecnicas.
-10. **Entregar** antes del **domingo 15 de noviembre, 23:59** y **presentar** el **jueves 19 de noviembre** (7-10 min).
+**Domingo 15 de noviembre, hasta las 23:59 (hora Argentina).** En el PR, click en
+**"Ready for review"**: eso convierte el draft en PR formal, y **esa accion es la
+entrega**.
+
+### Paso 8 — Presentar
+
+**Jueves 19 de noviembre, remota (videollamada)**, 7 a 10 minutos por grupo con
+el dashboard corriendo en sus maquinas, mas una ronda corta de preguntas. Camara
+prendida. Que mostrar y como:
+[`consigna_presentacion.html`](consigna_presentacion.html).
