@@ -42,8 +42,7 @@
 
 ```bash
 cd TpFinal/grupos/G<NN>/      # ej: cd TpFinal/grupos/G01/
-cp .env.example .env
-docker compose up -d --build
+docker compose up -d --build   # el .env ya viene en el repo
 # Esperar ~30s a que Airflow termine de inicializar
 ```
 
