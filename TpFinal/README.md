@@ -387,9 +387,15 @@ TpFinal/grupos/G<NN>/
 >
 > **Esto vale porque son credenciales de juguete** (`admin/admin`, un Postgres que
 > corre en su maquina). Una **API key real NO va en el `.env` versionado**: se pasa
-> como variable de entorno del host y el `.env` la lee con `${MI_API_KEY}` —
-> o, si la API lo permite, usen el tier sin auth. Commitear un token es de las
-> cosas que **restan** en la evaluacion, y ademas GitGuardian lo detecta en el PR.
+> como variable de entorno del host y el `.env` la lee con `${MI_API_KEY}` — o, si la
+> API lo permite, usen el tier sin auth.
+>
+> **Y no cuenten con que algo los frene.** El repo tiene *push protection* de GitHub,
+> pero solo reconoce patrones de proveedores grandes (AWS, GitHub, Stripe). La key de
+> una API chica **pasa sin que nadie diga nada**: el push entra, el token queda en el
+> historial, y sacarlo de ahi ya no es borrar una linea — hay que reescribir el
+> historial **y rotar la key igual**, porque ya es publica. El unico momento barato
+> para no commitearla es antes de commitearla.
 >
 > Fuera del curso la regla es la contraria: el `.env` **nunca** se versiona.
 
