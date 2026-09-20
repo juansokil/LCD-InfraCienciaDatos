@@ -201,18 +201,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 1. Open Exchange Rates — Divisas
-- **URL:** openexchangerates.org/api
-- **Auth:** API key gratis | **Refresh:** Cada hora
-
-> 💡 **Ideas orientativas** (no son requisitos):
-> - **Bronze:** Tipos de cambio de ~170 monedas contra USD. Un snapshot por ingesta.
-> - **Silver:** Pivotear la tabla (una columna por moneda → filas), calcular tipo de cambio cruzado (ej: EUR/ARS).
-> - **Gold:** `fact_tipo_cambio_diario` (apertura, cierre, variacion), `dim_moneda`. Dashboard: evolucion de monedas seleccionadas, volatilidad, comparacion regional.
-
----
-
-### 2. Open-Meteo — Clima
+### 1. Open-Meteo — Clima
 - **URL:** open-meteo.com
 - **Auth:** Sin auth, sin limite | **Refresh:** Cada hora
 
@@ -223,7 +212,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 3. OpenWeatherMap — Clima (alternativa)
+### 2. OpenWeatherMap — Clima (alternativa)
 - **URL:** api.openweathermap.org
 - **Auth:** API key gratis | **Refresh:** Cada 10 min
 
@@ -234,7 +223,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 4. OpenAQ — Calidad del Aire
+### 3. OpenAQ — Calidad del Aire
 - **URL:** api.openaq.org/v2
 - **Auth:** Sin auth | **Refresh:** Cada hora
 
@@ -245,7 +234,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 5. USGS Earthquakes — Sismos
+### 4. USGS Earthquakes — Sismos
 - **URL:** earthquake.usgs.gov/fdsnws
 - **Auth:** Sin auth | **Refresh:** Tiempo real
 
@@ -256,7 +245,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 6. GitHub Events — Actividad Open Source
+### 5. GitHub Events — Actividad Open Source
 - **URL:** api.github.com
 - **Auth:** Sin auth (60 req/h) | **Refresh:** Tiempo real
 
@@ -267,7 +256,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 7. Citybikes — Bicicletas Publicas
+### 6. Citybikes — Bicicletas Publicas
 - **URL:** api.citybik.es/v2
 - **Auth:** Sin auth | **Refresh:** Cada 2-5 min
 
@@ -278,7 +267,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 8. OpenSky Network — Trafico Aereo
+### 7. OpenSky Network — Trafico Aereo
 - **URL:** opensky-network.org/api
 - **Auth:** Sin auth (anonimo) | **Refresh:** Cada 10s
 
@@ -289,7 +278,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 9. NASA FIRMS — Focos de incendio (satelital)
+### 8. NASA FIRMS — Focos de incendio (satelital)
 - **URL:** firms.modaps.eosdis.nasa.gov/api/area
 - **Auth:** MAP_KEY gratis | **Refresh:** Near real-time (~cada hora, tras cada pasada satelital)
 
@@ -300,7 +289,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 10. API Transporte Buenos Aires — Transporte en tiempo real
+### 9. API Transporte Buenos Aires — Transporte en tiempo real
 - **URL:** api-transporte.buenosaires.gob.ar
 - **Auth:** Registro gratis (client_id + client_secret) | **Refresh:** Tiempo real (~30s)
 
@@ -312,7 +301,7 @@ Solo se incluyen APIs con datos que se actualizan al menos cada hora, lo que jus
 
 ---
 
-### 11. Where the ISS at? — Estacion Espacial Internacional
+### 10. Where the ISS at? — Estacion Espacial Internacional
 - **URL:** api.wheretheiss.at/v1/satellites/25544
 - **Auth:** Sin auth | **Refresh:** Tiempo real (posicion instantanea)
 
