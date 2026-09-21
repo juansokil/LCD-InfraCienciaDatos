@@ -128,7 +128,7 @@ Tenés que ver los 5 contenedores en estado `Up`.
 
 **Paso 4 — Validá la instalación con el ejercicio**
 
-Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) desde Jupyter o VSCode. Completá tus datos y el puerto elegido (Paso 1), agregá el servicio Adminer al compose según la consigna, ejecutá la verificación de los 4 niveles (Paso 2), respondé las preguntas del compose (Paso 3) y generá tu archivo de entrega (Paso 4 del notebook).
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) desde Jupyter o VSCode. Completá tus datos (Paso 1), ejecutá la verificación de los 3 niveles (Paso 2), respondé las preguntas del compose (Paso 3) y generá tu archivo de entrega (Paso 4 del notebook).
 
 El script crea **un archivo único para vos** en `clase02/ejercicios/estudiantes/<apellido>-<nombre>.txt` con tu código de verificación.
 
@@ -142,7 +142,7 @@ Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 4 del 
 
 ```bash
 git add clase02/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio02: verificacion de stack + adminer"
+git commit -m "ejercicio02: verificacion de stack"
 git push origin estudiante/apellido-nombre
 ```
 

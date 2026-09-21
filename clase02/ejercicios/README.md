@@ -2,13 +2,12 @@
 
 ## ¿Qué hay que hacer?
 
-Tres cosas (la guía paso a paso está en [`ejercicio.ipynb`](ejercicio.ipynb)):
+Dos cosas (la guía paso a paso está en [`ejercicio.ipynb`](ejercicio.ipynb)):
 
-1. **Tu primer cambio de infraestructura**: agregar el servicio `adminer` al `stack/docker-compose.yml` de **tu copia local**, mapeado a un puerto del host que elegís vos (entre **8100 y 8999**), y levantarlo. El snippet de compose está completo en el notebook — lo evaluado es integrarlo y que levante.
-2. **Verificación del stack**: correr el notebook, que chequea 4 niveles (Python, Postgres, Airflow y tu Adminer) y genera un **código de verificación** derivado de tu instancia de Postgres (`pg_control_system()`). Sin el stack corriendo, el código no se genera.
-3. **3 preguntas de comprensión** sobre el `docker-compose.yml`, respondidas con tus palabras (no se auto-corrigen: las lee el docente en tu PR).
+1. **Verificación del stack**: correr el notebook, que chequea 3 niveles (Python, Postgres y Airflow) y genera un **código de verificación** derivado de tu instancia de Postgres (`pg_control_system()`). Sin el stack corriendo, el código no se genera.
+2. **5 preguntas de comprensión** sobre el `docker-compose.yml`, respondidas con tus palabras. Corto está bien (no se auto-corrigen: las lee el docente en tu PR).
 
-> Archivos de referencia: [`../../stack/docker-compose.yml`](../../stack/docker-compose.yml) (ahí agregás `adminer` y de ahí salen las respuestas) y [`../../stack/.env`](../../stack/.env) (usuario/contraseña del warehouse).
+> Archivo de referencia: [`../../stack/docker-compose.yml`](../../stack/docker-compose.yml) (de ahí salen las respuestas).
 
 ## ¿Qué entrego?
 
@@ -30,34 +29,34 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 Apellido: Sokil
 Nombre: Juan
 Rama: estudiante/sokil-juan
-Puerto elegido: 8123
-Servicio agregado: adminer
-Nivel alcanzado: 4 / 4
-Pregunta (a) - Por que dos Postgres:
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
   ...tu respuesta...
-Pregunta (b) - Volumen del warehouse:
+Pregunta (b) - Datos despues del down:
   ...tu respuesta...
-Pregunta (c) - Si el volumen se borra:
+Pregunta (c) - DAGs en el contenedor:
+  ...tu respuesta...
+Pregunta (d) - Puerto 8080 ocupado:
+  ...tu respuesta...
+Pregunta (e) - Credenciales del warehouse:
   ...tu respuesta...
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-08-25
 ```
 
-## ⚠️ Importante: NO commitees el `.ipynb` ni el `docker-compose.yml`
+## ⚠️ Importante: NO commitees el `.ipynb`
 
 El `ejercicio.ipynb` es **template compartido**. Si lo modificás y lo commiteás, se generan conflictos masivos con el resto de los estudiantes.
-
-El `stack/docker-compose.yml` con tu `adminer` **también queda solo en tu máquina**: cada estudiante eligió un puerto distinto y commitearlo pisaría el de los demás.
 
 **Regla**: usá `git add` con el path explícito a tu `.txt`, no `git add .`:
 
 ```bash
 # CORRECTO
 git add clase02/ejercicios/estudiantes/sokil-juan.txt
-git commit -m "ejercicio02: verificacion de stack + adminer"
+git commit -m "ejercicio02: verificacion de stack"
 git push origin estudiante/apellido-nombre
 
-# MAL ❌ (sube tambien el ipynb y el docker-compose.yml modificados)
+# MAL ❌ (sube tambien el ipynb modificado)
 git add .
 ```
 
