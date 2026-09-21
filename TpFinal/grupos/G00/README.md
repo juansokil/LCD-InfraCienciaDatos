@@ -54,4 +54,4 @@ docker compose down -v         # apaga y BORRA volumenes (cuidado)
 
 ## Estructura del proyecto
 
-Ver la seccion **"Esqueleto de entrega"** en [`TpFinal/README.md`](../../README.md) — es la misma estructura para todos los grupos.
+Ver la seccion **"Esqueleto de entrega"** en [`TpFinal/README.md`](../../README.md) — es una estructura sugerida, no obligatoria.

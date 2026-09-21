@@ -146,21 +146,7 @@ Pueden repetir API entre grupos, o proponer otra consultando con el docente.
 > - **Gold:** `fact_paso_por_region` (tiempo y orbitas sobre cada continente o pais, altitud/velocidad promedio), `dim_region`. Dashboard: traza orbital en el mapa, % de tiempo sobre tierra vs oceano, pasos sobre Argentina.
 > - ℹ️ **La mas simple en datos** (pocos campos): el valor esta en acumular la trayectoria con el tiempo. Buena para un grupo que quiera algo liviano.
 
-## Criterios de evaluación
-
-| # | Criterio | Qué se mira |
-|---|---|---|
-| 1 | **Pipeline funcional** | Corre solo, produce datos reales y está encadenado bronze → silver → gold. Correrlo dos veces no duplica filas. |
-| 2 | **Modelo y transformaciones** | Modelo dimensional (fact/dim), tipado, validación, deduplicación. **Acá se sube el techo.** |
-| 3 | **Dashboard sobre Gold** | Lee solo `gold.*`, responde preguntas de negocio y no se rompe sin datos. |
-| 4 | **Containerización y arranque** | `docker compose up` y corre solo. Airflow 3.1.5, healthchecks, `init.sql`. **El más discriminante.** |
-| 5 | **Documentación y trabajo del grupo** | README completo, código legible, historial de git con varios autores. |
-
-**Suman, sin ser obligatorios**: contratos de datos con cuarentena (clase 04),
-métricas de calidad en el tiempo (clase 04), y una capa semántica de vistas
-`gold.v_*` (clase 05).
-
-## Esqueleto de entrega
+## Esqueleto de entrega (sugerido)
 
 Cada grupo trabaja en su carpeta `TpFinal/grupos/G<NN>/`. Arranquen copiando el
 template [`grupos/G00/README.md`](grupos/G00/README.md).
