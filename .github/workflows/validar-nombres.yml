@@ -89,8 +89,19 @@ jobs:
           # estudiante/<apellido>-<nombre>: EXACTAMENTE un guion. Los nombres y
           # apellidos compuestos van pegados (garcialopez-mariajose), asi el guion
           # separa siempre apellido de nombre y la rama nunca es ambigua.
-          if printf '%s' "$BR" | grep -Eq '^estudiante/[a-z0-9]+-[a-z0-9]+$' \
-             || printf '%s' "$BR" | grep -Eq '^tpfinal/G[0-9]{2}$'; then
+          if printf '%s' "$BR" | grep -Eq '^estudiante/[a-z0-9]+-[a-z0-9]+$'; then
+            echo "Rama OK: $BR"
+            # El PR del estudiante vive TODO el cuatrimestre, y GitHub lo titula
+            # con el mensaje del primer commit ("ejercicio01: registro") cuando
+            # la rama tiene uno solo -- que en clase 01 es siempre. Los commits
+            # nuevos no cambian el titulo, asi que se pone el nombre de la rama.
+            gh pr edit "$PR" --repo "$REPO" --title "$BR"
+            exit 0
+          fi
+
+          # tpfinal/G<NN>: el titulo NO se toca, la consigna del TP pide uno
+          # propio ("TP Final - G<NN> - <API>").
+          if printf '%s' "$BR" | grep -Eq '^tpfinal/G[0-9]{2}$'; then
             echo "Rama OK: $BR"
             exit 0
           fi

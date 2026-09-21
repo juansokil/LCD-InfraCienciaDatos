@@ -121,7 +121,7 @@ Este PR lo abrís **ahora** y lo dejás **abierto** todo el cuatrimestre: cada e
 
 1. Andá a [github.com/juansokil/LCD-InfraCienciaDatos](https://github.com/juansokil/LCD-InfraCienciaDatos).
 2. Click en el botón **"Compare & pull request"** sobre tu rama `estudiante/apellido-nombre`.
-3. Título: dejá el que sugiere GitHub (el nombre de tu rama, `estudiante/apellido-nombre`).
+3. Título: no te preocupes, el que sea. Apenas lo creás, el robot lo cambia por el nombre de tu rama (`estudiante/apellido-nombre`).
 4. Creá el PR y **dejalo abierto**. El docente va a revisar tus entregas ahí, semana a semana.
 
 **Qué vas a ver ahí de acá en adelante.** Apenas lo creás, un robot revisa el nombre de tu rama. Si está bien, no pasa nada y tu PR queda abierto. Si está mal, te deja un comentario con los comandos para arreglarlo y **cierra el PR** — no perdés nada: renombrás la rama y abrís uno nuevo. Es el único caso en que un PR del curso se cierra antes de tiempo, y si pasa, pasa acá.
