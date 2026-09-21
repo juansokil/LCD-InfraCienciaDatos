@@ -197,7 +197,7 @@ TpFinal/grupos/G<NN>/
    PR, click en **"Ready for review"**.
 6. **Presentación: jueves 19 de noviembre de 2026, remota**, 7 a 10 minutos con
    el dashboard corriendo. Qué mostrar:
-   [`consigna_presentacion.html`](consigna_presentacion.html).
+   [`consigna_presentacion.pdf`](consigna_presentacion.pdf).
 
 Dudas de git (crear la rama, conflictos, trabajar de a varios):
 [`git-guia.md`](git-guia.md).
