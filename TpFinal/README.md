@@ -12,26 +12,18 @@
 
 ## Qué tiene que tener
 
-1. **Un `docker-compose.yml`** que levante todo con un solo comando: warehouse,
-   base de Airflow, Airflow **3.1.5** y dashboard. Postgres con `healthcheck`, y
-   los servicios que dependen de él con `depends_on: condition: service_healthy`.
-2. **Un DAG por capa, que arranque solo y en cadena:**
-   - Activos por default (`is_paused_upon_creation=False`) y con `start_date` en
-     el pasado — con fecha futura o `datetime.now()` no corren nunca.
-   - **Bronze corre por cron; cuando termina, dispara Silver, y Silver dispara
-     Gold** (Airflow Assets). Silver y Gold no tienen cron propio.
-     El cron escalonado NO alcanza: silver arrancaría por reloj, no porque bronze
-     terminó.
-   - Referencia: los DAGs del curso de las clases 03 a 05 hacen exactamente esto.
-3. **Un dashboard en Streamlit** que lea solo de `gold.*`.
+1. **Un `docker-compose.yml`** que levante todo: la base, Airflow **3.1.5** y el
+   dashboard.
+2. ⚠️ **El stack tiene que arrancar a correr SOLO.** Cuando se haga
+   `docker compose up`, el pipeline empieza a correr sin que haya que activar
+   DAGs a mano ni crear schemas manualmente: **Bronze corre al levantar el
+   stack y, cuando termina, dispara Silver y después Gold.**
+3. **Un dashboard en Streamlit** sobre las tablas Gold.
 4. **Un README del grupo**: API elegida, modelo de datos, cómo levantarlo,
    usuario y contraseña de Airflow, e integrantes.
 5. **Trabajo repartido en git**: commits de varios integrantes, repartidos en el
-   tiempo. El historial se mira.
+   tiempo.
 6. **La presentación**, subida al campus en un formato descargable.
-
-> **Cómo se corrige el arranque**: el docente hace `docker compose up` en frío y
-> mira. Si al minuto no hay datos en Bronze, cuenta como que no arrancó.
 
 ## Fuentes posibles
 
