@@ -136,6 +136,10 @@ plugins/
 # --- Office / Binarios pesados ---
 *.pptx
 *.pdf
+# Excepcion: la consigna de la presentacion del TP SI se publica, en PDF.
+# El HTML del que se genera queda solo local (es el "fuente" para regenerarlo).
+!TpFinal/consigna_presentacion.pdf
+TpFinal/consigna_presentacion.html
 
 # Backups y temporales de Office. `*.pptx` NO los cubre: el patron pide que el
 # nombre TERMINE en .pptx, y `clase01.pptx.bak` termina en .bak.
