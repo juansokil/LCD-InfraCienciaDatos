@@ -198,56 +198,38 @@
 
   <header class="tope">
     <h1>Consigna TP Final — Infra para Ciencia de Datos</h1>
-    <p class="sub">Cómo mostrar lo que hicieron: una exposición breve, con demo en vivo y espacio para preguntas.</p>
     <p class="sub"><strong>Jueves 19 de noviembre de 2026</strong> · <strong>remota, por videollamada</strong> · 7 a 10 minutos por grupo. La entrega del código cierra antes: <strong>domingo 15 de noviembre, 23:59</strong>.</p>
   </header>
 
   <div class="callout">
-    <strong>Formato libre, pero descargable.</strong> Presenten en lo que les resulte más cómodo
-    (PowerPoint, PDF, Google Slides, Word…), pero <strong>la presentación hay que subirla al campus</strong>,
-    así que tiene que quedar en un <strong>formato descargable</strong> (ideal PDF o PPT/PPTX). Lo que importa
-    no es la herramienta, sino que se entienda <strong>qué hicieron y cómo funciona</strong>. Apunten a unas
-    5 o 6 diapositivas (u hojas).
+    <strong>Formato libre, pero descargable:</strong> la presentación se sube al campus, así que
+    tiene que quedar en <strong>PDF o PPT</strong>. Apunten a unas <strong>5 o 6 diapositivas</strong>.
   </div>
 
   <h2><span class="num">1</span> Consigna</h2>
   <ul>
-    <li><strong>Entre 7 y 10 minutos</strong> de exposición por grupo.</li>
-    <li>Muestren <strong>lo que hicieron</strong>: la idea del proyecto y el pipeline funcionando.</li>
-    <li>Después puede haber una breve ronda de <strong>preguntas</strong>.</li>
+    <li><strong>Entre 7 y 10 minutos</strong> por grupo, con el dashboard corriendo.</li>
+    <li>Muestren <strong>la idea del proyecto y el pipeline funcionando</strong>.</li>
+    <li>Después, una ronda corta de <strong>preguntas</strong>.</li>
   </ul>
 
-  <h2><span class="num">2</span> Sugerencias de qué mostrar</h2>
-  <p class="sub" style="margin-top:0">Son ideas, no un molde rígido. Tomen lo que les sirva.</p>
+  <h2><span class="num">2</span> Qué mostrar</h2>
   <ul>
-    <li><strong>La API y la pregunta:</strong> qué datos devuelve la API y cada cuánto se actualizan; qué pregunta de negocio quieren responder.</li>
-    <li><strong>Arquitectura:</strong> el diagrama medallion + el stack (Airflow, Postgres, Streamlit, Docker).</li>
-    <li><strong>Qué hicieron en cada capa:</strong> limpieza, tipos, agregaciones (Bronze → Silver → Gold).</li>
-    <li><strong>El encadenado por Assets:</strong> un solo cron en Bronze y las otras dos capas disparadas <strong>por el dato</strong>, no por reloj. Es <strong>requisito</strong>, no bonus. Se ve en un <code>run_id</code> que empieza con <code>asset_triggered__</code>.</li>
-    <li><strong>Que arranca solo:</strong> es el criterio más pesado del TP y el que menos se cree en una captura. Si pueden, muéstrenlo en vivo: un <code>docker compose up</code> en limpio, o disparen Bronze a mano y muestren cómo Silver y Gold salen atrás <strong>sin tocar nada</strong>.</li>
-    <li><strong>El dashboard</strong> (Gold) funcionando y qué cuentan las visualizaciones.</li>
-    <li><strong>Una decisión técnica que hayan tomado</strong> y por qué: el grano de las tablas, cómo resolvieron el encadenado, qué hacen con los datos que no pasan la validación. Una decisión bien explicada vale más que cinco features enumeradas.</li>
-    <li><strong>Cómo mostrarlo:</strong> pueden incluir <strong>prints / capturas</strong> de los DAGs en Airflow y del dashboard, o hacer una <strong>prueba en vivo (realtime)</strong>. Lo que les resulte más seguro.</li>
-    <li><strong>Cómo se repartieron el trabajo:</strong> quién hizo qué. El historial de git es parte de la entrega — <strong>varios integrantes commiteando</strong>, repartido en el tiempo.</li>
-    <li><strong>Dificultades</strong> que tuvieron y cómo las resolvieron.</li>
+    <li><strong>La API y la pregunta:</strong> qué datos trae y qué pregunta de negocio responden.</li>
+    <li><strong>Qué hicieron en cada capa:</strong> Bronze → Silver → Gold.</li>
+    <li><strong>Que arranca solo:</strong> si pueden, en vivo — un <code>docker compose up</code> y cómo Bronze dispara Silver y Gold sin tocar nada.</li>
+    <li><strong>El dashboard</strong> y qué cuentan las visualizaciones.</li>
+    <li><strong>Una decisión técnica</strong> que hayan tomado, y por qué.</li>
+    <li><strong>Cómo se repartieron el trabajo</strong> y qué dificultades tuvieron.</li>
   </ul>
+  <p class="sub">Si hicieron algún bonus (calidad de datos con cuarentena, métricas de calidad, vistas en Gold), muéstrenlo: es lo que más se luce.</p>
 
-  <h2><span class="num">3</span> Si hicieron algún bonus, muéstrenlo</h2>
-  <p class="sub" style="margin-top:0">Ninguno es obligatorio y no hacerlos no resta — pero si los hicieron, es lo que más se luce en 10 minutos.</p>
-  <ul>
-    <li><strong>Calidad de datos:</strong> el contrato, las reglas corriendo, y sobre todo <strong>la cuarentena con algo adentro</strong>. Un registro rechazado concreto, y por qué se rechazó, cuenta más que el diagrama de arquitectura entero.</li>
-    <li><strong>Métricas de calidad en el tiempo:</strong> una tabla con una fila por corrida y regla. Un número suelto no dice nada; la serie sí — muestren cómo evolucionó.</li>
-    <li><strong>Capa semántica:</strong> las vistas <code>gold.v_*</code> y por qué el dashboard no repite SQL.</li>
-  </ul>
-
-  <h2><span class="num">4</span> Tips</h2>
+  <h2><span class="num">3</span> Tips</h2>
   <ul>
     <li>Que sea <strong>dinámico</strong>.</li>
-    <li><strong>No es necesario que hablen todos</strong>, pero sí que <strong>todos estén listos para hablar</strong>: puede haber preguntas para cualquier integrante.</li>
-    <li>La idea es que <strong>todos los integrantes muestren evidencia de que saben lo que hicieron</strong>.</li>
+    <li>No hace falta que hablen todos, pero <strong>todos tienen que estar listos para responder</strong>.</li>
     <li><strong>Cámara prendida</strong> durante la exposición.</li>
   </ul>
-
 
 </div>
 
