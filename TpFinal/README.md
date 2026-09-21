@@ -12,8 +12,9 @@
 
 ## Qué tiene que tener
 
-1. **Un `docker-compose.yml`** que levante todo: la base, Airflow **3.1.5** y el
-   dashboard.
+1. **Un `docker-compose.yml`** que levante todo: la base, Airflow y el dashboard.
+   **La versión de Airflow es la 3.1.5** (imagen `apache/airflow:3.1.5`), la misma
+   del stack del curso. Airflow 2 no sirve: el código de la 2 no corre en la 3.
 2. ⚠️ **El stack tiene que arrancar a correr SOLO.** Cuando se haga
    `docker compose up`, el pipeline empieza a correr sin que haya que activar
    DAGs a mano ni crear schemas manualmente: **Bronze corre al levantar el

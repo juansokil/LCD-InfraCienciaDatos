@@ -1,12 +1,7 @@
 # TP Final - G00 (Template del README)
 
-> **Este es el template del README** que va al lado del codigo de su grupo.
->
-> **Naming**: cada grupo va en `TpFinal/grupos/G<NN>/`, donde `G` = Grupo y `NN` = numero de 2 digitos (`G01`, `G02`, ..., `G99`). `G00` es el template, no es una entrega real.
->
-> Cada grupo crea `TpFinal/grupos/G<NN>/` y copia este README como base; despues lo completa con sus datos. El resto de los archivos (docker-compose, DAGs, dashboard, etc.) los arman desde cero siguiendo la estructura documentada en [`../../README.md`](../../README.md) (seccion "Esqueleto de entrega").
->
-> Para arrancar: `cp TpFinal/grupos/G00/README.md TpFinal/grupos/G<NN>/README.md` y editar.
+> **Template del README del grupo.** Copienlo a `TpFinal/grupos/G<NN>/README.md` y
+> completen cada seccion. `G00` no es una entrega real.
 
 ---
 
@@ -36,7 +31,7 @@
 
 ### Gold
 
-`<modelo dimensional: fact_X + dim_Y + abt_Z + que pregunta de negocio responde el dashboard>`
+`<modelo dimensional: fact_X + dim_Y, y que pregunta de negocio responde el dashboard>`
 
 ## Como levantar el stack
 
