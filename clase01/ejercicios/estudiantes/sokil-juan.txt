@@ -1,0 +1,6 @@
+Apellido: sokil
+Nombre: juan
+Usuario GitHub: juanpablo
+Rama: profesor/juan-sokil
+Codigo: DD167DE60453
+Fecha: 2026-09-21
