@@ -389,9 +389,11 @@ def crypto_bronze():
         # SLEEP PARA RESPETAR EL RATE LIMIT
         # =============================================================
         # Esperamos 5 segundos ANTES de hacer la request.
-        # Esto es porque fetch_markets() ya hizo una request justo antes,
-        # y CoinGecko (free tier) puede rechazarnos si hacemos requests
-        # demasiado seguidas (HTTP 429 - Too Many Requests).
+        # Esto es porque fetch_markets() arranca al MISMO tiempo que esta
+        # tarea (las dos ramas corren en paralelo, ver el flujo al final
+        # del DAG) y hace su request enseguida. CoinGecko (free tier) puede
+        # rechazarnos si hacemos requests demasiado seguidas (HTTP 429 -
+        # Too Many Requests): el sleep las escalona.
         #
         # En produccion, usariamos estrategias mas sofisticadas:
         #   - Backoff exponencial (esperar 1s, luego 2s, luego 4s, ...)
@@ -822,31 +824,25 @@ def crypto_bronze():
     # si una tarea recibe como parametro el resultado de otra, Airflow
     # entiende automaticamente que debe ejecutar primero la que produce el dato.
     #
-    # FLUJO SECUENCIAL PARA EVITAR RATE LIMIT:
-    # ------------------------------------------
-    # Ejecutamos los endpoints de forma SECUENCIAL (markets primero, global
-    # despues), NO en paralelo. Aunque Airflow soporta ejecucion paralela,
-    # lo evitamos por una razon practica:
-    #
-    # CoinGecko free tier tiene rate limits estrictos (~10-30 req/min).
-    # Si lanzamos 2 requests SIMULTANEAS, es mas probable que una falle
-    # con HTTP 429 (Too Many Requests) porque el servidor ve 2 requests
-    # llegando al mismo tiempo desde la misma IP.
-    #
-    # El flujo resultante es:
+    # DOS RAMAS EN PARALELO, ESCALONADAS POR UN SLEEP:
+    # --------------------------------------------------
+    # Markets y global no dependen una de la otra, asi que Airflow las
+    # lanza A LA VEZ. Ojo: el orden en que se escriben abajo NO define el
+    # orden de ejecucion; lo definen solo las dependencias.
     #
     #   fetch_markets -> transform_markets -> load_markets
-    #                                                       |
-    #                                                       v (secuencial)
-    #                                            fetch_global -> load_global
+    #   fetch_global  -> load_global          (arranca al mismo tiempo)
     #
-    # Asi, cuando fetch_global() se ejecuta, ya pasaron varios segundos
-    # desde fetch_markets() (el tiempo de transform + load), MAS los 5
-    # segundos de sleep() que tiene fetch_global() internamente.
-    # Esto reduce drasticamente el riesgo de rate limiting.
+    # El riesgo de lanzarlas juntas: CoinGecko free tier tiene rate limits
+    # estrictos (~10-30 req/min), y 2 requests SIMULTANEAS desde la misma
+    # IP tienen mas chance de que una falle con HTTP 429 (Too Many
+    # Requests). Por eso fetch_global() espera 5 segundos antes de pedir:
+    # las dos requests salen escalonadas. Y si igual cae un 429, los
+    # retries de la tarea lo cubren.
     #
-    # Si tuvieramos una API key de pago con limites altos, podriamos
-    # ejecutar ambos pipelines en paralelo para mayor velocidad.
+    # Si hiciera falta que global corra DESPUES de markets, habria que
+    # declararlo explicitamente, por ejemplo:   loaded >> raw_global
+    # Sin una dependencia asi, Airflow no espera.
     # ============================================================
 
     # Pipeline de markets: fetch -> transform -> load
@@ -855,9 +851,8 @@ def crypto_bronze():
     loaded = load_markets(transformed)
 
     # Pipeline de global: fetch -> load
-    # Se ejecuta DESPUES de markets porque Airflow ejecuta las tareas
-    # en el orden en que se definen cuando no hay dependencia explicita,
-    # y ademas fetch_global() tiene el sleep(5) interno como proteccion.
+    # Corre EN PARALELO con markets (no hay dependencia entre las dos
+    # ramas). Lo que separa las dos requests es el sleep(5) de fetch_global().
     raw_global = fetch_global()
     load_global(raw_global)
 
