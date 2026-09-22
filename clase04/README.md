@@ -68,6 +68,8 @@ graph LR
 
 > **Nota**: el lineage NO renombra columnas (no hay `id_key`, `symbol_upper`, etc. — los nombres se mantienen). Lo que cambia es el **contenido** (normalizado) y la **garantía de validez** (Pydantic ya las chequeó).
 
+> **Qué es `snapshot_ts`**: la marca de la corrida, redondeada al minuto, que escribe el DAG de Bronze (clase 03). Las 50 criptos de una misma corrida la comparten, así que sirve para agrupar y para deduplicar. `ingested_at` es el momento exacto de cada carga: sirve para auditar y es el que desempata cuando hay duplicados.
+
 ---
 
 ## 🚀 Setup
