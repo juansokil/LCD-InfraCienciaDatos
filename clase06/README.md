@@ -19,6 +19,20 @@
 - El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que usa esta clase: `gold.v_ultimo_snapshot`, **`gold.v_series_diaria`** (1 fila = cripto × día, la materia prima del ML) y `gold.v_kpis_mercado`.
 - Entorno Python local con `scikit-learn`, `mlflow`, `pandas` (`pip install -r requirements.txt`, raíz del repo).
 
+**Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
+
+```bash
+# 1. Bajar lo nuevo de main
+git checkout main
+git pull origin main
+
+# 2. Volver a tu rama personal y mergear
+git checkout estudiante/apellido-nombre   # reemplazá por tu rama
+git merge main --no-edit
+```
+
+> Vas a repetir esto al empezar **cada** clase. El detalle de cada comando está en el [README raíz](../README.md), sección "Cómo Consumir el Repo Semana a Semana".
+
 > ⚠️ **clase06 requiere el stack Docker levantado y el pipeline productivo ya corrido.** Si en los ejercicios 03/04/05 hiciste la variante con **DuckDB** (sin Docker), eso **no alcanza acá**: clase06 no usa las tablas `*_demo` del ejercicio personal, sino el **pipeline productivo** completo. DuckDB sirvió para practicar cada capa; el cierre necesita el stack real.
 
 > 📌 **Versiones**: el `requirements.txt` pinea **`mlflow==3.4.0`** — la misma versión que corre el server del stack. Cliente y server tienen que coincidir en la versión **mayor**: si difieren, `log_model` llama endpoints que el otro lado no tiene y falla. Si tu entorno tiene otra versión: `pip install mlflow==3.4.0`.
