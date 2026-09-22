@@ -2,7 +2,7 @@
 
 > El entregable del Ejercicio 05 es **[`ejercicio.ipynb`](ejercicio.ipynb)** (un solo archivo, autocontenido) y consta de **11 ítems**: **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB); **Parte 2 — 9 ejercicios SQL Gold** (G1–G8 + G11: GROUP BY+COUNT, GROUP BY+SUM, AVG/MIN/MAX por dimensión, HAVING, JOIN tipo *star*, CASE buckets, ROW_NUMBER/RANK, % del total y variación temporal con LAG); **Parte 3 — G9** (diseñás y materializás **TU propia tabla Gold**: grano + `CREATE TABLE` + `INSERT ... SELECT` + KPI) y **G10** (**tu página Streamlit** que la consume). Son los patrones que la Capa Gold usa para **agregar y responder preguntas de negocio** (colapsan el grano, al revés que Silver en el ejercicio 04).
 >
-> Esta carpeta guarda tu entrega (`estudiantes/` + `dashboard/pages/`) y el **material de referencia del pipeline productivo** que G9/G10 imitan en chico: el DAG [`dag_crypto_gold.py`](dag_crypto_gold.py) (ELT: DDL + `INSERT ... SELECT` sobre `crypto_gold`) y las páginas Streamlit del dashboard del curso ([`stack/dashboard/pages/`](../../stack/dashboard/pages/) — las que ya ves corriendo en `localhost:8501`; no se duplican acá para que no queden desactualizadas).
+> Esta carpeta guarda tu entrega (`estudiantes/` + `dashboard/pages/`) y el **material de referencia del pipeline productivo** que G9/G10 imitan en chico: el DAG [`dag_crypto_gold.py`](dag_crypto_gold.py) (ELT: todo en SQL, con `CREATE TABLE ... AS SELECT`) y las páginas Streamlit del dashboard del curso ([`stack/dashboard/pages/`](../../stack/dashboard/pages/) — las que ya ves corriendo en `localhost:8501`; no se duplican acá para que no queden desactualizadas).
 
 ## ¿Qué entrego?
 
