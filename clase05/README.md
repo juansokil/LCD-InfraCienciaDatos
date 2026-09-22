@@ -76,7 +76,20 @@ graph LR
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`).
 - Datos de Silver ya cargados (los generaste en la **Clase 04** corriendo el `dag_crypto_silver.py`).
-- Tu rama personal sincronizada (ver root README → "Cómo Consumir el Repo Semana a Semana").
+
+**Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
+
+```bash
+# 1. Bajar lo nuevo de main
+git checkout main
+git pull origin main
+
+# 2. Volver a tu rama personal y mergear
+git checkout estudiante/apellido-nombre   # reemplazá por tu rama
+git merge main --no-edit
+```
+
+> Vas a repetir esto al empezar **cada** clase. El detalle de cada comando está en el [README raíz](../README.md), sección "Cómo Consumir el Repo Semana a Semana".
 
 ---
 
@@ -168,13 +181,14 @@ Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
 
 ### ¿Querés agregar tu propia visualización?
 
-Eso es exactamente **G10**. Streamlit detecta cualquier `.py` que pongas en `stack/dashboard/pages/`; el número del prefijo define el orden. Como el curso ya ocupa `1_` a `6_`, usá `7_` en adelante:
+Eso es exactamente **G10**. Tu página va en `clase05/ejercicios/dashboard/pages/7_<apellido>-<nombre>.py`: esa es la que se entrega. Streamlit detecta cualquier `.py` que pongas en `stack/dashboard/pages/` (el prefijo define el orden, y el curso ya ocupa `1_` a `6_`), así que para verla corriendo copiala ahí:
 
 ```bash
-# Copiá una página real del curso como punto de partida
-cp stack/dashboard/pages/3_Gold_Mercado.py stack/dashboard/pages/7_Mi_Custom.py
-# Editala y refrescá Streamlit — sin rebuild necesario
+cp clase05/ejercicios/dashboard/pages/7_<apellido>-<nombre>.py stack/dashboard/pages/
+# Refrescá Streamlit: aparece sola, sin rebuild
 ```
+
+> Para los mínimos de G10 usá `st.metric`, `st.selectbox` y un gráfico de Streamlit. Las páginas del curso arman sus KPIs y filtros con helpers propios de `theme.py`, que el verificador no cuenta: sirven para ver cómo traen los datos, no como molde para copiar entero.
 
 ---
 
