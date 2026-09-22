@@ -1,6 +1,6 @@
 # Ejercicio 04 — Reglas de entrega
 
-> El entregable del Ejercicio 04 es **[`ejercicio.ipynb`](ejercicio.ipynb)** (un solo archivo, autocontenido): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **11 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial, deduplicación con ROW_NUMBER y tu primera tabla de quarantine con CREATE TABLE) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
+> El entregable del Ejercicio 04 es **[`ejercicio.ipynb`](ejercicio.ipynb)** (un solo archivo, autocontenido): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
 >
 > Esta carpeta guarda tu entrega (`estudiantes/`) y el DAG productivo (`dag_crypto_silver.py`, referencia / deploy). **[`dag_crypto_silver.py`](dag_crypto_silver.py) es el patrón productivo de referencia de todo lo que practicás acá — leelo.**
 
@@ -34,15 +34,14 @@ Ejercicios (extraido de las queries, no autoreporte):
   E7: SIN_QUERY (0x0) h=-
   E8: FORMA INCORRECTA (obtuviste 5x3, esperado 20x3) (5x3) h=-
   ...
-  E11: OK (1x6) h=9C0D1E2F
-Ejercicios con resultado: 9 / 11
+Ejercicios con resultado: 8 / 10
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-05-01
 ```
 
 > **Funciona con Postgres o DuckDB**: la Parte 1 detecta solo qué motor usás (Postgres si levantaste el stack, DuckDB si trabajás local) y la entrega reusa **ese mismo motor**. No tenés que configurar nada.
 >
-> **Las soluciones no se publican** (el aprendizaje es pelearla), pero el verificador **sí exige la forma exacta**: la celda final **ejecuta tus `query_e1..query_e11`** y registra, por ejercicio, la forma del resultado (`filas×cols`) + un hash sha256 — **extraído automáticamente, NO se autoreporta nada**. Cuenta como **OK** sólo el que **corre sin error Y devuelve la forma exacta esperada** (filas × columnas + nombres de columna, tabla `SHAPES_ESPERADAS` del verificador). Un `SELECT 1` no pasa: da `FORMA INCORRECTA (obtuviste 1x1, esperado ...)` o `COLUMNAS INCORRECTAS`. En **E11** además tiene que **existir la tabla** `northwind_products_quarantine` con el contenido correcto (estados `SIN TABLA` / `TABLA INCORRECTA` si no). El **código** sha256 se deriva de esos fingerprints + el motor + Northwind. El **contenido** de tus queries no se compara contra ninguna solución. Si todavía no corriste los ejercicios o la Parte 1, igual podés generar con estado parcial.
+> **Las soluciones no se publican** (el aprendizaje es pelearla), pero el verificador **sí exige la forma exacta**: la celda final **ejecuta tus `query_e1..query_e10`** y registra, por ejercicio, la forma del resultado (`filas×cols`) + un hash sha256 — **extraído automáticamente, NO se autoreporta nada**. Cuenta como **OK** sólo el que **corre sin error Y devuelve la forma exacta esperada** (filas × columnas + nombres de columna, tabla `SHAPES_ESPERADAS` del verificador). Un `SELECT 1` no pasa: da `FORMA INCORRECTA (obtuviste 1x1, esperado ...)` o `COLUMNAS INCORRECTAS`. El **código** sha256 se deriva de esos fingerprints + el motor + Northwind. El **contenido** de tus queries no se compara contra ninguna solución. Si todavía no corriste los ejercicios o la Parte 1, igual podés generar con estado parcial. **Y si alguna query no te salió, entregá igual**: esa queda como `SIN_QUERY` y las demás cuentan lo mismo.
 
 ## ⚠️ Importante: NO commitees el `.ipynb`
 
