@@ -1,0 +1,11 @@
+Apellido: sokil
+Nombre: juan
+Motor: postgres
+Tablas Bronze: bronze.crypto_markets_raw + bronze.crypto_markets_demo
+Filas raw: 100
+Filas demo: 100
+Criptos distintas: 50
+Doble ingesta: SI
+Ultima carga: 2026-09-22 12:12:57.614286
+Codigo: 54811D4BF3CF
+Fecha: 2026-09-22
