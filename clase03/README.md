@@ -7,7 +7,7 @@
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_bronze.py`](ejercicios/dag_crypto_bronze.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase03.ipynb`](clase03.ipynb) — desarrollo teórico: ingesta multi-formato (CSV/JSON/JSONL/Parquet), idempotencia con SHA256 de archivos, Hive Partitioning, payload crudo en JSONB e idempotencia por fila con `ON CONFLICT`.
+> - [`clase03.ipynb`](clase03.ipynb) — desarrollo teórico: ingesta multi-formato (CSV/JSON/JSONL/Parquet), idempotencia con SHA256 de archivos, Hive Partitioning y guardado del payload crudo.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — ejercicio **con entrega**: ingesta desde API real (CoinGecko). Genera tu `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_bronze.py`](ejercicios/dag_crypto_bronze.py) — DAG productivo de ingesta crypto a Bronze (con comentarios educativos).
 
@@ -16,10 +16,9 @@
 ## 🎯 Objetivos
 
 - Implementar la **Capa Bronze** usando Airflow.
-- Dominar la **Idempotencia** mediante **hashing SHA256 de archivos** (unidad = archivo: `DELETE + INSERT` por `file_hash`).
+- Dominar la **Idempotencia** mediante **hashing SHA256 de archivos** (unidad = archivo: si el mismo archivo vuelve a llegar, se reemplaza su carga en vez de duplicarla).
 - Aplicar **Hive Partitioning** para organizar el Data Lake.
-- Guardar el **payload crudo en JSONB** y desanidarlo con `->` / `->>` sin reprocesar la fuente.
-- Aplicar **idempotencia a nivel fila** (unidad = fila: hash del payload + `INSERT ... ON CONFLICT DO NOTHING`) y deduplicar versiones con `ROW_NUMBER()`.
+- Guardar el **payload crudo** completo, para poder reprocesar sin volver a llamar a la fuente.
 - Definir un **Data Contract** declarativo (YAML) y validar la **forma** de los archivos contra él (extensión, encoding, delimiter, columnas presentes). La validación de **valores** es responsabilidad de Silver (clase 04).
 
 ## 🥉 Capa Bronze: Fuente de Verdad
@@ -61,7 +60,7 @@ Abrí `clase03.ipynb`. El notebook explica los conceptos y al ejecutarse genera 
 
 | # | DAG generado | Path destino | Qué aporta |
 |---|--------------|--------------|------------|
-| — | (teoría — no archivo) | — | DAG mínimo INSERT + ALTER TABLE — incluido como código en el notebook, **sin idempotencia**. Solo para entender la mecánica básica. |
+| — | (teoría — no archivo) | — | Carga manual con pandas (`to_sql`) a `bronze.test_manual_notebook`, **sin idempotencia**. Solo para entender la mecánica básica. |
 | 01 | `bronze_01_simple.py` | `stack/dags/01-bronze/` | + **Idempotencia** por SHA256 de archivo + Hive partitioning (`processed/ds=YYYY-MM-DD/`) |
 | 02 | `bronze_02_multiple.py` | `stack/dags/01-bronze/` | + **Multi-formato** (CSV/JSON/JSONL) + **quarantine** para archivos rotos (con for-loop manual) |
 | 03 | `bronze_03_dynamic.py` | `stack/dags/01-bronze/` | Refactor de `bronze_02_multiple` con **Dynamic Task Mapping** (`.expand()`) — una task por archivo, paralelizable y con aislamiento de errores |
@@ -108,32 +107,30 @@ Airflow detecta el archivo automáticamente (volumen montado) y lo muestra en la
 
 ## ✅ Verificación end-to-end
 
-Después de correr los DAGs sintéticos + el productivo crypto, deberías poder responder estas 3 queries:
+Después de correr los DAGs sintéticos + el productivo crypto, estas 3 verificaciones tienen que dar bien (con pandas, desde un notebook):
 
-```sql
--- 1. ¿Bronze tiene datos del DAG productivo crypto?
-SELECT COUNT(*) AS filas, MAX(ingested_at) AS ultimo_ingest
-FROM bronze.crypto_markets;
--- Esperado: > 0 (ej: 50 filas por snapshot, varios snapshots)
+```python
+import pandas as pd
+import sqlalchemy
+engine = sqlalchemy.create_engine('postgresql://admin:admin@localhost:5432/InfraCienciaDatos')
 
--- 2. ¿Cuántos archivos sintéticos procesados? (uno o más DAGs sintéticos corridos)
-SELECT source_file, COUNT(*) AS filas, file_hash
-FROM bronze.ventas_simple
-GROUP BY 1, 3
-ORDER BY 1;
--- Esperado: 1 row por archivo procesado (ventas_legacy.csv, etc.)
+# 1. ¿Bronze tiene datos del DAG productivo crypto?
+crypto = pd.read_sql_table('crypto_markets', engine, schema='bronze')
+print(len(crypto), crypto['ingested_at'].max())
+# Esperado: > 0 (ej: 50 filas por snapshot, varios snapshots)
 
--- 3. ¿La idempotencia funciona? (mismo file_hash NO duplica filas)
-SELECT
-  COUNT(DISTINCT file_hash) AS hashes_distintos,
-  COUNT(*) AS filas_totales,
-  COUNT(DISTINCT source_file) AS archivos_distintos
-FROM bronze.ventas_simple;
--- Esperado: si subiste 2 archivos con el mismo contenido (experimento `ventas_duplicado_a/b.csv`),
--- hashes_distintos == archivos_distintos < total de archivos físicos. La tabla NO se duplica.
+# 2. ¿Cuántos archivos sintéticos se procesaron?
+ventas = pd.read_sql_table('ventas_simple', engine, schema='bronze')
+print(ventas.groupby(['source_file', 'file_hash']).size())
+# Esperado: una fila por archivo procesado (ventas_legacy.csv, etc.)
+
+# 3. ¿La idempotencia funciona? (mismo contenido NO duplica filas)
+print(ventas['file_hash'].nunique(), len(ventas), ventas['source_file'].nunique())
+# Esperado: si subiste 2 archivos con el mismo contenido (experimento `ventas_duplicado_a/b.csv`),
+# hashes distintos == archivos distintos < total de archivos físicos. La tabla NO se duplica.
 ```
 
-Si las 3 queries devuelven valores razonables, tu pipeline Bronze está **funcional + idempotente + auditable**.
+Si las 3 dan valores razonables, tu pipeline Bronze está **funcional + idempotente + auditable**.
 
 ---
 
@@ -147,7 +144,7 @@ Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ven
 | **Pattern Quarantine** | Filas que fallan el contrato NO se descartan — van a `silver.quarantine_*` con `quarantine_reason` (motivo Pydantic estructurado) |
 | **Audit metadata por capa** | `silver_at`, `quarantined_at`, `_processed_at`, `_source_table`, `_contract_version` para lineage completo |
 | **SCD Tipo 2** | Historizar cambios usando los campos del bloque `scd:` del YAML (`business_key`, `tracked_columns`, `effective_date`) |
-| **`MERGE` / `ON CONFLICT`** | Idempotencia con upsert — el DAG puede fallar a la mitad y reanudarse sin duplicar |
+| **Upsert** (insertar o actualizar) | Idempotencia a nivel fila — el DAG puede fallar a la mitad y reanudarse sin duplicar |
 
 > 🔁 **El círculo se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze ahora valida la **semántica** de cada fila en Silver. **Un contrato, dos capas, dos responsabilidades**.
 
