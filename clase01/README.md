@@ -17,6 +17,8 @@ Realizar tu primer **push con Git** al repositorio de la materia: crear tu rama 
 
 Tener **Git instalado** ([git-scm.com/downloads](https://git-scm.com/downloads)) y una **cuenta de GitHub**.
 
+Si vas a abrir las notebooks en **VS Code**, instalá la extensión **Markdown Preview Mermaid Support** (`bierner.markdown-mermaid`): sin ella, los diagramas se ven como código. Cuando abrís el repo, VS Code te la ofrece solo.
+
 ---
 
 ## 🚀 Mi primer push con Git
@@ -121,7 +123,7 @@ Este PR lo abrís **ahora** y lo dejás **abierto** todo el cuatrimestre: cada e
 
 1. Andá a [github.com/juansokil/LCD-InfraCienciaDatos](https://github.com/juansokil/LCD-InfraCienciaDatos).
 2. Click en el botón **"Compare & pull request"** sobre tu rama `estudiante/apellido-nombre`.
-3. Título: dejá el que sugiere GitHub (el nombre de tu rama, `estudiante/apellido-nombre`).
+3. Título: no te preocupes, el que sea. Apenas lo creás, el robot lo cambia por el nombre de tu rama (`estudiante/apellido-nombre`).
 4. Creá el PR y **dejalo abierto**. El docente va a revisar tus entregas ahí, semana a semana.
 
 **Qué vas a ver ahí de acá en adelante.** Apenas lo creás, un robot revisa el nombre de tu rama. Si está bien, no pasa nada y tu PR queda abierto. Si está mal, te deja un comentario con los comandos para arreglarlo y **cierra el PR** — no perdés nada: renombrás la rama y abrís uno nuevo. Es el único caso en que un PR del curso se cierra antes de tiempo, y si pasa, pasa acá.
@@ -140,7 +142,7 @@ Después, durante el cuatrimestre, el docente puede dejarte dos tipos de señal:
 > Tu **rama** `estudiante/apellido-nombre` y tu **Pull Request** se crean **una sola vez acá** y los reusás todo el cuatrimestre — **nunca los borres**.
 >
 > En cada ejercicio siguiente **NO abrís un PR nuevo**. Solo:
-> 1. Sincronizás tu rama con `main` (`git merge main`) para traer el material nuevo del curso
+> 1. Sincronizás tu rama con `main` para traer el material nuevo del curso: `git checkout main`, `git pull origin main`, `git checkout estudiante/apellido-nombre` y `git merge main --no-edit` (el detalle está al principio de cada clase y en el README raíz)
 > 2. Hacés la entrega y la pusheás (`git push`)
 >
 > ...y tu PR (el que abriste acá) se actualiza solo. **Una rama para siempre, un PR para siempre.** El docente identifica cada entrega por el commit `ejercicioNN: ...` y el `.txt` nuevo. El detalle completo está en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).

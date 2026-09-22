@@ -69,7 +69,10 @@ stack/dags/**/*.py
 stack/dashboard/pages/*.py
 
 # --- IDEs ---
-.vscode/
+# De .vscode/ se publica solo la recomendacion de extensiones (la de
+# Mermaid, para ver los diagramas de las notebooks); el resto es local.
+.vscode/*
+!.vscode/extensions.json
 .idea/
 .project
 .pydevproject
@@ -156,6 +159,9 @@ stack/data/quarantine/**
 !stack/data/landing/.gitkeep
 !stack/data/processed/.gitkeep
 !stack/data/quarantine/.gitkeep
+# `raw/` es el bucket del curso: el ejercicio 03 guarda ahi el crudo de la API.
+stack/data/raw/**
+!stack/data/raw/.gitkeep
 
 # --- Credenciales Cloud (defensa adicional - .json/.key reales nunca subir) ---
 stack/credentials/*.json
