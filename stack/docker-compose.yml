@@ -122,9 +122,10 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      # Las paginas se GENERAN desde clase05.ipynb (%%writefile) al host.
-      # Este bind-mount hace que el contenedor vea esa carpeta en vivo:
-      # generas/refrescas Streamlit y aparecen, sin rebuild de la imagen.
+      # Las paginas viven en stack/dashboard/pages/: llegan con cada clase
+      # (y la del G10 del ejercicio 05 se copia aca). Este bind-mount hace
+      # que el contenedor vea esa carpeta en vivo: agregas o cambias una
+      # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
       - ./dashboard/pages:/app/pages
       # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
       # quien produce y quien consume: que el consumidor pueda leerlo es el
