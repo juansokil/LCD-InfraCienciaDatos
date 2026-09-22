@@ -140,7 +140,7 @@ Después, durante el cuatrimestre, el docente puede dejarte dos tipos de señal:
 > Tu **rama** `estudiante/apellido-nombre` y tu **Pull Request** se crean **una sola vez acá** y los reusás todo el cuatrimestre — **nunca los borres**.
 >
 > En cada ejercicio siguiente **NO abrís un PR nuevo**. Solo:
-> 1. Sincronizás tu rama con `main` (`git merge main`) para traer el material nuevo del curso
+> 1. Sincronizás tu rama con `main` para traer el material nuevo del curso: `git checkout main`, `git pull origin main`, `git checkout estudiante/apellido-nombre` y `git merge main --no-edit` (el detalle está al principio de cada clase y en el README raíz)
 > 2. Hacés la entrega y la pusheás (`git push`)
 >
 > ...y tu PR (el que abriste acá) se actualiza solo. **Una rama para siempre, un PR para siempre.** El docente identifica cada entrega por el commit `ejercicioNN: ...` y el `.txt` nuevo. El detalle completo está en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).
