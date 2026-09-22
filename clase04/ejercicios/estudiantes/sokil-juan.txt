@@ -1,0 +1,20 @@
+Apellido: sokil
+Nombre: juan
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: SIN_QUERY (0x0) h=-
+  E2: SIN_QUERY (0x0) h=-
+  E3: SIN_QUERY (0x0) h=-
+  E4: SIN_QUERY (0x0) h=-
+  E5: SIN_QUERY (0x0) h=-
+  E6: SIN_QUERY (0x0) h=-
+  E7: SIN_QUERY (0x0) h=-
+  E8: SIN_QUERY (0x0) h=-
+  E9: SIN_QUERY (0x0) h=-
+  E10: SIN_QUERY (0x0) h=-
+Ejercicios con resultado: 0 / 10
+Codigo: 0AB42A23F6E1
+Fecha: 2026-09-22
