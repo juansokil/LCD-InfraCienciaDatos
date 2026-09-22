@@ -161,7 +161,8 @@ stack/
 │   ├── landing/                # Archivos de entrada (se procesan y mueven)
 │   ├── playground/             # Datos de ejemplo
 │   ├── processed/              # Archivos procesados (ds=YYYY-MM-DD)
-│   └── quarantine/             # Archivos con errores + .error.json
+│   ├── quarantine/             # Archivos con errores + .error.json
+│   └── raw/                    # Crudo de la API del ejercicio 03: un JSON por carga (ds=YYYY-MM-DD)
 ├── dashboard/                  # Dashboard Streamlit
 │   ├── Dockerfile              # Imagen del dashboard
 │   ├── app.py                  # Codigo del dashboard (lee de gold.*)
