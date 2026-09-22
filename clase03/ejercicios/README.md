@@ -14,36 +14,25 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 
 ## ¿Qué pongo adentro del archivo?
 
-**Nada manual.** El script del notebook lo escribe por vos a partir de **tu trabajo real**: las variables de interés que elegiste (con las 3 que dejaste afuera del análisis), las tablas `bronze.crypto_markets_demo` + `bronze.crypto_markets_raw` que cargaste, y el resultado de **ejecutar tus 5 queries** (J1–J3 sobre el payload JSON, DUP y DEDUP de la doble ingesta). Vas a ver algo así:
+**Nada manual.** El script del notebook lo escribe por vos a partir de lo que cargaste en Bronze (las tablas `bronze.crypto_markets_raw` y `bronze.crypto_markets_demo`). Vas a ver algo así:
 
 ```
 Apellido: Sokil
 Nombre: Juan
 Motor: postgres
-Tablas Bronze: bronze.crypto_markets_demo + bronze.crypto_markets_raw
-Variables de interes (8): current_price, id, last_updated, market_cap, ...
-Afuera del analisis:
-  1. image: es una URL al logo, no es un dato analizable en Silver/Gold
-  2. ...
-  3. ...
-Filas demo: 100
+Tablas Bronze: bronze.crypto_markets_raw + bronze.crypto_markets_demo
 Filas raw: 100
-Ids distintos: 50
-Registros con roi no nulo: 4
-Queries (extraido de tus queries, no autoreporte):
-  J1: OK (100x2) h=3E853130
-  J2: OK (5x2) h=380B91B8
-  J3: OK (4x2) h=AD026600
-  DUP: OK (50x2) h=CCE02D78
-  DEDUP: OK (50x9) h=A0B72370
-Queries con resultado OK: 5 / 5
+Filas demo: 100
+Criptos distintas: 50
+Doble ingesta: SI
+Ultima carga: 2026-09-22 10:30:15.123456
 Codigo: A1B2C3D4E5F6
-Fecha: 2026-05-01
+Fecha: 2026-09-22
 ```
 
 > **Funciona con Postgres o DuckDB**: el ejercicio detecta solo qué motor usás (Postgres si levantaste el stack, DuckDB si trabajás local). La entrega reusa **ese mismo motor** y lo registra en el campo `Motor:`. No tenés que configurar nada.
 >
-> El **código** se deriva de tus variables de interés + las filas que efectivamente cargaste (+ el motor y la fecha) — es un fingerprint genuino de TU trabajo, no una constante. Los estados de las queries (`OK` / `FORMA` / `ERROR`) salen de **ejecutarlas**, no de lo que declares: una query trucha no pasa. Si algo todavía no está, el notebook te avisa y podés generar igual con estado parcial.
+> El **código** se deriva de tus cargas (cuántas filas y cuándo), el motor y la fecha: sale de **tu** base, no es una constante. Si algo todavía no está, el notebook te avisa y podés generar igual con estado parcial.
 
 > 📖 **Patrón de referencia**: [`dag_crypto_bronze.py`](dag_crypto_bronze.py), en esta misma carpeta, es este pipeline como DAG productivo de Airflow (comentado línea por línea). Ojo: para ser más simple, el DAG elige y tipa columnas ya en Bronze y no guarda el crudo — lo correcto es lo que hacés en el ejercicio: guardar todo. Leelo antes de cerrar la clase.
 
