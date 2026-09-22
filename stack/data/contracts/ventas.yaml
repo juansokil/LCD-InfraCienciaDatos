@@ -1,0 +1,119 @@
+# =====================================================================
+# Data Contract — dataset: ventas
+# ---------------------------------------------------------------------
+# Manifiesto declarativo del dataset. Vive en git, versionado, y es la
+# "interface" entre el productor del dato y los consumidores (Bronze,
+# Silver, Gold, BI, ML).
+#
+# Cada capa del medallion lee SOLO las secciones que le corresponden:
+#
+#   Bronze (clase03) -> valida la FORMA del archivo
+#       secciones: format, delivery, schema[*].name, evolution_policy
+#       reglas:    ¿extension correcta? ¿encoding? ¿delimiter? ¿header?
+#                  ¿estan todas las columnas declaradas?
+#
+#   Silver (clase04) -> valida la SEMANTICA de los datos (fila por fila)
+#       secciones: schema[*].type/nullable, quality_rules,
+#                  evolution_policy
+#       reglas:    ¿los tipos son correctos? ¿valores permitidos?
+#                  ¿unicidad? ¿not_null? ¿positivos?
+#       implementacion: Pydantic generado dinamicamente con
+#                       common.contracts.build_pydantic_from_contract()
+#
+#   Gold (clase05) -> usa scd para historizar dim_ventas (futuro)
+# =====================================================================
+
+dataset: ventas
+version: 2.0
+owner: ventas_team
+source: pos_export
+
+# ----- FORMA DEL ARCHIVO -----------------------------------------------
+# Bronze valida estas reglas antes de intentar parsear el contenido.
+format:
+  type: csv
+  delimiter: ","
+  encoding: "utf-8"
+  header: true
+
+delivery:
+  frequency: daily
+  expected_arrival_time: "06:00"
+  timezone: "America/Argentina/Buenos_Aires"
+
+# ----- SCHEMA ESPERADO -------------------------------------------------
+# Bronze: chequea SOLO que los nombres esten presentes.
+# Silver: chequea tipo + nullable + reglas adicionales (gt, ge, ...)
+schema:
+  - name: venta_id
+    type: integer
+    nullable: false
+    primary_key: true
+    rules:
+      gt: 0           # debe ser positivo
+
+  - name: producto
+    type: string
+    nullable: false
+    rules:
+      min_length: 2
+
+  - name: precio
+    type: numeric
+    nullable: false
+    rules:
+      gt: 0           # los precios deben ser estrictamente positivos
+
+  - name: cantidad
+    type: integer
+    nullable: true    # si falta, Silver lo defaultea a 1
+    default: 1
+    rules:
+      ge: 1
+
+  - name: fecha
+    type: date
+    nullable: false
+
+  - name: cliente_email
+    type: email       # tipo especial -> Pydantic EmailStr
+    nullable: true
+
+# ----- REGLAS DE CALIDAD -----------------------------------------------
+# Reglas a nivel dataset (no a nivel fila individual).
+# Las reglas a nivel fila estan declaradas en schema[*].rules.
+quality_rules:
+  - rule: unique
+    column: venta_id
+
+  - rule: not_null
+    column: venta_id
+
+  - rule: not_null
+    column: producto
+
+  - rule: not_null
+    column: precio
+
+  - rule: not_null
+    column: fecha
+
+# ----- EVOLUCION DE SCHEMA ---------------------------------------------
+# Bronze usa allow_new_columns para decidir si rechazar archivos con
+# columnas extra. Silver usa el resto cuando promueve datos.
+evolution_policy:
+  allow_new_columns: false
+  allow_missing_columns: false
+  allow_type_changes: false
+
+# ----- SLOWLY CHANGING DIMENSION (clase04/05) --------------------------
+# Bronze NO usa esto. Lo consume Silver/Gold cuando construye dim_ventas.
+scd:
+  type: 2
+  business_key:
+    - venta_id
+  tracked_columns:
+    - producto
+    - precio
+    - cantidad
+  effective_date: fecha
