@@ -3,12 +3,12 @@
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
 >
 > 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`bronze.ventas_demo`)
-> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 11 ejercicios de SQL básico sobre **Northwind** (los fundamentos que Silver usa)
+> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 10 ejercicios de SQL básico sobre **Northwind** (los fundamentos que Silver usa)
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
 > - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`silver_01_basico.py`, `silver_02_contrato.py`) que se generan vía `%%writefile` al ejecutar el notebook.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (setup dual-engine Postgres/DuckDB) y **Parte 2** son **11 ejercicios de SQL básico** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, **anti-join** para integridad referencial, **dedup con `ROW_NUMBER`** y **cuarentena con `CREATE TABLE AS SELECT`**), conectando cada técnica con un patrón real de Silver. La sección **📦 Entrega** genera tu `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (setup dual-engine Postgres/DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, **anti-join** para integridad referencial y **dedup con `ROW_NUMBER`**), conectando cada técnica con un patrón real de Silver. La sección **📦 Entrega** genera tu `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo (con comentarios educativos), se copia al stack para correr el Silver real de crypto.
 
 ---
@@ -114,7 +114,7 @@ Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:808
 
 ### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-El ejercicio entregable de esta clase es **[`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)** (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB) y resolvé los **11 ejercicios de SQL básico** de la **Parte 2** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, **anti-join** para integridad referencial, **dedup con `ROW_NUMBER`** y **cuarentena con `CREATE TABLE AS SELECT`**). Al final, la sección **📦 Entrega** genera automáticamente tu archivo `ejercicios/estudiantes/<apellido>-<nombre>.txt` (motor usado + evidencia de que Northwind cargó + cuántos ejercicios corrieron y devolvieron resultado, **extraído automáticamente ejecutando tus queries — no se autoreporta**) y te indica cómo subirlo (solo commit + push: tu PR se actualiza solo). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+El ejercicio entregable de esta clase es **[`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)** (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB) y resolvé los **10 ejercicios de SQL básico** de la **Parte 2** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, **anti-join** para integridad referencial y **dedup con `ROW_NUMBER`**). Al final, la sección **📦 Entrega** genera automáticamente tu archivo `ejercicios/estudiantes/<apellido>-<nombre>.txt` (motor usado + evidencia de que Northwind cargó + cuántos ejercicios corrieron y devolvieron resultado, **extraído automáticamente ejecutando tus queries — no se autoreporta**) y te indica cómo subirlo (solo commit + push: tu PR se actualiza solo). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
 
 > Las queries **no se autocorrigen** (las soluciones no se publican — el aprendizaje es pelearla). Silver es SQL-intensivo: estos patrones son exactamente los del DAG productivo `dag_crypto_silver.py`.
 
@@ -160,8 +160,8 @@ El ejercicio entregable (Paso 2) es [`ejercicios/ejercicio.ipynb`](ejercicios/ej
 
 | Aspecto | Detalle |
 |---|---|
-| **Qué practicás** | Fundamentos de SQL que Silver usa todo el tiempo: filtrar, medir para *profiling* (`COUNT`/`MIN`/`MAX`/`AVG`), normalizar y limpiar nulos, derivar atributos con `CASE`, `DISTINCT`, `JOIN` — y los tres que sostienen el TP: **anti-join** (integridad referencial), **dedup con `ROW_NUMBER`** y **cuarentena con `CTAS`**. |
-| **Cómo está armado** | Un solo archivo: **Parte 1 — Setup** (carga Northwind, con datos sucios sembrados a propósito) + **Parte 2** con 11 ejercicios básicos (E1 SELECT/WHERE/ORDER BY · E2 COUNT · E3 MIN/MAX · E4 AVG · E5 normalización+nulos COALESCE · E6 DISTINCT/LIKE · E7 atributo derivado CASE · E8 INNER JOIN · E9 anti-join · E10 dedup con ROW_NUMBER · E11 cuarentena con CTAS) + **📦 Entrega**. Podés cortar y volver. |
+| **Qué practicás** | Fundamentos de SQL que Silver usa todo el tiempo: filtrar, medir para *profiling* (`COUNT`/`MIN`/`MAX`/`AVG`), normalizar y limpiar nulos, derivar atributos con `CASE`, `DISTINCT`, `JOIN` — y los dos que sostienen el TP: **anti-join** (integridad referencial) y **dedup con `ROW_NUMBER`**. |
+| **Cómo está armado** | Un solo archivo: **Parte 1 — Setup** (carga Northwind, con datos sucios sembrados a propósito) + **Parte 2** con 10 ejercicios básicos (E1 SELECT/WHERE/ORDER BY · E2 COUNT · E3 MIN/MAX · E4 AVG · E5 normalización+nulos COALESCE · E6 DISTINCT/LIKE · E7 atributo derivado CASE · E8 INNER JOIN · E9 anti-join · E10 dedup con ROW_NUMBER) + **📦 Entrega**. Podés cortar y volver. |
 | **Dónde corre** | Postgres (si tenés el stack) **o** DuckDB (offline). La Parte 1 detecta auto cuál usar y carga Northwind. |
 | **Entrega** | Sección **📦 Entrega** al final de `ejercicio.ipynb` → `.txt` en `ejercicios/estudiantes/`. |
 
