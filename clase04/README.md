@@ -73,7 +73,20 @@ graph LR
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`).
 - Datos de Bronze ya cargados (los generaste en la **Clase 03** corriendo el `dag_crypto_bronze.py`).
-- Tu rama personal sincronizada (ver root README → "Cómo Consumir el Repo Semana a Semana").
+
+**Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
+
+```bash
+# 1. Bajar lo nuevo de main
+git checkout main
+git pull origin main
+
+# 2. Volver a tu rama personal y mergear
+git checkout estudiante/apellido-nombre   # reemplazá por tu rama
+git merge main --no-edit
+```
+
+> Vas a repetir esto al empezar **cada** clase. El detalle de cada comando está en el [README raíz](../README.md), sección "Cómo Consumir el Repo Semana a Semana".
 
 ---
 
