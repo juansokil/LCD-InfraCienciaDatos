@@ -17,6 +17,8 @@ Realizar tu primer **push con Git** al repositorio de la materia: crear tu rama 
 
 Tener **Git instalado** ([git-scm.com/downloads](https://git-scm.com/downloads)) y una **cuenta de GitHub**.
 
+Si vas a abrir las notebooks en **VS Code**, instalá la extensión **Markdown Preview Mermaid Support** (`bierner.markdown-mermaid`): sin ella, los diagramas se ven como código. Cuando abrís el repo, VS Code te la ofrece solo.
+
 ---
 
 ## 🚀 Mi primer push con Git

@@ -36,6 +36,7 @@ graph LR
 A diferencia de Bronze donde traemos todo crudo, en Silver pasa por 3 transformaciones antes de llegar a la tabla final. El DAG productivo `dag_crypto_silver` separa válidos de inválidos sin descartar nada:
 
 ```mermaid
+%%{init: {"flowchart": {"subGraphTitleMargin": {"top": 0, "bottom": 28}}}}%%
 graph LR
     subgraph BR["bronze.crypto_markets"]
         B[22+ columnas crudas<br/>de la API CoinGecko]
@@ -59,10 +60,10 @@ graph LR
     P3 -->|cumple contrato| SVOK
     P3 -->|falla contrato| SQNG
 
-    style BR fill:#fff3e0,stroke:#e65100
-    style PIPE fill:#f3e5f5,stroke:#4a148c
-    style SV fill:#e8f5e9,stroke:#1b5e20
-    style SQ fill:#ffebee,stroke:#c62828
+    style BR fill:#fff3e033,stroke:#e65100
+    style PIPE fill:#f3e5f533,stroke:#4a148c
+    style SV fill:#e8f5e933,stroke:#1b5e20
+    style SQ fill:#ffebee33,stroke:#c62828
 ```
 
 > **Nota**: el lineage NO renombra columnas (no hay `id_key`, `symbol_upper`, etc. — los nombres se mantienen). Lo que cambia es el **contenido** (normalizado) y la **garantía de validez** (Pydantic ya las chequeó).
