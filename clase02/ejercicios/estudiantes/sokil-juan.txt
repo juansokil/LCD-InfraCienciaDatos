@@ -1,0 +1,16 @@
+Apellido: sokil
+Nombre: juan
+Rama: profesor/juan-sokil
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  uno guarda los datos de airflow y el otro es la base de datos
+Pregunta (b) - Datos despues del down:
+  porque creamos volumnes
+Pregunta (c) - DAGs en el contenedor:
+  no se
+Pregunta (d) - Puerto 8080 ocupado:
+  8081
+Pregunta (e) - Credenciales del warehouse:
+  la saca del env
+Codigo: 0AC0478E3F2F
+Fecha: 2026-09-22
