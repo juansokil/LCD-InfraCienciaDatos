@@ -14,14 +14,13 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 
 ## ¿Qué pongo adentro del archivo?
 
-**Nada manual.** El script del notebook lo escribe por vos a partir de lo que cargaste en Bronze (las tablas `bronze.crypto_markets_raw` y `bronze.crypto_markets_demo`). Vas a ver algo así:
+**Nada manual.** El script del notebook lo escribe por vos a partir de lo que guardaste en Bronze: los archivos crudos de `stack/data/raw/crypto_markets/` y la tabla `bronze.crypto_markets_demo`. Vas a ver algo así:
 
 ```
 Apellido: Sokil
 Nombre: Juan
 Motor: postgres
-Tablas Bronze: bronze.crypto_markets_raw + bronze.crypto_markets_demo
-Filas raw: 100
+Archivos crudos: 2
 Filas demo: 100
 Criptos distintas: 50
 Doble ingesta: SI
@@ -32,7 +31,9 @@ Fecha: 2026-09-22
 
 > **Funciona con Postgres o DuckDB**: el ejercicio detecta solo qué motor usás (Postgres si levantaste el stack, DuckDB si trabajás local). La entrega reusa **ese mismo motor** y lo registra en el campo `Motor:`. No tenés que configurar nada.
 >
-> El **código** se deriva de tus cargas (cuántas filas y cuándo), el motor y la fecha: sale de **tu** base, no es una constante. Si algo todavía no está, el notebook te avisa y podés generar igual con estado parcial.
+> El **código** se deriva de tus cargas (cuántos archivos, cuántas filas y cuándo), el motor y la fecha: sale de **tus** datos, no es una constante. Si algo todavía no está, el notebook te avisa y podés generar igual con estado parcial.
+>
+> Los archivos crudos de `stack/data/raw/` quedan en tu máquina: git los ignora, así que no viajan con la entrega.
 
 > 📖 **Patrón de referencia**: [`dag_crypto_bronze.py`](dag_crypto_bronze.py), en esta misma carpeta, es este pipeline como DAG productivo de Airflow (comentado línea por línea). Ojo: para ser más simple, el DAG elige y tipa columnas ya en Bronze y no guarda el crudo — lo correcto es lo que hacés en el ejercicio: guardar todo. Leelo antes de cerrar la clase.
 

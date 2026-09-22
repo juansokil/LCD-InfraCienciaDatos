@@ -159,6 +159,8 @@ stack/data/quarantine/**
 !stack/data/landing/.gitkeep
 !stack/data/processed/.gitkeep
 !stack/data/quarantine/.gitkeep
+# `raw/` es el bucket del curso: el ejercicio 03 guarda ahi el crudo de la API.
+stack/data/raw/**
 
 # --- Credenciales Cloud (defensa adicional - .json/.key reales nunca subir) ---
 stack/credentials/*.json
