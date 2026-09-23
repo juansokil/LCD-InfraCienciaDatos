@@ -1,7 +1,7 @@
 # Clase 06 — Reglas de entrega
 
-> La entrega de esta clase es **El veredicto**, la última sección de
-> [`clase06.ipynb`](../clase06.ipynb): en el tracking quedan **siete candidatos** con sus
+> La entrega de esta clase es **El veredicto**, que vive en
+> [`ejercicio.ipynb`](ejercicio.ipynb): en el tracking quedan **siete candidatos** con sus
 > métricas y vos decidís **cuál promoverías a producción**, o si ninguno está listo. No se
 > entrena nada: lo que se practica es **consultar MLflow y leer lo que devuelve**, que es lo que
 > hace alguien de MLOps cuando le toca promover.
@@ -11,7 +11,7 @@
 **Un archivo**:
 
 ```
-estudiantes/<apellido>-<nombre>.txt          <- lo genera la seccion "El veredicto" del notebook
+estudiantes/<apellido>-<nombre>.txt          <- lo genera la seccion "Entrega" de ejercicio.ipynb
 ```
 
 Ejemplo: `estudiantes/sokil-juan.txt`.
@@ -51,7 +51,7 @@ Fecha: 2026-11-20
 
 ## ⚠️ Importante: NO commitees el `.ipynb`
 
-El notebook de la clase es **template compartido**. Si lo modificás y lo commiteás, se generan
+El `ejercicio.ipynb` es **template compartido**. Si lo modificás y lo commiteás, se generan
 conflictos con el resto.
 
 ```bash
