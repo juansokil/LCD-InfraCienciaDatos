@@ -8,9 +8,9 @@
 
 ## 📚 Material
 
-- [`clase06.ipynb`](clase06.ipynb) — workshop completo en un solo notebook (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
+- [`clase06.ipynb`](clase06.ipynb) — el workshop (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
 - El notebook genera además `gold_02_abt.py` (vía `%%writefile`): el DAG pedagógico que arma una **ABT** sobre datos sintéticos — la forma de tabla con la que se entrena un modelo. Se usa en la Parte 1 y se retira con el resto del andamiaje en el switch a producción.
-- [`ejercicios/estudiantes/`](ejercicios/estudiantes/) — acá cae tu `.txt` de **El veredicto**, que genera la última sección del notebook (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
+- [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **El veredicto**, la entrega de la clase: siete candidatos en MLflow y una decisión. Tu `.txt` cae en [`ejercicios/estudiantes/`](ejercicios/estudiantes/) (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
 - [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/`).
 
 ---
