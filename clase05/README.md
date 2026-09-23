@@ -119,7 +119,7 @@ Abrí `ejercicios/ejercicio.ipynb` (un solo archivo): corré la **Parte 1 — Se
 
 ```bash
 git add clase05/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio05: sql gold"
+git commit -m "clase05 (Gold)"
 git push origin estudiante/apellido-nombre
 ```
 

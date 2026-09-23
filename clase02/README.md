@@ -142,7 +142,7 @@ Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 4 del 
 
 ```bash
 git add clase02/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio02: verificacion de stack"
+git commit -m "clase02 (Stack)"
 git push origin estudiante/apellido-nombre
 ```
 
@@ -152,7 +152,7 @@ git push origin estudiante/apellido-nombre
 
 **Paso 6 — Tu PR se actualiza solo**
 
-**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `ejercicio02: ...` y el `.txt` nuevo.
+**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `clase02 (Stack)` y el `.txt` nuevo.
 
 > Tu PR es el mismo de siempre (`estudiante/apellido-nombre` → `main`), abierto desde la Clase 01; solo se actualiza con tu push. **Una rama para siempre, un PR para siempre.** Detalle completo en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).
 

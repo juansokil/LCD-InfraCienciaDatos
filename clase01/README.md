@@ -90,7 +90,7 @@ Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 3 del 
 
 ```bash
 git add clase01/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio01: registro"
+git commit -m "clase01 (Registro)"
 git push origin estudiante/apellido-nombre
 ```
 

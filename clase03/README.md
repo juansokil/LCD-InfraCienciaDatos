@@ -80,7 +80,7 @@ Abrí `ejercicios/ejercicio.ipynb` para practicar con datos reales desde la **AP
 
 ```bash
 git add clase03/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio03: ejercicio bronze"
+git commit -m "clase03 (Bronze)"
 git push origin estudiante/apellido-nombre
 ```
 

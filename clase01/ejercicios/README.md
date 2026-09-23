@@ -36,7 +36,7 @@ El `ejercicio.ipynb` es **template compartido**. Si lo modificás y lo commiteá
 ```bash
 # CORRECTO
 git add clase01/ejercicios/estudiantes/sokil-juan.txt
-git commit -m "ejercicio01: registro"
+git commit -m "clase01 (Registro)"
 git push origin estudiante/apellido-nombre
 
 # MAL ❌ (sube tambien el ipynb modificado)

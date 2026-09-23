@@ -122,7 +122,7 @@ El ejercicio entregable de esta clase es **[`ejercicios/ejercicio.ipynb`](ejerci
 
 ```bash
 git add clase04/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio04: ejercicio sql"
+git commit -m "clase04 (Silver)"
 git push origin estudiante/apellido-nombre
 ```
 
