@@ -92,7 +92,7 @@ jobs:
           if printf '%s' "$BR" | grep -Eq '^estudiante/[a-z0-9]+-[a-z0-9]+$'; then
             echo "Rama OK: $BR"
             # El PR del estudiante vive TODO el cuatrimestre, y GitHub lo titula
-            # con el mensaje del primer commit ("ejercicio01: registro") cuando
+            # con el mensaje del primer commit ("clase01 (Registro)") cuando
             # la rama tiene uno solo -- que en clase 01 es siempre. Los commits
             # nuevos no cambian el titulo, asi que se pone el nombre de la rama.
             gh pr edit "$PR" --repo "$REPO" --title "$BR"

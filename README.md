@@ -83,7 +83,7 @@ Las clases que arman el pipeline (**Bronze → Silver → Gold**) y la de cierre
 | Clase | Notebook teórico genera | Ejercicio práctico (entrega) | DAG productivo |
 |---|---|---|---|
 | **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → el JSON crudo al lake (`stack/data/raw/`) → `bronze.crypto_markets_demo` | `dag_crypto_bronze.py` |
-| **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join, dedup y cuarentena) | `dag_crypto_silver.py` |
+| **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join y deduplicación con `ROW_NUMBER`) | `dag_crypto_silver.py` |
 | **05 — Gold** | 1 DAG sobre `silver.ventas_demo` sintético (Star Schema) + el chequeo de integridad referencial en vivo y el consumo del star, en el notebook | 6 queries SQL sobre Northwind (G1–G6) que arman, paso a paso, **una misma tabla Gold**: el grano, el JOIN con la dimensión, `HAVING`, `CASE`, participación y ranking con *window functions*, y `LAG` | `dag_crypto_gold.py` |
 | **06 — ML sobre Gold** | 2 DAGs sobre datos sintéticos (la **ABT** y un **modelo adentro de un DAG**) + el workshop de MLOps sobre el hecho productivo | *El veredicto*: siete candidatos en MLflow, una decisión y su porqué | `dag_crypto_ml.py` |
 
