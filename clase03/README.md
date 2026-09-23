@@ -143,7 +143,7 @@ Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ven
 | **Pydantic dinámico desde YAML** | `build_pydantic_from_contract(load_contract("ventas.yaml"))` genera el modelo en runtime — sin clase hardcodeada |
 | **Pattern Quarantine** | Filas que fallan el contrato NO se descartan — van a `silver.quarantine_*` con `quarantine_reason` (motivo Pydantic estructurado) |
 | **Audit metadata por capa** | `silver_at`, `quarantined_at`, `_processed_at`, `_source_table`, `_contract_version` para lineage completo |
-| **SCD Tipo 2** | Historizar cambios usando los campos del bloque `scd:` del YAML (`business_key`, `tracked_columns`, `effective_date`) |
+| **SCD Tipo 2** *(concepto)* | Cómo se historizan los cambios de una dimensión (`business_key`, `effective_date`), con un mini-lab. El bloque `scd:` del YAML queda declarado para el futuro: **ningún DAG del curso lo implementa** |
 | **Upsert** (insertar o actualizar) | Idempotencia a nivel fila — el DAG puede fallar a la mitad y reanudarse sin duplicar |
 
 > 🔁 **El círculo se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze ahora valida la **semántica** de cada fila en Silver. **Un contrato, dos capas, dos responsabilidades**.
