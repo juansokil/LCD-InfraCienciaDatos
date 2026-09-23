@@ -9,7 +9,7 @@
 ## 📚 Material
 
 - [`clase06.ipynb`](clase06.ipynb) — el workshop (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
-- El notebook genera además `gold_02_abt.py` (vía `%%writefile`): el DAG pedagógico que arma una **ABT** sobre datos sintéticos — la forma de tabla con la que se entrena un modelo. Se usa en la Parte 1 y se retira con el resto del andamiaje en el switch a producción.
+- El notebook genera además **dos DAGs pedagógicos** (vía `%%writefile`): `gold_02_abt.py`, que arma una **ABT** sobre datos sintéticos —la forma de tabla con la que se entrena un modelo—, y `ml_01_prediccion_demo.py`, que la **consume**: lee la ABT, entrena registrando en MLflow y escribe predicciones de forma idempotente. Entre los dos cierran la cadena de demos que venía desde la clase 05.
 - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **El veredicto**, la entrega de la clase: siete candidatos en MLflow y una decisión. Tu `.txt` cae en [`ejercicios/estudiantes/`](ejercicios/estudiantes/) (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
 - [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/`).
 
@@ -54,8 +54,7 @@ El docente recorre el notebook en vivo. Estructura real:
 5. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
 6. **🛠️ La ABT, hecha DAG**: antes de pasar a producción, el último andamiaje — `gold_02_abt.py` arma una tabla ancha (1 fila = 1 cliente) con features en SQL. Es la forma que come el modelo.
 7. **🚀 Switch a modo producción**: se despausan las ramas por asset, se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
-8. **🔎 El punta a punta en una foto**: una celda recorre API → Bronze → Silver → Gold → salidas y diagnostica dónde se cortó el dato.
-9. **📊 Monitoring**: tres niveles de observabilidad (infra / datos / negocio), el dashboard como cierre del ciclo, roadmap MLOps.
+8. **📊 Monitoring**: los tres niveles de observabilidad (infra / datos / negocio) y a quién le habla cada página del dashboard.
 
 ### Parte 2 — MLOps: del notebook a producción
 
@@ -63,21 +62,30 @@ El docente recorre el notebook en vivo. Estructura real:
 > modelo deja de ser una celda de notebook y pasa a ser **una pieza del
 > pipeline**: versionada, servida por un DAG, y corregida por un tablero.
 
-**1. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
+**1. 🧪 El dataset y la medición, lo mínimo honesto.** Las features salen de una
+query SQL sobre `gold.fact_crypto_markets` (solo información ≤ t) y el target de
+un `LEAD`. La validación es temporal, **por fechas únicas**, y se mide contra dos
+varas. No es una clase de modelado: es el piso sin el cual las métricas que
+vienen después mienten.
+
+**2. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
 (`localhost:5000`, backend Postgres, artifacts persistentes). La grilla cruza
-**4 algoritmos × 3 ventanas** de historia: 12 runs con params, métricas y
+**2 algoritmos × 3 ventanas** de historia: 6 runs con params, métricas y
 artifacts registrados. Cada run lleva la **ventana como tag**, para poder
 aislarlos en la UI. Sin esto, "el modelo que anduvo bien la semana pasada" es
 una carpeta con un `.pkl` y la memoria de alguien.
 
-**2. 🏆 Model Registry y aliases — qué modelo va a producción.** Un modelo
+**3. 🏆 Model Registry y aliases — qué modelo va a producción.** Un modelo
 registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`), cada uno con su
 alias `@champion`. La promoción es una **decisión humana explícita**, no un
 efecto secundario de correr una celda. Cambiar el champion en el Registry
 **cambia lo que predice el pipeline sin tocar una línea de código** — ese es el
 punto entero de tener un registry.
 
-**3. ⚙️ Serving — el modelo como task de un DAG.**
+**4. ⚙️ Airflow para ML — el modelo como task de un DAG.** Se ve dos veces: en
+chiquito con **`ml_01_prediccion_demo.py`**, que el notebook escribe con
+`%%writefile` y cierra la cadena de demos que venía desde la clase 05
+(`silver.ventas_demo` → star → ABT → predicciones), y en producción con
 [`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): scoring batch disparado **por
 el asset `gold_abt`**, no por reloj. Lee el champion del Registry, escribe
 `gold.predicciones` de forma **idempotente** (DELETE del día + INSERT), y
@@ -85,14 +93,14 @@ el asset `gold_abt`**, no por reloj. Lee el champion del Registry, escribe
 rojo. El mismo encadenado por Assets de las clases 03-05, ahora con un modelo
 adentro.
 
-**4. 🔀 Training-serving skew — el error que no avisa.** La ventana con la que
+**5. 🔀 Training-serving skew — el error que no avisa.** La ventana con la que
 armar las features **no está hardcodeada**: el DAG la lee del param
 `ventana_dias` del propio champion. Si el champion fue entrenado con otras
 features, **lo detecta y saltea** en vez de escribir basura. Y el SQL de las
 features es **la misma query** en el notebook y en el DAG — no dos copias que
 divergen. Verlo ocurrir vale más que explicarlo.
 
-**5. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
+**6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
 con el **veredicto**: accuracy contra lo que efectivamente pasó, medida contra
 **dos varas**, y recién después muestra la maquinaria. Porque elegir la vara
 fácil y cantar victoria es el error más común del oficio:
@@ -109,26 +117,23 @@ solo sabe decir "todo bien" no sirve para nada.
 
 ---
 
-#### El modelo, en breve (el contexto mínimo para entender lo de arriba)
+#### El modelo, en breve (el contexto mínimo, y nada más)
 
-No es el foco, pero sin esto los puntos 1 a 5 no se leen:
+**El modelo no es el tema de la clase**: es el vehículo para ver las
+herramientas. Lo que hay que saber para seguir los seis puntos:
 
-- **La pregunta correcta antes que el modelo.** Se arranca prediciendo *¿sube
-  mañana?* y **no funciona ni puede funcionar**: la dirección del precio no está
-  en los datos públicos de precio y volumen. Se pasa a **¿cuáles van a ser las
-  criptos más movidas mañana?** — la volatilidad **se agrupa en el tiempo**, y
-  eso sí se aprende. **Elegir bien la pregunta rinde más que cambiar de
-  algoritmo.**
-- **El dato fino que el pipeline ya junta.** La volatilidad se calcula con los
-  **~66 snapshots por cripto por día** que `gold.fact_crypto_markets` acumula y
-  que el cierre diario descarta. Es exactamente lo que se decidió guardar en la
-  clase 05, cobrando sentido una clase después.
-- **Target cross-sectional**: `vol_mañana > mediana de la volatilidad de
-  mañana`. Balanceado siempre, por construcción.
-- **Validación honesta**: split temporal por **fechas únicas** (walk-forward),
-  jamás por posición de fila. Los 12 runs se evalúan sobre **las mismas
-  fechas**: si cada uno usara las que le alcanzan, no se sabría si la diferencia
-  viene de las features o del test set.
+- **Qué se predice**: cuáles van a ser **las criptos más movidas mañana**
+  (`vol_mañana > mediana de la volatilidad de mañana`). Al ser un target
+  relativo queda balanceado por construcción, así que el número es comparable
+  entre días.
+- **Con qué**: la volatilidad intradía, el rango, el volumen y el rank de cada
+  día, más los de ayer y sus promedios móviles. Salen de los **~96 snapshots por
+  cripto por día** que `gold.fact_crypto_markets` acumula y que el cierre diario
+  descarta — exactamente lo que se decidió guardar en la clase 05.
+- **Cómo se mide**: split temporal por **fechas únicas** (walk-forward), jamás
+  por posición de fila. Los 6 runs se evalúan sobre **las mismas fechas**: si
+  cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las
+  features o del test set.
 
 ### Cierre
 
