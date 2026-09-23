@@ -102,7 +102,7 @@ Abrí `clase05.ipynb`. Arranca con el patrón para materializar una tabla Gold (
 |---|---|---|---|
 | 01 | `gold_01_star_basico.py` | `stack/dags/03-gold/` | Star Schema básico **en SQL (ELT)**: `dim_producto_demo` + `dim_tiempo_demo` + `fact_ventas_demo` con FKs vía `JOIN` (surrogate key con `ROW_NUMBER()`) |
 
-> **¿Y las páginas Gold del dashboard (`3_Gold_Mercado.py`, `4_Gold_Velas.py`, `5_Gold_Analisis.py`)?** No se generan desde el notebook: **ya vienen en el stack**, en [`stack/dashboard/pages/`](../stack/dashboard/pages/), y se sirven con bind-mount. La cuarta, `6_Gold_ML.py`, llega con la **clase 06**.
+> **¿Y las páginas Gold del dashboard (`3_Gold_Mercado.py`, `4_Gold_Velas.py`, `5_Gold_Analisis.py`)?** No se generan desde el notebook: **ya vienen en el stack**, en [`stack/dashboard/pages/`](../stack/dashboard/pages/), y se sirven con bind-mount. La sexta, `6_Gold_ML.py`, también viene en el stack, pero recién tiene datos que mostrar cuando la **clase 06** crea sus vistas.
 
 Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`) — filtrá por tag **`gold`** para verlos juntos. La última sección del notebook lee esas tablas y las grafica ahí mismo.
 
@@ -215,14 +215,14 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 
 ## 🔮 Forward reference a clase 06 (MLOps)
 
-**Clase 06** es la **clase de cierre del cuatrimestre** — workshop magistral, sin entrega comprometida. El objetivo es **consolidar lo aprendido y ver el cuadro completo**. Lo que vas a ver:
+**Clase 06** es la **clase de cierre del cuatrimestre**: el pipeline pasa a modo producción y le metemos un modelo adentro. Tiene una **entrega chica y de criterio** — *El veredicto* — y no reemplaza al TP Final. Lo que vas a ver:
 
-- **Recap del cuatrimestre**: tabla + diagrama Mermaid del pipeline completo (Bronze→Silver→Gold→ML) + decisiones técnicas clave de cada capa + errores típicos / lecciones aprendidas.
-- **Workshop ML sobre Gold**: predecir **qué criptos van a ser las más movidas mañana**, con validación honesta (walk-forward por fechas) y baseline explícito. Incluye la lección de por qué predecir la *dirección* del precio no funciona, y una sobre **target leakage**.
-- **Tracking con MLflow**: registrar runs (params + metrics + modelos), un modelo por ventana de historia con su alias `@champion`, y la UI en `localhost:5000`.
-- **Monitoring E2E del pipeline**: tres niveles de observabilidad (infra / datos / negocio), dashboard Streamlit como cierre del ciclo, health check SQL del pipeline completo.
-- **Orquestación E2E**: un Master DAG (`crypto_pipeline_e2e`) dispara Bronze→Silver→Gold en cascada con `TriggerDagRunOperator`. **Caveat pedagógico explícito**: es el patrón más simple para *enseñar* orquestación entre DAGs; en producción real con frecuencias distintas se usa **Airflow Datasets** (data-aware scheduling) o **decoupling por idempotencia**. La clase explica las 3 alternativas con tabla comparativa.
-- **Bonus Track MLOps**: mapa de Feature Stores, Model Registry, Drift Detection, Training-Serving Skew. No se enseña — es la próxima frontera.
+- **El pipeline, cerrado**: recap del cuatrimestre, las cuatro capas encadenadas por **Assets** (un solo cron, en Bronze), el switch a **modo producción** y los tres niveles de monitoring.
+- **La ABT, hecha DAG**: la forma de tabla con la que se entrena un modelo — la definiste en esta clase y allá se usa.
+- **Airflow para ML**: el modelo como una **task más**. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_abt`.
+- **MLflow como sistema**: tracking contra el server del stack, **Model Registry** y el alias `@champion` — promover es una decisión humana, y cambiar el alias cambia lo que predice el pipeline sin tocar código.
+- **El tablero corrige al modelo**: la página `6_Gold_ML` mide el acierto contra lo que efectivamente pasó, y contra dos varas.
+- **Bonus Track MLOps**: el mapa completo, con **cinco piezas ya hechas** en esa clase (tracking, registry, serving, training-serving skew y monitoring) y tres que quedan para después: Feature Stores, Drift Detection y Observability Gate.
 
 > 🔁 **El círculo Medallion se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze (clase 03) y la **semántica** de cada fila en Silver (clase 04) culmina en Gold con la **integridad referencial** del modelo dimensional (clase 05). En clase06 consumimos ese output para entrenar ML productivo + ver el cuadro completo. **Un solo contrato, cuatro capas, cuatro responsabilidades**.
 
