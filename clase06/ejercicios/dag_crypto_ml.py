@@ -137,7 +137,7 @@ def features_sql(W: int) -> str:
     nada para la direccion.
 
     DE DONDE SALE EL DATO
-    De los ~66 snapshots por cripto por dia que `fact_crypto_markets` acumula y
+    De los ~96 snapshots por cripto por dia que `fact_crypto_markets` acumula y
     que el cierre diario tira. La volatilidad intradiaria los usa: el pipeline ya
     los venia juntando, faltaba la pregunta que los aprovechara.
 
@@ -575,7 +575,7 @@ def crypto_ml():
             # Dos pasos, y ninguno usa un umbral fijo:
             #
             #   1) CUANTO se movio cada cripto ese dia. Se mide con la
-            #      dispersion de los ~66 precios intradia contra su propio
+            #      dispersion de los ~96 precios intradia contra su propio
             #      promedio (coeficiente de variacion). Dividir por el
             #      promedio es lo que lo hace comparable entre monedas: sin
             #      eso, bitcoin a 121.000 dolares "se mueve" mil veces mas
