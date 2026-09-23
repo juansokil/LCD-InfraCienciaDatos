@@ -59,10 +59,9 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 - Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
 - El **switch a modo producción**: se retira el andamiaje pedagógico, la cadena queda encadenada por **Assets** (un solo cron, en Bronze) y se ve cómo se monitorea
 - La **ABT**: la forma de tabla con la que se entrena un modelo — llega acá, que es donde se usa
-- **Elegir la pregunta antes que el modelo**: predecir la *dirección* del precio no funciona ni puede funcionar; predecir **qué criptos van a ser las más movidas** sí, porque la volatilidad se agrupa en el tiempo
-- Tres modelos con la misma pregunta y distinta historia (**1, 3 y 7 días**): mirar más atrás ayuda, y se ve
-- Validación honesta: walk-forward por fechas, **dos baselines** (la clase mayoritaria, que es la vara fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar), lección de target leakage
-- Tracking con MLflow: un modelo registrado por ventana, cada uno con su alias `@champion`
+- **Airflow para ML**: el modelo como una task más. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_abt`
+- **MLflow como sistema, no como demo**: tracking contra el server del stack, Model Registry y el alias `@champion` — promover un modelo es una **decisión humana**, y cambiar el alias cambia lo que predice el pipeline sin tocar código
+- Validación honesta: walk-forward por fechas, **dos varas** (la clase mayoritaria, que es la fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar) y la lección de target leakage
 - El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
 - 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
 - 📦 **La entrega**: *El veredicto* — siete candidatos esperando en el tracking y una decisión, cuál iría a producción o si ninguno está listo
@@ -86,7 +85,7 @@ Las clases que arman el pipeline (**Bronze → Silver → Gold**) y la de cierre
 | **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → el JSON crudo al lake (`stack/data/raw/`) → `bronze.crypto_markets_demo` | `dag_crypto_bronze.py` |
 | **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join, dedup y cuarentena) | `dag_crypto_silver.py` |
 | **05 — Gold** | 1 DAG sobre `silver.ventas_demo` sintético (Star Schema) + el chequeo de integridad referencial en vivo y el consumo del star, en el notebook | 6 queries SQL sobre Northwind (G1–G6) que arman, paso a paso, **una misma tabla Gold**: el grano, el JOIN con la dimensión, `HAVING`, `CASE`, participación y ranking con *window functions*, y `LAG` | `dag_crypto_gold.py` |
-| **06 — ML sobre Gold** | 1 DAG sobre el star sintético (la **ABT**) + el workshop de ML sobre el hecho productivo, en el notebook | *El veredicto*: siete candidatos en MLflow, una decisión y su porqué | `dag_crypto_ml.py` |
+| **06 — ML sobre Gold** | 2 DAGs sobre datos sintéticos (la **ABT** y un **modelo adentro de un DAG**) + el workshop de MLOps sobre el hecho productivo | *El veredicto*: siete candidatos en MLflow, una decisión y su porqué | `dag_crypto_ml.py` |
 
 **Por qué este diseño:**
 
