@@ -49,12 +49,10 @@ El docente recorre el notebook en vivo. Estructura real:
 
 1. **📋 Recap del cuatrimestre**: tabla + diagrama del pipeline (Bronze → Silver → Gold → ML).
 2. **🎯 Decisiones técnicas clave**: por qué SHA256 en Bronze, Pydantic + Cuarentena en Silver, Star Schema **y** ABT en Gold, MLflow hoy.
-3. **⚠️ Errores típicos**: qué sale mal en cada capa — incluida la **orquestación** (mismo cron en las 3 capas, dos dueños de una tabla, consumidor de asset pausado).
-4. **🔀 Flujo final del pipeline**: el mapa completo y por qué `global_market` se salta Silver (cuándo romper el patrón).
-5. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
-6. **🛠️ La ABT, hecha DAG**: antes de pasar a producción, el último andamiaje — `gold_02_abt.py` arma una tabla ancha (1 fila = 1 cliente) con features en SQL. Es la forma que come el modelo.
-7. **🚀 Switch a modo producción**: se despausan las ramas por asset, se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
-8. **📊 Monitoring**: los tres niveles de observabilidad (infra / datos / negocio) y a quién le habla cada página del dashboard.
+3. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
+4. **🛠️ La ABT, hecha DAG**: antes de pasar a producción, el último andamiaje — `gold_02_abt.py` arma una tabla ancha (1 fila = 1 cliente) con features en SQL. Es la forma que come el modelo.
+5. **🚀 Switch a modo producción**: se despausa la cadena productiva (los cuatro `crypto_*`), se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
+6. **📊 Monitoring**: los tres niveles de observabilidad (infra / datos / negocio) y a quién le habla cada página del dashboard.
 
 ### Parte 2 — MLOps: del notebook a producción
 
@@ -148,7 +146,7 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 
 | Concepto | Para qué sirve | ¿En esta clase? |
 |----------|----------------|-----------------|
-| **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 12 runs con params, métricas y artifacts |
+| **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
 | **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana, cada uno con su `@champion` |
 | **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
 | **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — una sola query SQL compartida, y el DAG detecta y saltea si no coinciden |
@@ -160,6 +158,26 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 Lo que falta es **carrera completa**. Si te interesa profundizar:
 - Material MLOps avanzado (Feature Stores, Drift, Model Serving): en preparación para próximas ediciones.
 - Cursos: "Machine Learning Engineering for Production (MLOps)" (Coursera/DeepLearning.AI), "Made With ML" (Goku Mohandas).
+
+---
+
+## 📦 La entrega de esta clase
+
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb): la **Parte 1** deja siete candidatos en MLflow y te muestra cómo consultarlos; la **Parte 2** es tu veredicto — cuál promoverías a producción, o si ninguno está listo. La sección **📦 Entrega** relee el tracking y genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`.
+
+**Commit y push.** Es **un** archivo. Desde la raíz del repo:
+
+```bash
+git add clase06/ejercicios/estudiantes/<apellido>-<nombre>.txt
+git commit -m "clase06 (MachineLearning)"
+git push origin estudiante/apellido-nombre
+```
+
+> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
+
+> **Una rama para siempre, un PR para siempre**: tu rama `estudiante/apellido-nombre` y tu PR son los mismos desde la Clase 01; el push actualiza ese mismo PR (no abrís uno nuevo). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+
+> Esta entrega es de **lectura y decisión**, de diez minutos. **No reemplaza al TP Final**, que es el trabajo grande del cierre y se entrega la semana siguiente.
 
 ---
 

@@ -1,4 +1,4 @@
-# Clase 06 — Reglas de entrega
+# Ejercicio 06 — Reglas de entrega
 
 > La entrega de esta clase es **El veredicto**, que vive en
 > [`ejercicio.ipynb`](ejercicio.ipynb): en el tracking quedan **siete candidatos** con sus
@@ -52,7 +52,9 @@ Fecha: 2026-11-20
 ## ⚠️ Importante: NO commitees el `.ipynb`
 
 El `ejercicio.ipynb` es **template compartido**. Si lo modificás y lo commiteás, se generan
-conflictos con el resto.
+conflictos masivos con el resto de los estudiantes.
+
+**Regla**: usá `git add` con el path explícito a tu `.txt`, no `git add .`:
 
 ```bash
 # CORRECTO
@@ -64,7 +66,27 @@ git push origin estudiante/apellido-nombre
 git add .
 ```
 
-El `git push` actualiza tu PR abierto desde la Clase 01: **no abrís uno nuevo**.
+## Después del push: tu PR se actualiza solo
+
+**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la
+Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `clase06
+(MachineLearning)` y el `.txt` nuevo.
+
+> **¿Viste una marca roja "Changes requested" en tu PR?** El docente rechazó una entrega: hay algo
+> para corregir. **Tu PR sigue abierto** — no abras uno nuevo ni crees otra rama. Leé el review,
+> corregí, `commit` + `push` a la misma rama y ese push levanta la marca. Detalle de todos los
+> estados del PR en el [README raíz → "Cómo leer el estado de tu PR"](../../README.md).
+
+## Si te equivocaste con el nombre/apellido
+
+El script te muestra el filename antes de escribir y te pide confirmación. Si tipeaste mal,
+contestá `n`, corregí la celda de datos (arriba de la Entrega) y volvé a correr.
+
+Si ya creaste un archivo basura (ej: `sokill-jaun.txt`), borralo y volvé a correr el script:
+
+```bash
+rm clase06/ejercicios/estudiantes/sokill-jaun.txt
+```
 
 ## Y el TP Final
 
