@@ -1,6 +1,6 @@
 # Clase 06: MLOps — del pipeline al modelo en producción
 
-> **Clase de cierre del cuatrimestre**. Workshop magistral: el docente cierra el pipeline y le enchufa un modelo — **tracking, registry, serving y monitoreo**. **No hay entrega comprometida**: el objetivo es ver cómo se opera un modelo, no cómo se entrena uno bueno.
+> **Clase de cierre del cuatrimestre**. Workshop magistral: el docente cierra el pipeline y le enchufa un modelo — **tracking, registry, serving y monitoreo**. La entrega es **chica y de criterio** — *El veredicto*: mirás siete candidatos en MLflow y decidís cuál promoverías a producción. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno bueno.
 
 > El modelo que se usa **pierde contra una regla de una línea**, y está puesto a propósito. Lo que se enseña es la maquinaria que permite *darse cuenta* de eso — que es exactamente lo que un pipeline de MLOps tiene que hacer.
 
@@ -10,6 +10,7 @@
 
 - [`clase06.ipynb`](clase06.ipynb) — workshop completo en un solo notebook (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
 - El notebook genera además `gold_02_abt.py` (vía `%%writefile`): el DAG pedagógico que arma una **ABT** sobre datos sintéticos — la forma de tabla con la que se entrena un modelo. Se usa en la Parte 1 y se retira con el resto del andamiaje en el switch a producción.
+- [`ejercicios/estudiantes/`](ejercicios/estudiantes/) — acá cae tu `.txt` de **El veredicto**, que genera la última sección del notebook (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
 - [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/`).
 
 ---
@@ -17,7 +18,7 @@
 ## 🚀 Setup mínimo
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`) — incluye Postgres, Airflow, el dashboard **y el MLflow Tracking Server** (`localhost:5000`).
-- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que usa esta clase: `gold.v_ultimo_snapshot`, **`gold.v_series_diaria`** (1 fila = cripto × día, la materia prima del ML) y `gold.v_kpis_mercado`.
+- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que consume el dashboard (`gold.v_ultimo_snapshot`, `gold.v_series_diaria`, `gold.v_kpis_mercado`). El modelo de esta clase, en cambio, se entrena desde el **hecho** (`gold.fact_crypto_markets`): necesita el grano de los snapshots para calcular la volatilidad de cada día, que la serie diaria ya colapsó.
 - Entorno Python local con `scikit-learn`, `mlflow`, `pandas` (`pip install -r requirements.txt`, raíz del repo).
 
 **Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
@@ -171,7 +172,7 @@ El **mensaje final** completo está en la última celda del notebook.
 
 | Problema | Solución |
 | :--- | :--- |
-| `gold.v_series_diaria` no existe | La crea la task `build_views` del DAG de Gold en cada corrida. Verificá que `crypto_gold` haya corrido OK en Airflow (se dispara solo cuando `crypto_silver` termina) |
+| `gold.fact_crypto_markets` está vacía | La llena `crypto_gold` en cada corrida, con lo que dejó Silver. Verificá que `crypto_gold` haya corrido OK en Airflow (se dispara solo cuando `crypto_silver` termina) |
 | Todo aparece como **NO CONCLUYENTE** | Esperable con poca historia: el guard pide ≥ 14 fechas distintas y el warehouse suma 1 por día. Dejá el stack corriendo y volvé a correr la Parte 2 |
 | `ImportError: sklearn` o `mlflow` | Activá tu entorno y `pip install -r requirements.txt` (raíz del repo) |
 | MLflow no responde en `localhost:5000` | El server es **parte del stack** (no hay que correr nada a mano): `docker compose up -d mlflow` desde `stack/` |
