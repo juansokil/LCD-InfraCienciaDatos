@@ -66,6 +66,11 @@ stack/dags/**/*.py
 
 # Mismo criterio: las paginas del dashboard llegan con la clase que las enseña, y
 # en clase05 cada estudiante agrega la suya.
+# OJO: las seis paginas DEL CURSO si estan trackeadas -- entraron con `git add -f`,
+# porque la fuente de verdad es `dev` y de ahi las porta cada release. Lo que esta
+# regla mantiene afuera es la pagina que escribe el estudiante. Si agregas una
+# pagina del curso nueva, acordate del `-f`: si no, queda solo en tu disco y el
+# release la publica igual, con lo cual `dev` deja de ser la fuente de verdad.
 stack/dashboard/pages/*.py
 
 # --- IDEs ---
