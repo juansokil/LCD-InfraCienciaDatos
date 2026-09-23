@@ -9,6 +9,7 @@
 ## 📚 Material
 
 - [`clase06.ipynb`](clase06.ipynb) — workshop completo en un solo notebook (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
+- El notebook genera además `gold_02_abt.py` (vía `%%writefile`): el DAG pedagógico que arma una **ABT** sobre datos sintéticos — la forma de tabla con la que se entrena un modelo. Se usa en la Parte 1 y se retira con el resto del andamiaje en el switch a producción.
 - [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/`).
 
 ---
@@ -50,9 +51,10 @@ El docente recorre el notebook en vivo. Estructura real:
 3. **⚠️ Errores típicos**: qué sale mal en cada capa — incluida la **orquestación** (mismo cron en las 3 capas, dos dueños de una tabla, consumidor de asset pausado).
 4. **🔀 Flujo final del pipeline**: el mapa completo y por qué `global_market` se salta Silver (cuándo romper el patrón).
 5. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
-6. **🚀 Switch a modo producción**: se despausan las ramas por asset, se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
-7. **🔎 El punta a punta en una foto**: una celda recorre API → Bronze → Silver → Gold → salidas y diagnostica dónde se cortó el dato.
-8. **📊 Monitoring**: tres niveles de observabilidad (infra / datos / negocio), el dashboard como cierre del ciclo, roadmap MLOps.
+6. **🛠️ La ABT, hecha DAG**: antes de pasar a producción, el último andamiaje — `gold_02_abt.py` arma una tabla ancha (1 fila = 1 cliente) con features en SQL. Es la forma que come el modelo.
+7. **🚀 Switch a modo producción**: se despausan las ramas por asset, se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
+8. **🔎 El punta a punta en una foto**: una celda recorre API → Bronze → Silver → Gold → salidas y diagnostica dónde se cortó el dato.
+9. **📊 Monitoring**: tres niveles de observabilidad (infra / datos / negocio), el dashboard como cierre del ciclo, roadmap MLOps.
 
 ### Parte 2 — MLOps: del notebook a producción
 
