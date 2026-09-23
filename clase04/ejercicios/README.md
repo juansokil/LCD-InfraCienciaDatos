@@ -14,7 +14,7 @@ estudiantes/<apellido>-<nombre>.txt
 
 Ejemplo: `estudiantes/sokil-juan.txt`.
 
-> **No tipees el filename a mano** — lo genera automáticamente la sección **📦 Entrega** (final de [`ejercicio.ipynb`](ejercicio.ipynb)), normalizando tu nombre y apellido (sin tildes, minúsculas, separado por guión).
+> **No tipees el filename a mano** — lo genera automáticamente la sección **📦 Entrega** (final de [`ejercicio.ipynb`](ejercicio.ipynb)), normalizando tu nombre y apellido (sin tildes, minúsculas, separados por guión). **Los compuestos van pegados**: María José García López entrega `garcialopez-mariajose.txt`.
 
 ## ¿Qué pongo adentro del archivo?
 
