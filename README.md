@@ -48,53 +48,59 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 
 #### Clase 05: La Bóveda (Capa Gold)
 - Star Schema en producción (Hechos y Dimensiones)
-- Analytical Base Tables (ABT) para Machine Learning
-- Capa Semántica y métricas gobernadas
-- Integridad referencial completa
+- **Claves sustitutas**: por qué el hecho no guarda la clave del negocio
+- Integridad referencial: qué es un **huérfano**, cómo aparece y cómo se lo detecta antes de que llegue al tablero
+- Capa Semántica y métricas gobernadas: las vistas `gold.v_*` que consume el dashboard
 - Dashboard Streamlit pre-construido (consume tablas Gold)
 
 ### 🏁 **Cierre**
 
 #### Clase 06: MLOps — del pipeline al modelo en producción
 - Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
+- El **switch a modo producción**: se retira el andamiaje pedagógico, la cadena queda encadenada por **Assets** (un solo cron, en Bronze) y se ve cómo se monitorea
+- La **ABT**: la forma de tabla con la que se entrena un modelo — llega acá, que es donde se usa
 - **Elegir la pregunta antes que el modelo**: predecir la *dirección* del precio no funciona ni puede funcionar; predecir **qué criptos van a ser las más movidas** sí, porque la volatilidad se agrupa en el tiempo
 - Tres modelos con la misma pregunta y distinta historia (**1, 3 y 7 días**): mirar más atrás ayuda, y se ve
 - Validación honesta: walk-forward por fechas, **dos baselines** (la clase mayoritaria, que es la vara fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar), lección de target leakage
 - Tracking con MLflow: un modelo registrado por ventana, cada uno con su alias `@champion`
 - El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
 - 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
+- 📦 **La entrega**: *El veredicto* — siete candidatos esperando en el tracking y una decisión, cuál iría a producción o si ninguno está listo
 
 ---
 
-## 🎓 Patrón Pedagógico (Clases 03 a 05)
+## 🎓 Patrón Pedagógico (Clases 03 a 06)
 
-Las clases del cuatrimestre que arman el pipeline (**Bronze → Silver → Gold**) siguen un patrón uniforme de **3 capas pedagógicas**:
+Las clases que arman el pipeline (**Bronze → Silver → Gold**) y la de cierre (**ML sobre Gold**) siguen un patrón uniforme de **3 capas pedagógicas**:
 
 | Capa | Archivo | Datos | Para qué |
 |---|---|---|---|
 | **1. Teórica** | `claseNN.ipynb` | sintéticos hardcoded | Conceptos + DAGs demo (vía celdas `%%writefile` que generan archivos en `stack/dags/`) |
-| **2. Práctica** | `ejercicios/ejercicio.ipynb` | CoinGecko en clase 03; SQL sobre Northwind en clase 04–05 | Aplicar los conceptos: ingesta real (03) y SQL fundamental que Silver/Gold usan (04–05) |
+| **2. Práctica** | `ejercicios/ejercicio.ipynb` | CoinGecko en clase 03; SQL sobre Northwind en 04–05; runs de MLflow en 06 | Aplicar los conceptos: ingesta real (03), el SQL que Silver y Gold usan (04–05) y leer el tracking para decidir (06) |
 | **3. Productiva** | `ejercicios/dag_crypto_*.py` | CoinGecko API real | DAG listo para copy-paste a Airflow (`cp` al stack) |
 
 **Detalle por clase:**
 
 | Clase | Notebook teórico genera | Ejercicio práctico (entrega) | DAG productivo |
 |---|---|---|---|
-| **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → `bronze.crypto_markets` | `dag_crypto_bronze.py` |
-| **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 11 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join, dedup y cuarentena) | `dag_crypto_silver.py` |
-| **05 — Gold** | 2 DAGs sobre `silver.ventas_demo` sintético (Star Schema → ABT) + consumo BI/ML en el notebook | 11 ítems sobre Northwind: 9 queries SQL Gold (agregaciones, JOIN star, ranking, LAG) + tu tabla Gold + tu página Streamlit | `dag_crypto_gold.py` |
+| **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → el JSON crudo al lake (`stack/data/raw/`) → `bronze.crypto_markets_demo` | `dag_crypto_bronze.py` |
+| **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join, dedup y cuarentena) | `dag_crypto_silver.py` |
+| **05 — Gold** | 1 DAG sobre `silver.ventas_demo` sintético (Star Schema) + el chequeo de integridad referencial en vivo y el consumo del star, en el notebook | 6 queries SQL sobre Northwind (G1–G6) que arman, paso a paso, **una misma tabla Gold**: el grano, el JOIN con la dimensión, `HAVING`, `CASE`, participación y ranking con *window functions*, y `LAG` | `dag_crypto_gold.py` |
+| **06 — ML sobre Gold** | 1 DAG sobre el star sintético (la **ABT**) + el workshop de ML sobre el hecho productivo, en el notebook | *El veredicto*: siete candidatos en MLflow, una decisión y su porqué | `dag_crypto_ml.py` |
 
 **Por qué este diseño:**
 
 - La **notebook teórica** usa datos sintéticos hardcoded → cero dependencias entre clases. Cualquiera puede correr el cell `%%writefile` y disparar el DAG demo sin necesidad de haber corrido la clase anterior.
-- El **ejercicio** aplica lo aprendido: en clase 03 sobre datos reales "vivos" (CoinGecko); en clase 04–05 sobre **SQL en Northwind** (los fundamentos SQL que Silver y Gold usan a nivel de registro y de agregación).
-- El **DAG productivo** es el "código listo" (crypto, las 3 clases): un `cp` al stack y queda corriendo en Airflow.
+- El **ejercicio** aplica lo aprendido: en clase 03 sobre datos reales "vivos" (CoinGecko); en clase 04–05 sobre **SQL en Northwind** (los fundamentos SQL que Silver y Gold usan a nivel de registro y de agregación); en clase 06 sobre el **tracking de MLflow**, que es donde se decide qué modelo se promueve.
+- El **DAG productivo** es el "código listo" (crypto, las cuatro clases): un `cp` al stack y queda corriendo en Airflow. Juntos forman la cadena completa — `crypto_bronze` → `crypto_silver` → `crypto_gold` → `crypto_ml`.
 
-> **Clase 06 sigue el patrón a medias** — es un workshop magistral de cierre
-> (recap + ML sobre Gold + monitoring). **No tiene ejercicio práctico ni entrega**,
-> a propósito: el entregable de esa semana sería spoilear el TP Final. Sí tiene
-> DAG productivo (`ejercicios/dag_crypto_ml.py`), que cierra la cadena consumiendo
-> la ABT de Gold.
+> **Clase 06 cierra el patrón con otra materia prima.** Las tres capas están: el
+> notebook teórico genera su DAG demo (`gold_02_abt.py`, la ABT sobre datos
+> sintéticos), hay ejercicio con entrega (*El veredicto*) y hay DAG productivo
+> (`ejercicios/dag_crypto_ml.py`), que cierra la cadena consumiendo la ABT de Gold.
+> Lo que cambia es **sobre qué se practica**: no SQL, sino leer el tracking y
+> decidir con lo que dice. Y la entrega es corta a propósito — el trabajo grande de
+> esa semana es el **TP Final**.
 
 ### 🎓 **El TP Final**
 
@@ -168,25 +174,25 @@ git merge main --no-edit
 Abrí `claseXX/README.md` para entender el objetivo y leer las instrucciones del ejercicio. En general:
 - Leer el desarrollo teórico en `claseXX/claseXX.ipynb`
 - Resolver los ejercicios indicados
-- Generar tu archivo de entrega según pida cada clase (siempre un `.txt`; en la clase 05, además tu página `.py`). **El `.ipynb` nunca se entrega**: es template compartido y generaría conflictos.
+- Generar tu archivo de entrega según pida cada clase (**siempre un `.txt`**). **El `.ipynb` nunca se entrega**: es template compartido y generaría conflictos.
 
 ### 4. Commiteá y subí tu trabajo
 
 ```bash
 git add <ruta-de-tu-archivo-de-entrega>
-git commit -m "ejercicioXX: <descripcion corta>"
+git commit -m "claseNN (Tema)"
 git push origin estudiante/apellido-nombre
 ```
 
 - `git add ...` → selecciona **qué** archivo subir. Usá la ruta exacta (no `git add .`) para evitar subir cosas que no querés.
-- `git commit -m "..."` → guarda el cambio localmente con un mensaje descriptivo.
+- `git commit -m "..."` → guarda el cambio localmente. **El mensaje lo dice el ejercicio de cada clase**: `clase01 (Registro)`, `clase02 (Stack)`, `clase03 (Bronze)`, `clase04 (Silver)`, `clase05 (Gold)`, `clase06 (MachineLearning)`.
 - `git push origin estudiante/apellido-nombre` → sube tu commit a GitHub, a tu rama.
 
 ### 5. Tu Pull Request se actualiza solo (no abrís uno nuevo)
 
 Si ya abriste tu PR en la Clase 01, **acá no tenés que hacer nada más**: el `git push` del paso 4 actualiza automáticamente tu PR abierto. El docente revisa tu nueva entrega ahí.
 
-> **¿No abro un PR nuevo cada semana?** No. Tu PR (`estudiante/apellido-nombre` → `main`) lo abriste **una sola vez** en la Clase 01 y queda **abierto** todo el cuatrimestre. Cada push se suma a ese mismo PR. El docente identifica cada entrega por el commit `ejercicioNN: ...` y el `.txt` nuevo que aparece.
+> **¿No abro un PR nuevo cada semana?** No. Tu PR (`estudiante/apellido-nombre` → `main`) lo abriste **una sola vez** en la Clase 01 y queda **abierto** todo el cuatrimestre. Cada push se suma a ese mismo PR. El docente identifica cada entrega por el commit `claseNN (Tema)` y el `.txt` nuevo que aparece.
 >
 > Igual, **cada semana arrancás por el paso 1** (sincronizar con `main`) para traer el material nuevo del curso a tu rama.
 
