@@ -1,6 +1,6 @@
 # Ejercicio 04 — Reglas de entrega
 
-> El entregable del Ejercicio 04 es **[`ejercicio.ipynb`](ejercicio.ipynb)** (un solo archivo, autocontenido): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
+> El Ejercicio 04 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
 >
 > Esta carpeta guarda tu entrega (`estudiantes/`) y el DAG productivo (`dag_crypto_silver.py`, referencia / deploy). **[`dag_crypto_silver.py`](dag_crypto_silver.py) es el patrón productivo de referencia de todo lo que practicás acá — leelo.**
 
