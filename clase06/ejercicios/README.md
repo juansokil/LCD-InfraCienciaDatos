@@ -57,7 +57,7 @@ conflictos con el resto.
 ```bash
 # CORRECTO
 git add clase06/ejercicios/estudiantes/sokil-juan.txt
-git commit -m "clase06: el veredicto"
+git commit -m "clase06 (MachineLearning)"
 git push origin estudiante/apellido-nombre
 
 # MAL ❌ (sube tambien el ipynb modificado)
