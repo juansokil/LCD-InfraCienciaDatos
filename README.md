@@ -53,16 +53,15 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 - Capa Semántica y métricas gobernadas: las vistas `gold.v_*` que consume el dashboard
 - Dashboard Streamlit pre-construido (consume tablas Gold)
 
-### 🏁 **Cierre**
+### 🥇 **Capa Gold: Machine Learning**
 
-#### Clase 06: MLOps — del pipeline al modelo en producción
-- Recap del cuatrimestre: pipeline completo + decisiones técnicas + errores típicos
-- El **switch a modo producción**: se retira el andamiaje pedagógico, la cadena queda encadenada por **Assets** (un solo cron, en Bronze) y se ve cómo se monitorea
-- La **ABT**: la forma de tabla con la que se entrena un modelo — llega acá, que es donde se usa
+#### Clase 06: MLOps — Gold servido a un modelo
+- La **ABT**: la forma que Gold le da a ML — **una fila por caso, sin JOINs**. Es a ML lo que el Star Schema de la clase 05 es a BI: la misma capa, el otro consumidor
 - **Airflow para ML**: el modelo como una task más. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_abt`
 - **MLflow como sistema, no como demo**: tracking contra el server del stack, Model Registry y el alias `@champion` — promover un modelo es una **decisión humana**, y cambiar el alias cambia lo que predice el pipeline sin tocar código
 - Validación honesta: walk-forward por fechas, **dos varas** (la clase mayoritaria, que es la fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar) y la lección de target leakage
 - El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
+- El **switch a modo producción**: se retira el andamiaje pedagógico, la cadena queda encadenada por **Assets** (un solo cron, en Bronze) y se ve cómo se monitorea
 - 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
 - 📦 **La entrega**: *El veredicto* — siete candidatos esperando en el tracking y una decisión, cuál iría a producción o si ninguno está listo
 
