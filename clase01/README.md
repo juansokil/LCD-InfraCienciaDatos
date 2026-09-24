@@ -90,7 +90,7 @@ Reemplazá `<apellido>-<nombre>` por el filename que te imprimió el Paso 3 del 
 
 ```bash
 git add clase01/ejercicios/estudiantes/<apellido>-<nombre>.txt
-git commit -m "ejercicio01: registro"
+git commit -m "clase01 (Registro)"
 git push origin estudiante/apellido-nombre
 ```
 
@@ -145,6 +145,6 @@ Después, durante el cuatrimestre, el docente puede dejarte dos tipos de señal:
 > 1. Sincronizás tu rama con `main` para traer el material nuevo del curso: `git checkout main`, `git pull origin main`, `git checkout estudiante/apellido-nombre` y `git merge main --no-edit` (el detalle está al principio de cada clase y en el README raíz)
 > 2. Hacés la entrega y la pusheás (`git push`)
 >
-> ...y tu PR (el que abriste acá) se actualiza solo. **Una rama para siempre, un PR para siempre.** El docente identifica cada entrega por el commit `ejercicioNN: ...` y el `.txt` nuevo. El detalle completo está en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).
+> ...y tu PR (el que abriste acá) se actualiza solo. **Una rama para siempre, un PR para siempre.** El docente identifica cada entrega por el commit `claseNN (Tema)` y el `.txt` nuevo. El detalle completo está en el [README raíz → "Cómo Consumir el Repo Semana a Semana"](../README.md).
 
 > **Nota para el/la docente**: el PR del estudiante queda **abierto** todo el cuatrimestre y **nunca se mergea** (ni al final: al cierre del cuatrimestre se cierra sin mergear — la evaluación sale del PR y del historial de la rama, y `main` queda solo con el material oficial del curso). **NO** borres la rama `estudiante/apellido-nombre` — es la misma para todas las entregas.
