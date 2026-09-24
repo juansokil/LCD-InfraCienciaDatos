@@ -30,19 +30,18 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 - Implementación de la Capa Bronze con Airflow
 - Idempotencia mediante hashing SHA256 de archivos
 - Hive Partitioning para organización del Data Lake
-- Row-level hashing para detección de cambios
-- DAGs de ingesta CSV/JSON/multi-formato
+- DAGs de ingesta multi-formato: CSV, JSON, JSONL y Parquet
 
 ### 🥈 **Capa Silver: Limpieza**
 
 #### Clase 04: La Refinería (Capa Silver)
 - Transformación Bronze → Silver
 - Contratos de datos declarativos (YAML) + validación fila a fila con Pydantic
-- Reglas de calidad que **corren de verdad**, con dos severidades: `error` manda el registro a cuarentena, `warning` lo deja pasar marcado
-- Métricas de calidad por corrida (`silver.quality_runs`): un número suelto no dice nada, la señal es el cambio
-- Limpieza avanzada: tipado estricto, deduplicación idempotente
+- Reglas de calidad con **dos severidades**: `error` manda el registro a cuarentena, `warning` lo deja pasar marcado. La clase explica el criterio; **corriendo se ve en el DAG productivo** (`dag_crypto_silver.py`), que las lee de `crypto_markets.yaml`
+- Métricas de calidad **por corrida**: un número suelto no dice nada, la señal es el cambio. Las escribe el DAG productivo en `silver.quality_runs` y se miran en la página **2_Silver_Calidad** del dashboard
+- Limpieza avanzada: **tipado estricto** y cargas **idempotentes** (re-correr no duplica). La **deduplicación** se practica en el ejercicio (`ROW_NUMBER`) y corre en el DAG productivo (`DISTINCT ON`)
 - Patrón de Cuarentena para registros inválidos
-- SCD Tipo 2 con SQL
+- **SCD Tipo 2**: un mini-lab en SQL, ejecutable y autocontenido. El pipeline del curso usa **full-refresh** y no historiza: SCD2 se ve como concepto, no como implementación
 
 ### 🥇 **Capa Gold: Analytics**
 
@@ -62,7 +61,7 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 - Validación honesta: walk-forward por fechas, **dos varas** (la clase mayoritaria, que es la fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar) y la lección de target leakage
 - El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
 - El **switch a modo producción**: se retira el andamiaje pedagógico, la cadena queda encadenada por **Assets** (un solo cron, en Bronze) y se ve cómo se monitorea
-- 🎁 Bonus track: introducción a MLOps (Feature Stores, Drift, Model Registry)
+- 🎁 Bonus track: el mapa de MLOps y qué queda afuera — **Feature Stores**, **Data Drift** y **Observability Gate** (el Model Registry no: ese se hace en esta clase)
 - 📦 **La entrega**: *El veredicto* — siete candidatos esperando en el tracking y una decisión, cuál iría a producción o si ninguno está listo
 
 ---
