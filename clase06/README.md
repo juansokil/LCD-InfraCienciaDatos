@@ -1,0 +1,208 @@
+# Clase 06: MLOps — del pipeline al modelo en producción
+
+> **Clase de cierre del cuatrimestre**. Workshop magistral: el docente cierra el pipeline y le enchufa un modelo — **tracking, registry, serving y monitoreo**. La entrega es **chica y de criterio** — *El veredicto*: mirás siete candidatos en MLflow y decidís cuál promoverías a producción. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno bueno.
+
+> El modelo que se usa **pierde contra una regla de una línea**, y está puesto a propósito. Lo que se enseña es la maquinaria que permite *darse cuenta* de eso — que es exactamente lo que un pipeline de MLOps tiene que hacer.
+
+---
+
+## 📚 Material
+
+- [`clase06.ipynb`](clase06.ipynb) — el workshop (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
+- El notebook genera además **dos DAGs pedagógicos** (vía `%%writefile`): `gold_02_abt.py`, que arma una **ABT** sobre datos sintéticos —la forma de tabla con la que se entrena un modelo—, y `ml_01_prediccion_demo.py`, que la **consume**: lee la ABT, entrena registrando en MLflow y escribe predicciones de forma idempotente. Entre los dos cierran la cadena de demos que venía desde la clase 05.
+- [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **El veredicto**, la entrega de la clase: siete candidatos en MLflow y una decisión. Tu `.txt` cae en [`ejercicios/estudiantes/`](ejercicios/estudiantes/) (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
+- [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/`).
+
+---
+
+## 🚀 Setup mínimo
+
+- Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`) — incluye Postgres, Airflow, el dashboard **y el MLflow Tracking Server** (`localhost:5000`).
+- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que consume el dashboard (`gold.v_ultimo_snapshot`, `gold.v_series_diaria`, `gold.v_kpis_mercado`). El modelo de esta clase, en cambio, se entrena desde el **hecho** (`gold.fact_crypto_markets`): necesita el grano de los snapshots para calcular la volatilidad de cada día, que la serie diaria ya colapsó.
+- Entorno Python local con `scikit-learn`, `mlflow`, `pandas` (`pip install -r requirements.txt`, raíz del repo).
+
+**Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
+
+```bash
+# 1. Bajar lo nuevo de main
+git checkout main
+git pull origin main
+
+# 2. Volver a tu rama personal y mergear
+git checkout estudiante/apellido-nombre   # reemplazá por tu rama
+git merge main --no-edit
+```
+
+> Vas a repetir esto al empezar **cada** clase. El detalle de cada comando está en el [README raíz](../README.md), sección "Cómo Consumir el Repo Semana a Semana".
+
+> ⚠️ **clase06 requiere el stack Docker levantado y el pipeline productivo ya corrido.** Si en los ejercicios 03/04/05 hiciste la variante con **DuckDB** (sin Docker), eso **no alcanza acá**: clase06 no usa las tablas `*_demo` del ejercicio personal, sino el **pipeline productivo** completo. DuckDB sirvió para practicar cada capa; el cierre necesita el stack real.
+
+> 📌 **Versiones**: el `requirements.txt` pinea **`mlflow==3.4.0`** — la misma versión que corre el server del stack. Cliente y server tienen que coincidir en la versión **mayor**: si difieren, `log_model` llama endpoints que el otro lado no tiene y falla. Si tu entorno tiene otra versión: `pip install mlflow==3.4.0`.
+
+---
+
+## 🗺️ Lo que vas a ver en clase
+
+El docente recorre el notebook en vivo. Estructura real:
+
+### Parte 1 — El pipeline, cerrado (de andamiaje a producción)
+
+1. **📋 Recap del cuatrimestre**: tabla + diagrama del pipeline (Bronze → Silver → Gold → ML).
+2. **🎯 Decisiones técnicas clave**: por qué SHA256 en Bronze, Pydantic + Cuarentena en Silver, Star Schema **y** ABT en Gold, MLflow hoy.
+3. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
+4. **🛠️ La ABT, hecha DAG**: antes de pasar a producción, el último andamiaje — `gold_02_abt.py` arma una tabla ancha (1 fila = 1 cliente) con features en SQL. Es la forma que come el modelo.
+5. **🚀 Switch a modo producción**: se despausa la cadena productiva (los cuatro `crypto_*`), se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
+6. **📊 Monitoring**: los tres niveles de observabilidad (infra / datos / negocio) y a quién le habla cada página del dashboard.
+
+### Parte 2 — MLOps: del notebook a producción
+
+> El modelo es **el vehículo**, no el tema. Lo que se enseña acá es cómo un
+> modelo deja de ser una celda de notebook y pasa a ser **una pieza del
+> pipeline**: versionada, servida por un DAG, y corregida por un tablero.
+
+**1. 🧪 El dataset y la medición, lo mínimo honesto.** Las features salen de una
+query SQL sobre `gold.fact_crypto_markets` (solo información ≤ t) y el target de
+un `LEAD`. La validación es temporal, **por fechas únicas**, y se mide contra dos
+varas. No es una clase de modelado: es el piso sin el cual las métricas que
+vienen después mienten.
+
+**2. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
+(`localhost:5000`, backend Postgres, artifacts persistentes). La grilla cruza
+**2 algoritmos × 3 ventanas** de historia: 6 runs con params, métricas y
+artifacts registrados. Cada run lleva la **ventana como tag**, para poder
+aislarlos en la UI. Sin esto, "el modelo que anduvo bien la semana pasada" es
+una carpeta con un `.pkl` y la memoria de alguien.
+
+**3. 🏆 Model Registry y aliases — qué modelo va a producción.** Un modelo
+registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`), cada uno con su
+alias `@champion`. La promoción es una **decisión humana explícita**, no un
+efecto secundario de correr una celda. Cambiar el champion en el Registry
+**cambia lo que predice el pipeline sin tocar una línea de código** — ese es el
+punto entero de tener un registry.
+
+**4. ⚙️ Airflow para ML — el modelo como task de un DAG.** Se ve dos veces: en
+chiquito con **`ml_01_prediccion_demo.py`**, que el notebook escribe con
+`%%writefile` y cierra la cadena de demos que venía desde la clase 05
+(`silver.ventas_demo` → star → ABT → predicciones), y en producción con
+[`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): scoring batch disparado **por
+el asset `gold_abt`**, no por reloj. Lee el champion del Registry, escribe
+`gold.predicciones` de forma **idempotente** (DELETE del día + INSERT), y
+**saltea con log claro** cuando todavía no hay champion, en vez de ponerse en
+rojo. El mismo encadenado por Assets de las clases 03-05, ahora con un modelo
+adentro.
+
+**5. 🔀 Training-serving skew — el error que no avisa.** La ventana con la que
+armar las features **no está hardcodeada**: el DAG la lee del param
+`ventana_dias` del propio champion. Si el champion fue entrenado con otras
+features, **lo detecta y saltea** en vez de escribir basura. Y el SQL de las
+features es **la misma query** en el notebook y en el DAG — no dos copias que
+divergen. Verlo ocurrir vale más que explicarlo.
+
+**6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
+con el **veredicto**: accuracy contra lo que efectivamente pasó, medida contra
+**dos varas**, y recién después muestra la maquinaria. Porque elegir la vara
+fácil y cantar victoria es el error más común del oficio:
+
+- **La fácil** — la clase mayoritaria. Ronda 50% porque el target está
+  balanceado por construcción: ganarle no prueba nada.
+- **La difícil** — la persistencia, *«mañana se repite lo de hoy»*. Sin
+  features, sin entrenar, sin MLflow. **Superarla es lo que justifica haber
+  entrenado algo.**
+
+Hoy el modelo **le gana a la fácil por ~20 puntos y pierde contra la difícil por
+~6**. No es un fracaso de la clase: **es la clase**. Un pipeline de MLOps que
+solo sabe decir "todo bien" no sirve para nada.
+
+---
+
+#### El modelo, en breve (el contexto mínimo, y nada más)
+
+**El modelo no es el tema de la clase**: es el vehículo para ver las
+herramientas. Lo que hay que saber para seguir los seis puntos:
+
+- **Qué se predice**: cuáles van a ser **las criptos más movidas mañana**
+  (`vol_mañana > mediana de la volatilidad de mañana`). Al ser un target
+  relativo queda balanceado por construcción, así que el número es comparable
+  entre días.
+- **Con qué**: la volatilidad intradía, el rango, el volumen y el rank de cada
+  día, más los de ayer y sus promedios móviles. Salen de los **~96 snapshots por
+  cripto por día** que `gold.fact_crypto_markets` acumula y que el cierre diario
+  descarta — exactamente lo que se decidió guardar en la clase 05.
+- **Cómo se mide**: split temporal por **fechas únicas** (walk-forward), jamás
+  por posición de fila. Los 6 runs se evalúan sobre **las mismas fechas**: si
+  cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las
+  features o del test set.
+
+### Cierre
+
+- **🎁 Bonus Track**: el mapa completo de MLOps, con **cinco piezas marcadas como ya hechas** en esta clase y tres que quedan para después (Feature Stores, Drift, Observability Gate).
+- **🎓 Mensaje final**: qué construiste este cuatrimestre y qué hacer con eso (última celda del notebook).
+
+---
+
+## 🎁 Bonus Track: el mapa de MLOps, y dónde estás parado
+
+La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no para asustarte:
+
+| Concepto | Para qué sirve | ¿En esta clase? |
+|----------|----------------|-----------------|
+| **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
+| **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana, cada uno con su `@champion` |
+| **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
+| **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — una sola query SQL compartida, y el DAG detecta y saltea si no coinciden |
+| **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos varas |
+| **Feature Stores** (Feast, Tecton) | Reuso de features entre equipos y proyectos | ❌ No — con un solo pipeline, una vista de Gold alcanza |
+| **Data Drift detection** | Alertar cuando los datos de inferencia se alejan del training | ❌ No — necesita meses de historia para calibrar |
+| **Observability Gate** | Bloquear un deploy automáticamente si las métricas no dan | ❌ No — acá la promoción del champion es manual, a propósito |
+
+Lo que falta es **carrera completa**. Si te interesa profundizar:
+- Material MLOps avanzado (Feature Stores, Drift, Model Serving): en preparación para próximas ediciones.
+- Cursos: "Machine Learning Engineering for Production (MLOps)" (Coursera/DeepLearning.AI), "Made With ML" (Goku Mohandas).
+
+---
+
+## 📦 La entrega de esta clase
+
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb): la **Parte 1** deja siete candidatos en MLflow y te muestra cómo consultarlos; la **Parte 2** es tu veredicto — cuál promoverías a producción, o si ninguno está listo. La sección **📦 Entrega** relee el tracking y genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`.
+
+**Commit y push.** Es **un** archivo. Desde la raíz del repo:
+
+```bash
+git add clase06/ejercicios/estudiantes/<apellido>-<nombre>.txt
+git commit -m "clase06 (MachineLearning)"
+git push origin estudiante/apellido-nombre
+```
+
+> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
+
+> **Una rama para siempre, un PR para siempre**: tu rama `estudiante/apellido-nombre` y tu PR son los mismos desde la Clase 01; el push actualiza ese mismo PR (no abrís uno nuevo). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+
+> Esta entrega es de **lectura y decisión**, de diez minutos. **No reemplaza al TP Final**, que es el trabajo grande del cierre y se entrega la semana siguiente.
+
+---
+
+## 🎓 Cierre del cuatrimestre
+
+Si llegaste hasta acá hiciste **un pipeline completo de Data Engineering**: desde una API real hasta un modelo servido por un DAG data-aware, con tracking y registry. Eso es portfolio, eso es lo que separa a alguien que "sabe Python" de un Data Engineer junior.
+
+**Próximos pasos sugeridos**: dejá el stack corriendo (la Parte 2 mejora sola a medida que se acumula historia) y aplicá el mismo patrón a un dataset de tu interés. Cambiá la fuente de Bronze, ajustá Silver al dominio, modelá Gold para la pregunta de negocio que querés responder. Ese ejercicio es el verdadero capstone.
+
+El **mensaje final** completo está en la última celda del notebook.
+
+---
+
+## 🛠️ Troubleshooting
+
+| Problema | Solución |
+| :--- | :--- |
+| `gold.fact_crypto_markets` está vacía | La llena `crypto_gold` en cada corrida, con lo que dejó Silver. Verificá que `crypto_gold` haya corrido OK en Airflow (se dispara solo cuando `crypto_silver` termina) |
+| Todo aparece como **NO CONCLUYENTE** | Esperable con poca historia: el guard pide ≥ 14 fechas distintas y el warehouse suma 1 por día. Dejá el stack corriendo y volvé a correr la Parte 2 |
+| `ImportError: sklearn` o `mlflow` | Activá tu entorno y `pip install -r requirements.txt` (raíz del repo) |
+| MLflow no responde en `localhost:5000` | El server es **parte del stack** (no hay que correr nada a mano): `docker compose up -d mlflow` desde `stack/` |
+| `log_model` falla con `404` en `/api/2.0/mlflow/logged-models` | Cliente y server difieren en la versión **mayor** de MLflow. Instalá la pineada: `pip install mlflow==3.4.0` |
+| `load_model(...)` desde el notebook se cuelga y da `Read timed out` | En Windows, el port-forward de Docker Desktop no cierra bien las respuestas *chunked* del proxy de artifacts (**la descarga al host se cuelga; la subida anda salvo con artefactos grandes — ver la fila siguiente**). Por eso la celda 3.4 recarga el champion **adentro de la red** (`docker exec` → `http://mlflow:5000`) — igual que el DAG. Adentro de la red no existe el problema |
+| `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso el zoo del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
+| El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
+| `crypto_ml` no se dispara nunca | Consume el asset `gold_abt`, que emite la task `build_abt` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara |
+| El modelo no le gana al baseline de **persistencia** | Es un resultado posible, y hay que leerlo: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla, así que es un rival serio. Con pocas fechas de test, además, la diferencia suele caer dentro del ruido — la celda imprime cuánto mueve una sola predicción, justamente para poder descartarla |
+| Accuracy sospechosamente alta | Sospechá **leakage**: target disfrazado de feature, split que mezcla días, o grano intradía filtrándose en el cierre |
