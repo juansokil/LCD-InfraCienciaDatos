@@ -1,6 +1,6 @@
 # Clase 05: La Bóveda (Capa Gold)
 
-> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
 > 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAGs demo + página dashboard sobre datos sintéticos (`silver.ventas_demo`)
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **6 queries de SQL Gold** sobre **Northwind** (G1–G6) que arman, paso a paso, una misma tabla Gold
