@@ -216,7 +216,7 @@ def _clean_records(records):
 #     asset es SABER que termino.
 #
 #   catchup=False
-#     CRITICO: si el DAG estuvo apagado 2 horas, NO ejecuta las ~24 corridas
+#     CRITICO: si el DAG estuvo apagado 2 horas, NO ejecuta las 8 corridas
 #     que se "perdieron". Solo ejecuta la proxima.
 #     Con catchup=True, Airflow intentaria ejecutar TODAS las corridas
 #     pendientes desde start_date. Para APIs en tiempo real como precios,
@@ -791,9 +791,9 @@ def crypto_bronze():
 
         # Append: cada corrida agrega 50 registros (uno por moneda).
         # Velocidad de crecimiento de la tabla:
-        #   - 1 hora  = 12 corridas * 50 monedas = 600 registros
-        #   - 1 dia   = 288 corridas * 50 monedas = 14,400 registros
-        #   - 1 semana = ~100,800 registros
+        #   - 1 hora  = 4 corridas * 50 monedas = 200 registros
+        #   - 1 dia   = 96 corridas * 50 monedas = 4,800 registros
+        #   - 1 semana = ~33,600 registros
         #
         # Este crecimiento es INTENCIONAL en Bronze: queremos el historial
         # completo para poder analizar tendencias de precios, calcular
