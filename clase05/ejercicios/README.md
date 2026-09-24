@@ -1,6 +1,6 @@
 # Ejercicio 05 — Reglas de entrega
 
-> El entregable del Ejercicio 05 es **[`ejercicio.ipynb`](ejercicio.ipynb)** (un solo archivo, autocontenido): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2 — 6 queries** (G1–G6) que arman **la misma tabla Gold**, ventas por categoría y mes: el grano, el JOIN con la dimensión (*star*), el corte con `HAVING`, el segmento con `CASE`, la participación y el ranking con *window functions*, y la variación con `LAG`. Son los patrones que la Capa Gold usa para **agregar y responder preguntas de negocio** (colapsan el grano, al revés que Silver en el ejercicio 04).
+> El Ejercicio 05 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2 — 6 queries** (G1–G6) que arman **la misma tabla Gold**, ventas por categoría y mes: el grano, el JOIN con la dimensión (*star*), el corte con `HAVING`, el segmento con `CASE`, la participación y el ranking con *window functions*, y la variación con `LAG`. Son los patrones que la Capa Gold usa para **agregar y responder preguntas de negocio** (colapsan el grano, al revés que Silver en el ejercicio 04).
 >
 > Esta carpeta guarda tu entrega (`estudiantes/`) y el **material de referencia del pipeline productivo**: el DAG [`dag_crypto_gold.py`](dag_crypto_gold.py) (ELT: todo en SQL, con `CREATE TABLE ... AS SELECT`), que es esto mismo en grande.
 
@@ -57,7 +57,7 @@ El `ejercicio.ipynb` es **template compartido**. Si lo modificás y lo commiteá
 ```bash
 # CORRECTO
 git add clase05/ejercicios/estudiantes/sokil-juan.txt
-git commit -m "ejercicio05: sql gold"
+git commit -m "clase05 (Gold)"
 git push origin estudiante/apellido-nombre
 
 # MAL ❌ (sube tambien el ipynb modificado)
@@ -66,7 +66,7 @@ git add .
 
 ## Después del push: tu PR se actualiza solo
 
-**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `ejercicio05: ...` y el `.txt` nuevo.
+**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `clase05 (Gold)` y el `.txt` nuevo.
 
 > **¿Viste una marca roja "Changes requested" en tu PR?** El docente rechazó una entrega: hay algo para corregir. **Tu PR sigue abierto** — no abras uno nuevo ni crees otra rama. Leé el review, corregí, `commit` + `push` a la misma rama y ese push levanta la marca. Detalle de todos los estados del PR en el [README raíz → "Cómo leer el estado de tu PR"](../../README.md).
 
