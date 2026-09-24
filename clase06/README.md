@@ -1,6 +1,12 @@
-# Clase 06: MLOps — del pipeline al modelo en producción
+# Clase 06: MLOps — Gold servido a un modelo
 
-> **Clase de cierre del cuatrimestre**. Workshop magistral: el docente cierra el pipeline y le enchufa un modelo — **tracking, registry, serving y monitoreo**. La entrega es **chica y de criterio** — *El veredicto*: mirás siete candidatos en MLflow y decidís cuál promoverías a producción. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno bueno.
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
+>
+> 1. **Notebook teórico** ([`clase06.ipynb`](clase06.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`silver.ventas_demo`, la misma fuente de la clase 05)
+> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — *El veredicto*: siete candidatos en MLflow y una decisión
+> 3. **DAG productivo** ([`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py)) — para copy-paste a Airflow
+
+> **La misma capa Gold de la clase 05, servida al otro consumidor.** Ahí el dato se modeló para que lo mire una persona: un hecho, sus dimensiones, un tablero. Acá se modela para que lo coma un modelo: una **ABT**, una fila por caso — y después hay que **servirla** (un DAG que scorea solo), **versionar** lo que se entrenó (MLflow) y **corregirlo** contra lo que efectivamente pasó. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno bueno.
 
 > El modelo que se usa **pierde contra una regla de una línea**, y está puesto a propósito. Lo que se enseña es la maquinaria que permite *darse cuenta* de eso — que es exactamente lo que un pipeline de MLOps tiene que hacer.
 
