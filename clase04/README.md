@@ -1,6 +1,6 @@
 # Clase 04: La Refinería (Capa Silver)
 
-> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05):
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
 > 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`bronze.ventas_demo`)
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 10 ejercicios de SQL básico sobre **Northwind** (los fundamentos que Silver usa)

@@ -1,6 +1,6 @@
 # Clase 03: Ingesta Profesional (Capa Bronze)
 
-> 📚 **Cómo está estructurado este ejercicio** (patrón compartido por ejercicios 03/04/05):
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
 > 1. **Notebook teórico** ([`clase03.ipynb`](clase03.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (CSV/JSON locales)
 > 2. **Ejercicio práctico** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — los mismos conceptos sobre CoinGecko
