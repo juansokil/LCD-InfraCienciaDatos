@@ -37,11 +37,11 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 #### Clase 04: La Refinería (Capa Silver)
 - Transformación Bronze → Silver
 - Contratos de datos declarativos (YAML) + validación fila a fila con Pydantic
-- Reglas de calidad con **dos severidades**: `error` manda el registro a cuarentena, `warning` lo deja pasar marcado. La clase explica el criterio; **corriendo se ve en el DAG productivo** (`dag_crypto_silver.py`), que las lee de `crypto_markets.yaml`
-- Métricas de calidad **por corrida**: un número suelto no dice nada, la señal es el cambio. Las escribe el DAG productivo en `silver.quality_runs` y se miran en la página **2_Silver_Calidad** del dashboard
-- Limpieza avanzada: **tipado estricto** y cargas **idempotentes** (re-correr no duplica). La **deduplicación** se practica en el ejercicio (`ROW_NUMBER`) y corre en el DAG productivo (`DISTINCT ON`)
 - Patrón de Cuarentena para registros inválidos
-- **SCD Tipo 2**: un mini-lab en SQL, ejecutable y autocontenido. El pipeline del curso usa **full-refresh** y no historiza: SCD2 se ve como concepto, no como implementación
+- Reglas de calidad con dos severidades: `error` a cuarentena, `warning` marcado
+- Métricas de calidad por corrida: la señal es el cambio, no el número suelto
+- Limpieza avanzada: tipado estricto, cargas idempotentes y deduplicación
+- SCD Tipo 2 en SQL: historización, como concepto
 
 ### 🥇 **Capa Gold: Analytics**
 
@@ -55,20 +55,19 @@ Repositorio de **Infraestructura para Ciencia de Datos** — Licenciatura en Cie
 ### 🥇 **Capa Gold: Machine Learning**
 
 #### Clase 06: MLOps — Gold servido a un modelo
-- La **ABT**: la forma que Gold le da a ML — **una fila por caso, sin JOINs**. Es a ML lo que el Star Schema de la clase 05 es a BI: la misma capa, el otro consumidor
-- **Airflow para ML**: el modelo como una task más. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_abt`
-- **MLflow como sistema, no como demo**: tracking contra el server del stack, Model Registry y el alias `@champion` — promover un modelo es una **decisión humana**, y cambiar el alias cambia lo que predice el pipeline sin tocar código
-- Validación honesta: walk-forward por fechas, **dos varas** (la clase mayoritaria, que es la fácil, y la persistencia *«mañana se repite lo de hoy»*, que es la que de verdad hay que ganar) y la lección de target leakage
-- El tablero **corrige al modelo** contra lo que pasó: accuracy por ventana, evolución y desagregado por cripto
-- El **switch a modo producción**: se retira el andamiaje pedagógico, la cadena queda encadenada por **Assets** (un solo cron, en Bronze) y se ve cómo se monitorea
-- 🎁 Bonus track: el mapa de MLOps y qué queda afuera — **Feature Stores**, **Data Drift** y **Observability Gate** (el Model Registry no: ese se hace en esta clase)
-- 📦 **La entrega**: *El veredicto* — siete candidatos esperando en el tracking y una decisión, cuál iría a producción o si ninguno está listo
+- La ABT: una fila por caso, la forma que Gold le da a ML
+- Airflow para ML: el modelo como una task más del pipeline
+- MLflow: tracking, Model Registry y el alias `@champion`
+- Validación honesta: walk-forward por fechas y dos baselines
+- El tablero corrige al modelo contra lo que efectivamente pasó
+- Switch a modo producción: la cadena encadenada por Assets, y su monitoreo
+- Bonus track: Feature Stores, Data Drift y Observability Gate
 
 ---
 
 ## 🎓 Patrón Pedagógico (Clases 03 a 06)
 
-Las clases que arman el pipeline (**Bronze → Silver → Gold**) y la de cierre (**ML sobre Gold**) siguen un patrón uniforme de **3 capas pedagógicas**:
+Las cuatro clases que arman el pipeline (**Bronze → Silver → Gold**, y Gold servido a **ML**) siguen un patrón uniforme de **3 capas pedagógicas**:
 
 | Capa | Archivo | Datos | Para qué |
 |---|---|---|---|
