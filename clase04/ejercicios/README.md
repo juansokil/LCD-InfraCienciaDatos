@@ -1,6 +1,6 @@
 # Ejercicio 04 — Reglas de entrega
 
-> El entregable del Ejercicio 04 es **[`ejercicio.ipynb`](ejercicio.ipynb)** (un solo archivo, autocontenido): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
+> El Ejercicio 04 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
 >
 > Esta carpeta guarda tu entrega (`estudiantes/`) y el DAG productivo (`dag_crypto_silver.py`, referencia / deploy). **[`dag_crypto_silver.py`](dag_crypto_silver.py) es el patrón productivo de referencia de todo lo que practicás acá — leelo.**
 
@@ -14,7 +14,7 @@ estudiantes/<apellido>-<nombre>.txt
 
 Ejemplo: `estudiantes/sokil-juan.txt`.
 
-> **No tipees el filename a mano** — lo genera automáticamente la sección **📦 Entrega** (final de [`ejercicio.ipynb`](ejercicio.ipynb)), normalizando tu nombre y apellido (sin tildes, minúsculas, separado por guión).
+> **No tipees el filename a mano** — lo genera automáticamente la sección **📦 Entrega** (final de [`ejercicio.ipynb`](ejercicio.ipynb)), normalizando tu nombre y apellido (sin tildes, minúsculas, separados por guión). **Los compuestos van pegados**: María José García López entrega `garcialopez-mariajose.txt`.
 
 ## ¿Qué pongo adentro del archivo?
 
@@ -52,7 +52,7 @@ El `ejercicio.ipynb` es **template compartido**. Si lo modificás y lo commiteá
 ```bash
 # CORRECTO
 git add clase04/ejercicios/estudiantes/sokil-juan.txt
-git commit -m "ejercicio04: ejercicio sql"
+git commit -m "clase04 (Silver)"
 git push origin estudiante/apellido-nombre
 
 # MAL ❌ (sube tambien el ipynb modificado)
@@ -61,7 +61,7 @@ git add .
 
 ## Después del push: tu PR se actualiza solo
 
-**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `ejercicio04: ...` y el `.txt` nuevo.
+**No abrís un PR nuevo.** El `git push` de arriba actualiza tu PR abierto (el que creaste en la Clase 01). El docente revisa tu entrega ahí — la identifica por el commit `clase04 (Silver)` y el `.txt` nuevo.
 
 > **¿Viste una marca roja "Changes requested" en tu PR?** El docente rechazó una entrega: hay algo para corregir. **Tu PR sigue abierto** — no abras uno nuevo ni crees otra rama. Leé el review, corregí, `commit` + `push` a la misma rama y ese push levanta la marca. Detalle de todos los estados del PR en el [README raíz → "Cómo leer el estado de tu PR"](../../README.md).
 
