@@ -1,0 +1,21 @@
+# Default: texto con line-endings normalizados a LF
+* text=auto eol=lf
+
+# Shell / Bash
+*.sh text eol=lf
+
+# Windows scripts (estos sí deben quedar con CRLF)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Notebooks: texto, line-endings LF
+*.ipynb text eol=lf
+
+# Binarios: no tocar
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.zip binary
+*.parquet binary
