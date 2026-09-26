@@ -1,0 +1,6 @@
+Apellido: sokil
+Nombre: juan
+Usuario GitHub: juansokil
+Rama: estudiante/sokil-juan
+Codigo: B6623B9D8084
+Fecha: 2026-09-26
