@@ -1,0 +1,6 @@
+FROM postgres:17-alpine
+
+# Bakear init.sql dentro de la imagen evita el bind mount problemático en Windows.
+# Postgres ejecuta automáticamente cualquier .sql en /docker-entrypoint-initdb.d/
+# en el primer arranque del container.
+COPY init.sql /docker-entrypoint-initdb.d/init.sql
