@@ -1,0 +1,6 @@
+Apellido: sokil
+Nombre: juanpablo
+Usuario GitHub: juansokil
+Rama: estudiante/sokil-juanpablo
+Codigo: 9BB60D0E8EBC
+Fecha: 2026-10-01
