@@ -1,0 +1,6 @@
+Apellido: rousso
+Nombre: matias
+Usuario GitHub: Matirou1
+Rama: estudiante/rousso-matias
+Codigo: 8A1B35A01C2E
+Fecha: 2026-10-02
