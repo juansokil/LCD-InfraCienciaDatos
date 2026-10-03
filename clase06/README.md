@@ -6,9 +6,9 @@
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — *El veredicto*: siete candidatos en MLflow y una decisión
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py)) — para copy-paste a Airflow
 
-> **La misma capa Gold de la clase 05, servida al otro consumidor.** Ahí el dato se modeló para que lo mire una persona: un hecho, sus dimensiones, un tablero. Acá se modela para que lo coma un modelo: una **ABT**, una fila por caso — y después hay que **servirla** (un DAG que scorea solo), **versionar** lo que se entrenó (MLflow) y **corregirlo** contra lo que efectivamente pasó. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno bueno.
+> **La misma capa Gold de la clase 05, servida al otro consumidor.** Ahí el dato se modeló para que lo mire una persona: un hecho, sus dimensiones, un tablero. Acá se modela para que lo coma un modelo: una **ABT**, una fila por caso — y después hay que **servirla** (un DAG que scorea solo), **versionar** lo que se entrenó (MLflow) y **corregirlo** contra lo que efectivamente pasó. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno.
 
-> El modelo que se usa **pierde contra una regla de una línea**, y está puesto a propósito. Lo que se enseña es la maquinaria que permite *darse cuenta* de eso — que es exactamente lo que un pipeline de MLOps tiene que hacer.
+> El modelo se mide contra dos referencias sin entrenamiento, la clase mayoritaria y la persistencia, y la página 6 del tablero muestra los tres números día a día. Lo que se enseña es la maquinaria que permite *medirlo* — que es exactamente lo que un pipeline de MLOps tiene que hacer.
 
 ---
 
@@ -105,19 +105,18 @@ features es **la misma query** en el notebook y en el DAG — no dos copias que
 divergen. Verlo ocurrir vale más que explicarlo.
 
 **6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
-con el **veredicto**: accuracy contra lo que efectivamente pasó, medida contra
-**dos varas**, y recién después muestra la maquinaria. Porque elegir la vara
-fácil y cantar victoria es el error más común del oficio:
+con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
+**dos referencias** sin entrenamiento, y recién después muestra la maquinaria:
 
-- **La fácil** — la clase mayoritaria. Ronda 50% porque el target está
-  balanceado por construcción: ganarle no prueba nada.
-- **La difícil** — la persistencia, *«mañana se repite lo de hoy»*. Sin
-  features, sin entrenar, sin MLflow. **Superarla es lo que justifica haber
-  entrenado algo.**
+- **La clase mayoritaria**. Ronda 50% porque el target está balanceado por
+  construcción.
+- **La persistencia**, *«mañana se repite lo de hoy»*. Sin features, sin
+  entrenar, sin MLflow.
 
-Hoy el modelo **le gana a la fácil por ~20 puntos y pierde contra la difícil por
-~6**. No es un fracaso de la clase: **es la clase**. Un pipeline de MLOps que
-solo sabe decir "todo bien" no sirve para nada.
+Con tres semanas de historia (octubre 2026) el modelo da ~86-88 % de accuracy,
+la persistencia ~82 % y la mayoritaria ~51 %; con dos semanas, el modelo quedaba
+por debajo de la persistencia. El mismo modelo, más historia: el tablero muestra
+los tres números día a día.
 
 ---
 
@@ -138,6 +137,13 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   por posición de fila. Los 6 runs se evalúan sobre **las mismas fechas**: si
   cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las
   features o del test set.
+- **Qué es la volatilidad y para qué sirve predecirla**: cuánto se sacude el
+  precio en el día (desvío ÷ promedio, en %), sin importar hacia dónde. Viene en
+  rachas, por eso se puede predecir; la dirección no deja rastro en precio y
+  volumen públicos (medido sobre estos datos: ~50 %). Un pronóstico de
+  volatilidad no dice *comprá* ni *vendé*: dice cuánto riesgo hay mañana — para
+  ampliar un stop, elegir cuándo ejecutar o subir garantías en un exchange. El
+  notebook lo explica y lo dibuja con datos reales antes del Paso 1.
 
 ### Cierre
 
@@ -210,5 +216,5 @@ El **mensaje final** completo está en la última celda del notebook.
 | `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso el zoo del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
 | El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
 | `crypto_ml` no se dispara nunca | Consume el asset `gold_abt`, que emite la task `build_abt` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara |
-| El modelo no le gana al baseline de **persistencia** | Es un resultado posible, y hay que leerlo: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla, así que es un rival serio. Con pocas fechas de test, además, la diferencia suele caer dentro del ruido — la celda imprime cuánto mueve una sola predicción, justamente para poder descartarla |
+| El modelo queda por debajo de la **persistencia** | Es un resultado posible: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla. Con pocas fechas de test, la diferencia suele ser menor que lo que mueve una sola predicción; la celda imprime ese número |
 | Accuracy sospechosamente alta | Sospechá **leakage**: target disfrazado de feature, split que mezcla días, o grano intradía filtrándose en el cierre |
