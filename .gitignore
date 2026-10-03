@@ -185,3 +185,9 @@ stack/credentials/*.key
 # aca -- va como variable de entorno del host, y el .env la lee con
 # `${MI_API_KEY}`. Ver la consigna del TP.
 !TpFinal/grupos/*/.env
+
+# --- Reportes del docente (DATOS DE ESTUDIANTES - este repo es PUBLICO) ---
+# La grilla de colaboradores lleva handles de GitHub de estudiantes reales.
+# Se genera con .claude/skills/analizar-entregas-curso/reporte_colaboradores.py
+# y NUNCA se commitea. El script aborta si esta ruta deja de estar ignorada.
+reportes_docente/
