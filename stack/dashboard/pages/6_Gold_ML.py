@@ -10,11 +10,11 @@ La página arranca por el VEREDICTO y termina en la maquinaria, no al revés.
 Antes empezaba por la ABT y el resultado quedaba sepultado en el medio: el
 que abría la pantalla veía plomería antes que respuesta.
 
-Y el veredicto se da contra DOS varas, no una. El target está balanceado por
-construcción, así que ganarle a la clase mayoritaria (~50%) no prueba nada.
-La vara que importa es la persistencia — "mañana se repite lo de hoy" —, que
-no necesita features ni entrenamiento. La notebook de clase 06 ya la medía;
-esta página la ignoraba y declaraba victoria con la fácil.
+Y el veredicto se muestra junto a DOS referencias sin entrenamiento: la clase
+mayoritaria (~50%, porque el target está balanceado por construcción) y la
+persistencia — "mañana se repite lo de hoy" —, que no necesita features ni
+modelo. La notebook de clase 06 mide las mismas dos. La página presenta los
+tres números; la lectura la hace quien mira.
 
 Los datos de MLflow se leen por su API REST (no hace falta el cliente de
 mlflow instalado en el dashboard): el tracking server es un servicio más del
@@ -67,7 +67,7 @@ estado = pill("MLFLOW ONLINE", "--up", "tracking :5000") if vivo \
     else pill("MLFLOW CAÍDO", "--down", "docker compose up -d mlflow")
 
 encabezado("🤖 Gold · Machine Learning",
-           "¿El modelo sirve? · y después, cómo está hecho", estado)
+           "Resultados del modelo · y cómo está hecho", estado)
 
 # --- cuánta historia hay, dicho UNA vez y arriba de todo ------------------
 # Antes esto era una seccion propia AL FINAL, con barra de progreso, que
@@ -84,20 +84,18 @@ except Exception:
 CONCLUYENTE = dias_hoy >= MIN_DIAS
 if not CONCLUYENTE:
     aviso(
-        f"<b>{dias_hoy} de {MIN_DIAS} días de historia · los números de abajo "
-        "son NO CONCLUYENTES.</b> El mecanismo funciona y las métricas son "
-        "reales, pero medidas sobre un puñado de días son ruido con formato "
-        "de número. El pipeline suma un cierre por día y esto se destraba "
-        f"solo. <i>(Es el mismo umbral que usa la notebook de clase 06: "
-        f"<code>MIN_FECHAS = {MIN_DIAS}</code>.)</i>",
+        f"<b>{dias_hoy} de {MIN_DIAS} días de historia.</b> Los números de "
+        "abajo están medidos sobre pocos días y cambian con cada cierre que "
+        "el pipeline suma. <i>(Es el mismo umbral que usa la notebook de "
+        f"clase 06: <code>MIN_FECHAS = {MIN_DIAS}</code>.)</i>",
         "⏳",
     )
 
 # =========================================================================
 # 1) EL VEREDICTO — lo primero que se ve
 # =========================================================================
-seccion("¿El modelo sirve?",
-        "Acertar qué criptos iban a ser las más movidas · medido contra lo que pasó")
+seccion("Resultados",
+        "Qué criptos iban a ser las más movidas · medido contra lo que pasó")
 
 hay_veredicto = q("SELECT to_regclass('gold.v_ml_veredicto') IS NOT NULL AS e").iloc[0]["e"]
 ver = q("SELECT * FROM gold.v_ml_veredicto") if hay_veredicto else pd.DataFrame()
@@ -126,16 +124,16 @@ else:
         foot=f"{int(mejor['predicciones'])} predicciones sobre "
              f"{int(mejor['dias'])} días verificados."), unsafe_allow_html=True)
     c[1].markdown(kpi(
-        "Vara difícil · mañana = hoy",
+        "Persistencia · mañana = hoy",
         "—" if pd.isna(pers) else f"{pers:.1f} %",
-        foot="La volatilidad se agrupa: repetir lo de ayer ya acierta mucho. "
+        foot="Regla sin modelo: la que fue de las movidas hoy, lo será mañana. "
              "<b>Sin features, sin entrenar, sin MLflow.</b>"),
         unsafe_allow_html=True)
     c[2].markdown(kpi(
-        "Vara fácil · clase mayoritaria",
+        "Clase mayoritaria",
         "—" if pd.isna(mayo) else f"{mayo:.1f} %",
-        foot="Ronda 50% porque el target está balanceado por construcción. "
-             "Ganarle a esto no prueba nada."), unsafe_allow_html=True)
+        foot="Ronda 50% porque el target está balanceado por construcción."),
+        unsafe_allow_html=True)
 
     if pd.isna(pers):
         st.caption("Hace falta un día más para poder calcular la persistencia.")
@@ -144,19 +142,10 @@ else:
         d_m = mejor["accuracy"] - mayo if pd.notna(mayo) else float("nan")
         st.markdown(
             f"<div class='aviso' style='border-left:3px solid {color_v}'>"
-            f"<span>{'🏆' if gana_pers else '🧊'}</span><div>"
-            f"<b>Le gana a la vara fácil por {d_m:+.1f} puntos</b> — pero eso "
-            f"era casi gratis.<br>"
-            f"<b>Contra la vara difícil {'gana' if gana_pers else 'pierde'} "
-            f"por {abs(d_p):.1f} puntos.</b><br><br>"
-            + ("Entrenar compró algo: el modelo ve en las features lo que la "
-               "regla trivial no ve."
-               if gana_pers else
-               "Conclusión honesta: <b>todavía no justifica haber entrenado</b>. "
-               "Una regla de una línea —<i>«la que se movió mucho hoy se va a "
-               "mover mucho mañana»</i>— acierta más, sin ABT, sin registry y "
-               "sin DAG de scoring.")
-            + "</div></div>",
+            f"<span>📐</span><div>"
+            f"<b>Modelo − persistencia: {d_p:+.1f} puntos.</b> "
+            f"Modelo − clase mayoritaria: {d_m:+.1f} puntos."
+            "</div></div>",
             unsafe_allow_html=True,
         )
 
@@ -175,21 +164,16 @@ else:
             "modelo": "Modelo", "dias": st.column_config.NumberColumn("Días", width="small"),
             "predicciones": st.column_config.NumberColumn("Predicciones"),
             "accuracy": st.column_config.NumberColumn("Modelo", format="%.1f%%"),
-            "base_mayoritaria": st.column_config.NumberColumn("Vara fácil", format="%.1f%%"),
-            "base_persistencia": st.column_config.NumberColumn("Vara difícil", format="%.1f%%"),
+            "base_mayoritaria": st.column_config.NumberColumn("Mayoritaria", format="%.1f%%"),
+            "base_persistencia": st.column_config.NumberColumn("Persistencia", format="%.1f%%"),
             "vs_persistencia": st.column_config.NumberColumn(
-                "Diferencia", format="%+.1f", help="Modelo − vara difícil, en puntos"),
-            "le_gana": "¿Le gana?",
+                "Diferencia", format="%+.1f", help="Modelo − persistencia, en puntos"),
+            "le_gana": "¿Supera a la persistencia?",
         },
     )
-    st.caption(
-        "**La columna que importa es «Diferencia».** Elegir la vara fácil y "
-        "declarar victoria es el error más común del oficio, y se comete sin "
-        "mala fe: el número sube, el gráfico queda lindo y nadie pregunta "
-        "contra qué se comparó."
-    )
+    st.caption("«Diferencia» es modelo menos persistencia, en puntos.")
     de_donde_sale("gold.v_ml_veredicto",
-                  "Las dos varas calculadas en SQL. La persistencia sale de un "
+                  "Las dos referencias calculadas en SQL. La persistencia sale de un "
                   "LAG sobre la verdad observada: literalmente «lo de ayer».")
 
     # --- evolucion -----------------------------------------------------
@@ -221,10 +205,10 @@ else:
         if not ver.empty and pd.notna(ver["base_persistencia"].max()):
             fige.add_hline(y=float(ver["base_persistencia"].max()),
                            line_dash="dash", line_color=BAJA,
-                           annotation_text="mañana = hoy · la vara que importa",
+                           annotation_text="mañana = hoy · persistencia",
                            annotation_font=dict(size=11, color=BAJA))
         fige.add_hline(y=50, line_dash="dot", line_color=GRIS,
-                       annotation_text="50% · tirar la moneda",
+                       annotation_text="50% · clase mayoritaria",
                        annotation_position="bottom left",
                        annotation_font=dict(size=11, color=GRIS))
         fige.update_layout(**layout(
@@ -233,9 +217,8 @@ else:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
         ))
         st.plotly_chart(fige, use_container_width=True)
-        st.caption("Un día suelto dice poco: lo que importa es si la línea "
-                   "**se sostiene** por encima de la vara roja. Cruzarla una "
-                   "vez y volver es ruido.")
+        st.caption("Cada punto es un día. La línea roja es la persistencia del "
+                   "período; la gris, el 50 % de la clase mayoritaria.")
 
 # =========================================================================
 # 2) QUE SIGNIFICA SER VOLATIL — mostrado, no explicado
@@ -246,7 +229,7 @@ else:
 # describirla con simbolos la hace parecer arbitraria.
 st.divider()
 seccion("¿Qué significa que una cripto sea «volátil»?",
-        "No hay umbral fijo · son dos pasos, los dos medibles")
+        "Cuánto se sacude el precio, sin importar hacia dónde · y para qué sirve saberlo antes")
 
 vol_ok = q("SELECT to_regclass('gold.v_volatilidad_diaria') IS NOT NULL AS e").iloc[0]["e"]
 vdia = q("""
@@ -265,11 +248,73 @@ else:
     # El ejemplo se elige SOLO: la mas movida del dia. Fijar una moneda a
     # mano (BTC, por decir) daria un caso aburrido la mitad de los dias.
     ej = vdia.iloc[0]
-    tranqui = vdia.iloc[-1]
+    # La "calma" se elige entre las que NO son stablecoin: una stablecoin es
+    # calma por diseno, no por mercado, y como ejemplo no ensena nada.
+    sin_stable = vdia[vdia["categoria"] != "stablecoin"]
+    tranqui = (sin_stable if not sin_stable.empty else vdia).iloc[-1]
+
+    # ------------------------------------ PASO 0: direccion no es volatilidad
+    # Antes de la mecanica, el concepto. Dos monedas del MISMO dia, las dos
+    # arrancando en 100: la mas movida y la mas calma. Donde terminan es la
+    # direccion; cuanto se sacudieron en el medio es la volatilidad. El
+    # modelo predice lo segundo, y esta pantalla tiene que dejar claro por
+    # que eso sirve aunque no diga "compra" ni "venda".
+    st.markdown("##### 0 · Mismo arranque, distinto viaje — *dirección no es volatilidad*")
+    cV, cT = st.columns([1.3, 1])
+    with cV:
+        figd = go.Figure()
+        for r, color in ((ej, SUBE), (tranqui, GRIS)):
+            s = q(f"""
+                SELECT snapshot_ts, current_price
+                FROM gold.fact_crypto_markets
+                WHERE crypto_id = '{r['crypto_id'].replace("'", "''")}'
+                  AND snapshot_ts::date = DATE '{fecha_v:%Y-%m-%d}'
+                ORDER BY snapshot_ts
+            """)
+            if s.empty:
+                continue
+            base100 = s["current_price"] / float(s["current_price"].iloc[0]) * 100
+            cierre = float(base100.iloc[-1]) - 100
+            figd.add_trace(go.Scatter(
+                x=s["snapshot_ts"], y=base100, mode="lines",
+                line=dict(color=color, width=2),
+                name=f"{r['symbol']} · vol {float(r['vol']):.2f}% · cierre {cierre:+.1f}%",
+                hovertemplate="%{x|%H:%M} · %{y:.2f}<extra></extra>"))
+        figd.add_hline(y=100, line_color=GRIS, line_dash="dot", line_width=1)
+        figd.update_layout(**layout(
+            height=260,
+            yaxis=dict(title="precio (apertura = 100)", showgrid=True,
+                       gridcolor="rgba(128,128,128,.15)"),
+            xaxis=dict(title=None, showgrid=False),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+            margin=dict(l=0, r=0, t=6, b=0),
+        ))
+        st.plotly_chart(figd, use_container_width=True)
+    with cT:
+        st.markdown(
+            "**Volatilidad es cuánto se sacude el precio, sin importar hacia "
+            "dónde.** Dirección es dónde cerró respecto de dónde abrió; "
+            "volatilidad es cuánto se movió en el camino. Las dos líneas "
+            f"arrancan en 100: **{ej['symbol']}** fue la más movida del día y "
+            f"**{tranqui['symbol']}** la más calma.\n\n"
+            "**Por qué se predice esto y no la dirección**: la volatilidad "
+            "viene en rachas (un día agitado sigue a otro agitado); la "
+            "dirección no deja rastro en precio y volumen públicos — medida "
+            "sobre estos datos, queda en el 50 %.\n\n"
+            "**Para qué sirve saberlo antes** — no dice *comprá* ni *vendé*, "
+            "dice cuánto riesgo hay mañana:\n"
+            "- con una posición abierta: ampliar el stop o achicar **antes** "
+            "de que el ruido te expulse;\n"
+            "- para comprar: elegir el día calmo, donde pagás el precio que ves;\n"
+            "- para un exchange: subir garantías antes de las liquidaciones "
+            "en cadena."
+        )
+    st.caption("El modelo no pronostica el viento; pronostica la tormenta. "
+               "Con eso no sabés adónde va el barco, pero sabés si salir o no.")
 
     st.markdown(
-        f"Los dos pasos, sobre el **{fecha_larga(fecha_v)}** y con "
-        f"**{len(vdia)} criptos** medidas."
+        f"Y ahora la mecánica, en dos pasos, sobre el **{fecha_larga(fecha_v)}** "
+        f"y con **{len(vdia)} criptos** medidas."
     )
 
     p1, p2 = st.columns([1, 1])
@@ -357,9 +402,8 @@ else:
         )
         st.caption(
             f"Hoy {int(vdia['alta_vol'].sum())} de {len(vdia)} quedaron del "
-            f"lado alto. Que sea **siempre la mitad** es lo que hace que "
-            "adivinar sin mirar nada acierte 50% — y por eso ese 50% no es "
-            "una vara que valga la pena ganarle."
+            f"lado alto. Que sea **siempre la mitad** es lo que deja a la "
+            "clase mayoritaria en el 50%."
         )
 
     # ------------------------------------------ PASO 3: y esto como se PREDICE
@@ -422,12 +466,11 @@ else:
             st.plotly_chart(figh, use_container_width=True)
             st.caption(
                 "**Azul = fue de las movidas ese día.** Ordenadas de la que "
-                "más alterna a la que menos. Mirá las de abajo: filas casi "
-                "enteras de un solo color. Esas son **gratis de acertar** — "
-                "y son las que inflan el accuracy.<br><br>"
-                "Ahí se ve por qué *«mañana se repite lo de hoy»* es tan "
-                "difícil de superar: para la mayoría de las filas, **es "
-                "verdad**. El mérito del modelo está solo en las de arriba.",
+                "más alterna a la que menos. Las de abajo son filas casi "
+                "enteras de un solo color: criptos que casi no cambian de "
+                "lado, donde *«mañana se repite lo de hoy»* acierta por "
+                "construcción. Las de arriba alternan: ahí es donde modelo y "
+                "persistencia pueden diferir.",
                 unsafe_allow_html=True,
             )
         else:
@@ -467,9 +510,8 @@ if hay_veredicto and not ver.empty:
                       f"{len(faciles) / len(pormoneda) * 100:.0f}% del total",
                       delta_color="off")
             if not alternan.empty:
-                cB.metric("Accuracy en las que SÍ alternan",
-                          f"{alternan['accuracy'].mean():.1f} %",
-                          "acá está el mérito real", delta_color="off")
+                cB.metric("Accuracy en las que alternan",
+                          f"{alternan['accuracy'].mean():.1f} %")
             st.dataframe(
                 pormoneda, hide_index=True, use_container_width=True, height=300,
                 column_config={
@@ -485,11 +527,10 @@ if hay_veredicto and not ver.empty:
             st.caption(
                 "La última columna dice cuántas veces esa cripto fue "
                 "efectivamente de las movidas. Una que **siempre** lo es (o "
-                "nunca) es gratis de acertar: el mérito está en las que "
-                "alternan. Ojo también con el tamaño de muestra — las ~50 "
-                "predicciones de un mismo día comparten el régimen de mercado "
-                "de esa jornada, así que valen menos que 50 casos "
-                "independientes. El número que manda es **Días**."
+                "nunca) se acierta con cualquier regla; en las que alternan es "
+                "donde las predicciones difieren. Las ~50 predicciones de un "
+                "mismo día comparten el régimen de mercado de esa jornada, "
+                "así que la unidad de muestra es el **día**."
             )
 
 # =========================================================================
@@ -596,7 +637,7 @@ with st.expander(f"🧪 Los runs de MLflow · experimento `{EXPERIMENTO}`"):
                         "accuracy": st.column_config.NumberColumn("Accuracy", format="%.3f"),
                         "balanced": st.column_config.NumberColumn("Balanced", format="%.3f"),
                         "persistencia": st.column_config.NumberColumn(
-                            "Vara difícil", format="%.3f"),
+                            "Persistencia", format="%.3f"),
                         "vs_persistencia": st.column_config.NumberColumn(
                             "Diferencia", format="%+.3f"),
                         "inicio": st.column_config.DatetimeColumn("Cuándo", format="DD-MM HH:mm"),
@@ -617,7 +658,7 @@ with st.expander(f"🧪 Los runs de MLflow · experimento `{EXPERIMENTO}`"):
                     if pd.notna(base):
                         figm.add_hline(y=base, line_color=BAJA, line_dash="dash",
                                        line_width=1.5,
-                                       annotation_text=f"vara difícil: {base:.3f}",
+                                       annotation_text=f"persistencia: {base:.3f}",
                                        annotation_position="top left",
                                        annotation_font=dict(size=11, color=BAJA))
                     figm.update_layout(height=300, bargap=0.4, **{
@@ -625,10 +666,8 @@ with st.expander(f"🧪 Los runs de MLflow · experimento `{EXPERIMENTO}`"):
                         xaxis=dict(tickangle=-45, showgrid=False, title=None))
                     st.plotly_chart(figm, use_container_width=True)
                     st.caption(
-                        "Cada barra es un run del model zoo. **Azul = le gana a "
-                        "la vara difícil, rojo = no.** Un modelo que no le gana "
-                        "a *«mañana pasa lo mismo que hoy»* no aporta nada, por "
-                        "más sofisticado que sea."
+                        "Cada barra es un run de la grilla. **Azul = por encima "
+                        "de la persistencia, rojo = por debajo.**"
                     )
 
 with st.expander("🏆 El champion · el modelo en producción"):
@@ -638,8 +677,7 @@ with st.expander("🏆 El champion · el modelo en producción"):
         modelos = mlflow_get("registered-models/search").get("registered_models", [])
         if not modelos:
             st.info("🏆 **No hay ningún modelo registrado todavía.** El champion "
-                    "se promueve desde el notebook cuando un candidato le gana "
-                    "al baseline.")
+                    "se promueve desde el notebook (sección 3.3).")
         else:
             for m in modelos:
                 versiones = m.get("latest_versions", [])
