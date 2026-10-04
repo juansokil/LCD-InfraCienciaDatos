@@ -1,5 +1,8 @@
 # TP Final — Data Engineering
 
+> 📄 **Versión resumida en PDF**, para imprimir o compartir:
+> [`consigna_tp_final.pdf`](consigna_tp_final.pdf). Lo que vale es este README.
+
 ## Objetivo
 
 - Construir un pipeline de datos **end-to-end** sobre **una API pública**, con
