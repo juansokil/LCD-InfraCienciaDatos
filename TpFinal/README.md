@@ -201,3 +201,18 @@ TpFinal/grupos/G<NN>/
 
 Dudas de git (crear la rama, conflictos, trabajar de a varios):
 [`git-guia.md`](git-guia.md).
+
+## Cómo se evalúa
+
+1. **Entrega y funcionamiento.** Que con `docker compose up` el stack levante y
+   el pipeline empiece a generar datos solo.
+2. **Cumplir la consigna.** Lo que pide ["Qué tiene que tener"](#qué-tiene-que-tener),
+   respetando las versiones y las tecnologías pedidas: Airflow 3.1.5, Medallion, SQL.
+3. **Trabajo colaborativo en git.** Commits de varios integrantes, repartidos en
+   el tiempo.
+4. **Presentación final.** Tiempos y formas: 7 a 10 minutos con el dashboard
+   corriendo, y subida al campus en formato descargable.
+
+**Adicional, para la nota individual:**
+
+5. **Participación durante la cursada**: las entregas de cada clase, en tu PR.
