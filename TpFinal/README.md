@@ -1,15 +1,15 @@
 # TP Final — Data Engineering
 
-> 📄 **Versión resumida en PDF**, para imprimir o compartir:
-> [`consigna_tp_final.pdf`](consigna_tp_final.pdf). Lo que vale es este README.
+> 📄 **La consigna es el PDF**: [`consigna_tp_final.pdf`](consigna_tp_final.pdf).
+> Este README la amplía con el detalle; si algo no coincide, vale el PDF.
 
 ## Objetivo
 
 - Construir un pipeline de datos **end-to-end** sobre **una API pública**, con
   arquitectura medallion: **Bronze** (crudo) → **Silver** (limpio y validado) →
   **Gold** (modelado para responder preguntas de negocio).
-- Orquestarlo con **Airflow**, guardarlo en **PostgreSQL** y mostrar Gold en un
-  dashboard de **Streamlit**.
+- Orquestarlo con **Airflow**, guardarlo en **PostgreSQL** y mostrar las tablas
+  **Gold** en un **dashboard**.
 - Que todo esté containerizado: con `docker compose up` el stack levanta y
   **empieza a generar datos solo**.
 
@@ -22,7 +22,7 @@
    `docker compose up`, el pipeline empieza a correr sin que haya que activar
    DAGs a mano ni crear schemas manualmente: **Bronze corre al levantar el
    stack y, cuando termina, dispara Silver y después Gold.**
-3. **Un dashboard en Streamlit** sobre las tablas Gold.
+3. **Un dashboard** sobre las tablas Gold.
 4. **Un README del grupo**: API elegida, modelo de datos, cómo levantarlo,
    usuario y contraseña de Airflow, e integrantes.
 5. **Trabajo repartido en git**: commits de varios integrantes, repartidos en el
@@ -192,15 +192,15 @@ TpFinal/grupos/G<NN>/
    en la carpeta y en el título del PR.
 2. Creen la rama **`tpfinal/G<NN>`** desde `main`, y la carpeta
    `TpFinal/grupos/G<NN>/`.
-3. Abran un **PR en draft** contra `main`, con título `TP Final - G<NN> - <API>`
+3. Abran un **PR** contra `main`, con título `TP Final - G<NN> - <API>`
    y en el cuerpo: integrantes (nombre + usuario de GitHub), API elegida e idea
    para Gold.
 4. Trabajen en esa rama: cada push actualiza el PR solo.
-5. **Entrega: domingo 15 de noviembre de 2026, 23:59 (hora Argentina)** — en el
-   PR, click en **"Ready for review"**.
+5. **Entrega: domingo 15 de noviembre de 2026, 23:59 (hora Argentina)**. Vale lo
+   que esté en la rama en ese momento: no hay que apretar ningún botón.
 6. **Presentación: jueves 19 de noviembre de 2026, remota**, 7 a 10 minutos con
-   el dashboard corriendo. Qué mostrar:
-   [`consigna_presentacion.pdf`](consigna_presentacion.pdf).
+   el dashboard corriendo. Qué mostrar y cómo contarlo: la sección 4 de la
+   [consigna](consigna_tp_final.pdf).
 
 Dudas de git (crear la rama, conflictos, trabajar de a varios):
 [`git-guia.md`](git-guia.md).
