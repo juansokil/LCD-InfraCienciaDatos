@@ -2,8 +2,9 @@
 
 > **Material optativo.** No se evalúa. Es para que te lo lleves.
 >
-> Escrito en **octubre de 2026**. Verificado contra Airflow 3.1.5, PostgreSQL 17
-> y MLflow 3.4.0 — las versiones del stack del curso.
+> Escrito en **octubre de 2026**. El servidor de Airflow está **probado de punta
+> a punta** contra el stack del curso (Airflow 3.1.5): ver [Probalo](#️-probalo-vos-sin-instalar-ningún-cliente).
+> Los de Postgres y MLflow están verificados contra su documentación, no corridos.
 
 ---
 
@@ -101,8 +102,22 @@ Trae tres herramientas que valen por sí solas — `explore_dag`,
 tasks, pools, variables y conexiones. Las credenciales de las conexiones **no**
 las devuelve, a propósito.
 
-`AF_READ_ONLY=true` bloquea todo lo que escribe: no puede disparar, pausar,
-limpiar ni borrar. **Arrancá siempre así.**
+`AF_READ_ONLY=true` es el seguro. **Arrancá siempre así.** Un detalle que
+conviene saber, porque lo probamos: las herramientas de escritura **siguen
+apareciendo** en la lista (`trigger_dag`, `pause_dag`, `delete_dag_run`...), así
+que el asistente las ve y puede intentarlas. Lo que pasa es que el servidor las
+**rechaza al ejecutarlas**:
+
+```
+"error": "Operation 'DELETE dags/.../dagRuns/...' is blocked:
+          running in read-only mode ($AF_READ_ONLY=true).
+          Only read operations are allowed."
+"error_type": "ReadOnlyError"
+```
+
+O sea: la protección es real, pero no funciona escondiendo botones sino negando
+la operación. Si ves al asistente intentar un `trigger_dag`, no te asustes: no
+lo pudo hacer.
 
 ---
 
@@ -179,15 +194,76 @@ Cuatro reglas que valen siempre:
 
 ---
 
-## ▶️ Probalo con el stack del curso
+## ▶️ Probalo vos, sin instalar ningún cliente
 
-Con `stack/` levantado (`docker compose up -d` desde `stack/`), configurá el
-servidor de Airflow en modo lectura con el JSON de más arriba y preguntale a tu
-asistente cosas como:
+En esta carpeta hay un script que levanta el servidor y le habla directamente.
+**No necesitás Claude Code ni Cursor**: un servidor MCP por stdio recibe JSON por
+la entrada estándar y contesta JSON por la salida, así que se lo puede manejar
+desde Python. Sirve, además, para sacarle la magia al asunto.
+
+```bash
+# con el stack levantado (docker compose up -d desde stack/)
+python ANEXOS/01-mcp/probar_mcp.py
+```
+
+Hace seis pasos: `initialize`, `tools/list`, una llamada liviana, el listado de
+DAGs, una herramienta que encadena varias llamadas, y una prueba del seguro de
+solo lectura. Salida real contra el stack del curso:
+
+```
+1. initialize
+   servidor:  Airflow MCP Server v3.4.8
+   protocolo: 2025-06-18
+
+2. tools/list -> 34 herramientas
+   - list_connections             Get connection configurations for external systems
+   - get_airflow_version          Get version information for the Airflow instance.
+   ...
+
+3. tools/call get_airflow_version
+   { "version": "3.1.5", ... }
+
+4. tools/call list_dags
+   16 DAGs en tu Airflow:
+     [pausado] bronze_01_simple
+     [activo ] crypto_bronze
+     [activo ] crypto_gold
+     [activo ] crypto_ml
+     [activo ] crypto_silver
+     ...
+
+5. tools/call get_system_health
+   { "version": {...}, "import_errors": {"count": 0},
+     "overall_status": "healthy" }
+
+6. El seguro: llamo a delete_dag_run con ids inventados
+   BLOQUEADA. El servidor contesto ReadOnlyError sin tocar Airflow.
+```
+
+> [!NOTE]
+> La primera corrida tarda: `uvx` baja el paquete y sus dependencias. El paso 5
+> usa una herramienta "consolidada" que encadena varias llamadas a la API y
+> puede tomarse un rato; si no contesta, no invalida nada.
+
+### Y ahora enchufalo a tu asistente
+
+En esta carpeta está el [`.mcp.json`](.mcp.json) listo. Dos formas de usarlo:
+
+**Por proyecto** — copialo a la raíz del repo donde trabajes:
+
+```bash
+cp ANEXOS/01-mcp/.mcp.json .
+```
+
+La próxima vez que abras ese proyecto, el cliente te va a pedir que apruebes el
+servidor. Desde ahí podés preguntarle cosas como:
 
 - *¿Qué DAGs hay y cuál fue el último que falló?*
 - *Traeme el log de la última corrida de `crypto_silver`.*
 - *¿Hace cuánto que no corre `crypto_gold`?*
+
+**Por usuario** — con `claude mcp add`, y queda disponible en todos tus
+proyectos, con los mismos valores del JSON.
 
 Vas a ver que el asistente encadena varias llamadas: lista, filtra, abre el run,
 baja el log. Eso es lo que te ahorra. **Lo que no te ahorra es saber qué
