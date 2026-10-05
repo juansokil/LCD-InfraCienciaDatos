@@ -106,6 +106,12 @@ Se entrega en grupo al final del cuatrimestre, pero **conviene leerlo desde la c
 - **[Detalle y esqueleto sugerido](TpFinal/README.md)** — el árbol de archivos y cómo entregar, paso a paso
 - **[Guía de git para el grupo](TpFinal/git-guia.md)** — trabajar en la misma rama sin pisarse
 
+### 📎 **Anexos** (optativos)
+
+Material que no se evalúa y no entra en el TP, para después de la cursada.
+
+- **[01 · MCP para Data Engineering](ANEXOS/01-mcp/)** — cómo un asistente de IA se conecta a tu Airflow, tu Postgres y tu MLflow, y cómo configurarlo sin darle permisos de más
+
 ---
 
 ## 🛠️ Stack Tecnológico
