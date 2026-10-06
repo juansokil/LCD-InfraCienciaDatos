@@ -182,9 +182,13 @@ TpFinal/grupos/G<NN>/
 
 > **El `.env` va al repo**, a propósito: así el stack levanta con un solo
 > comando, y el `.gitignore` ya tiene la excepción. Solo credenciales de juguete
-> (`admin/admin`). Una API key real no va ahí: se pasa como variable del host y
-> el `.env` la lee con `${MI_API_KEY}`. **Nada los frena si la suben**, así que
-> revisen antes de commitear.
+> (`admin/admin`).
+>
+> **Si su API necesita una key, esa no se comparte.** Dejen la variable en el
+> `.env` con un valor ficticio (`MI_API_KEY=completar_con_tu_key`) y **avísenlo
+> en el README del grupo**: qué variable hay que completar, dónde se saca la key,
+> y que va antes de levantar el stack. **Nada los frena si suben la key de
+> verdad**, así que revisen antes de commitear.
 
 ## Cómo entregar
 
