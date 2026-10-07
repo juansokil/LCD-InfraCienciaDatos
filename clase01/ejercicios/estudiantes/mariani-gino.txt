@@ -1,0 +1,6 @@
+Apellido: Mariani
+Nombre: Gino
+Usuario GitHub: Ginomariani
+Rama: estudiante/mariani-gino
+Codigo: EB14D06419D9
+Fecha: 2026-10-07
