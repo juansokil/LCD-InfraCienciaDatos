@@ -1,0 +1,6 @@
+Apellido: Varini
+Nombre: Juan Pablo
+Usuario GitHub: JuanPablo0620
+Rama: estudiante/varini-juanpablo
+Codigo: AC1373845AE8
+Fecha: 2026-10-08
