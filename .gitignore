@@ -105,7 +105,10 @@ MANTENIMIENTO.md
 # desde la raiz publica las notas del cuatrimestre pasado.
 # Va como directorio a proposito: git no desciende en un directorio excluido,
 # asi que ni siquiera los `!**/README.md` de mas arriba lo reabren.
-TpFinal/2026-1C/
+# El patron cubre TODOS los cuatrimestres (2026-1C, 2026-2C, 2027-1C...) y no
+# solo el cerrado: el 2026-10-05 `TpFinal/2026-2C/` ya existia SIN regla, que
+# es la peor combinacion -- invisible en `git status`, barrida por `git add -A`.
+TpFinal/20??-?C/
 
 # --- Evaluaciones del cuatrimestre EN CURSO (mismo motivo, un paso antes) ---
 # La regla de arriba cubre el archivo ya cerrado. Pero mientras el cuatrimestre
@@ -119,7 +122,6 @@ TpFinal/2026-1C/
 # En un repo publico, un push la habria dejado en el historial y en los forks
 # para siempre, aunque despues se borrara el archivo.
 #
-# `consigna_presentacion.html` NO entra aca a proposito: es material del estudiante.
 TpFinal/rubrica_evaluacion.html
 TpFinal/evaluacion_*.html
 TpFinal/evaluaciones_*.html
@@ -144,10 +146,10 @@ plugins/
 # --- Office / Binarios pesados ---
 *.pptx
 *.pdf
-# Excepcion: la consigna de la presentacion del TP SI se publica, en PDF.
-# El HTML del que se genera queda solo local (es el "fuente" para regenerarlo).
-!TpFinal/consigna_presentacion.pdf
-TpFinal/consigna_presentacion.html
+# Excepcion: las consignas del TP SI se publican, en PDF. El HTML del que se
+# generan queda solo local (es el "fuente" para regenerarlo con Chrome headless).
+!TpFinal/consigna_tp_final.pdf
+TpFinal/consigna_tp_final.html
 
 # Backups y temporales de Office. `*.pptx` NO los cubre: el patron pide que el
 # nombre TERMINE en .pptx, y `clase01.pptx.bak` termina en .bak.
@@ -185,3 +187,9 @@ stack/credentials/*.key
 # aca -- va como variable de entorno del host, y el .env la lee con
 # `${MI_API_KEY}`. Ver la consigna del TP.
 !TpFinal/grupos/*/.env
+
+# --- Reportes del docente (DATOS DE ESTUDIANTES - este repo es PUBLICO) ---
+# La grilla de colaboradores lleva handles de GitHub de estudiantes reales.
+# Se genera con .claude/skills/analizar-entregas-curso/reporte_colaboradores.py
+# y NUNCA se commitea. El script aborta si esta ruta deja de estar ignorada.
+reportes_docente/

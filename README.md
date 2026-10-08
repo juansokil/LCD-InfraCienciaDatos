@@ -102,8 +102,8 @@ Las cuatro clases que arman el pipeline (**Bronze → Silver → Gold**, y Gold 
 
 Se entrega en grupo al final del cuatrimestre, pero **conviene leerlo desde la clase 01**: lo primero que hay que hacer es elegir la API, y esa decisión condiciona todo lo demás.
 
-- **[Consigna completa](TpFinal/README.md)** — qué se entrega, ideas de API y el esqueleto sugerido
-- **[Consigna de la presentación](TpFinal/consigna_presentacion.pdf)** — qué mostrar y cómo, el día de la defensa
+- **[Consigna del TP](TpFinal/consigna_tp_final.pdf)** — qué se entrega, cómo se evalúa, las APIs posibles y la presentación
+- **[Detalle y esqueleto sugerido](TpFinal/README.md)** — el árbol de archivos y cómo entregar, paso a paso
 - **[Guía de git para el grupo](TpFinal/git-guia.md)** — trabajar en la misma rama sin pisarse
 
 ---
