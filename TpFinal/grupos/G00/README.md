@@ -17,6 +17,7 @@
 - **URL**: `<link a la doc oficial>`
 - **Descripcion**: `<breve explicación de que devuelve la API>`
 - **Auth**: `<sin auth / API key gratis / OAuth>`
+- **API key**: `<no necesita / si — ver "Como levantar el stack">`
 - **Refresh**: `<cada cuanto se actualizan los datos>`
 
 ## Modelo de datos
@@ -34,6 +35,12 @@
 `<modelo dimensional: fact_X + dim_Y, y que pregunta de negocio responde el dashboard>`
 
 ## Como levantar el stack
+
+> ⚠️ **Esta API necesita una key.** Antes de levantar, completa `MI_API_KEY` en el
+> `.env` con tu propia key — se saca gratis en `<link para pedirla>`. La que viene
+> en el repo es un placeholder: no sirve.
+>
+> *(Si su API no necesita key, borren esta nota.)*
 
 ```bash
 cd TpFinal/grupos/G<NN>/      # ej: cd TpFinal/grupos/G01/
