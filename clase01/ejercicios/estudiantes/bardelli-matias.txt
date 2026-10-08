@@ -1,0 +1,6 @@
+Apellido: Bardelli
+Nombre: Matias
+Usuario GitHub: stx-06
+Rama: estudiante/bardelli-matias
+Codigo: 8C057DF2FE3B
+Fecha: 2026-10-08
