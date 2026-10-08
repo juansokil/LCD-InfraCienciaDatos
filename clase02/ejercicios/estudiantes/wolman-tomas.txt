@@ -1,0 +1,16 @@
+Apellido: Wolman
+Nombre: Tomas
+Rama: estudiante/wolman-tomas
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda metadatos y data_warehoouse los datos que son analiticos. estan sepadados para aislar la operacon de cada uno y evitar que un error en uno afecte al otro.
+Pregunta (b) - Datos despues del down:
+  porque se usan volumenes persistentes de docker que guardan la info fuera del contenedor
+Pregunta (c) - DAGs en el contenedor:
+  con un volumen compartido que sincroniza la carpeta local con el contenedor
+Pregunta (d) - Puerto 8080 ocupado:
+  el puerto del host porque el puerto interno del contenedor no cambia
+Pregunta (e) - Credenciales del warehouse:
+  se pone con un archivo .env
+Codigo: CCDC80ACE2B3
+Fecha: 2026-10-08
