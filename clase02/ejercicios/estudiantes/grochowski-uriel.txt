@@ -1,0 +1,16 @@
+Apellido: grochowski
+Nombre: uriel
+Rama: estudiante/grochowski-uriel
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow guarda información interna que necesita y data_warehouse guarda datos que usamos. Están separados para no mezclar los datos entre sí
+Pregunta (b) - Datos despues del down:
+  el warehouse usa un volumen de docker para guardar los datos fuera del contenedor para que no se borren cuando se apaga y se prende el sistema
+Pregunta (c) - DAGs en el contenedor:
+  la carpeta stack/dags está conectada directamente al contenedor y eso permite que airflow pueda leer los archivos que se crean localmente
+Pregunta (d) - Puerto 8080 ocupado:
+  cambiaria el puerto de la compu: paso de "8080:8080" a "8081:8080", en el contenedor sigue igual en el 8080, pero entro desde localhost:8081
+Pregunta (e) - Credenciales del warehouse:
+  docker Compose toma la contraseña de una variable de entorno o de la configuración cuando arranca el servicio
+Codigo: BA18E6B80590
+Fecha: 2026-10-08
