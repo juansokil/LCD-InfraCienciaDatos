@@ -1,0 +1,10 @@
+# Imagen mínima para el Tracking Server de MLflow.
+# El cliente y el server tienen que compartir VERSION MAYOR: si difieren, el
+# cliente llama endpoints que el server no conoce y log_model falla. Por eso
+# esta version sigue a la de requirements.txt del stack (3.4.0).
+FROM python:3.11-slim
+
+# psycopg2-binary: driver para el backend store en Postgres (data_warehouse).
+RUN pip install --no-cache-dir mlflow==3.4.0 psycopg2-binary==2.9.11
+
+EXPOSE 5000
