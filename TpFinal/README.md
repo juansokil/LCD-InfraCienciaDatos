@@ -1,12 +1,15 @@
 # TP Final — Data Engineering
 
+> 📄 **La consigna es el PDF**: [`consigna_tp_final.pdf`](consigna_tp_final.pdf).
+> Este README la amplía con el detalle; si algo no coincide, vale el PDF.
+
 ## Objetivo
 
 - Construir un pipeline de datos **end-to-end** sobre **una API pública**, con
   arquitectura medallion: **Bronze** (crudo) → **Silver** (limpio y validado) →
   **Gold** (modelado para responder preguntas de negocio).
-- Orquestarlo con **Airflow**, guardarlo en **PostgreSQL** y mostrar Gold en un
-  dashboard de **Streamlit**.
+- Orquestarlo con **Airflow**, guardarlo en **PostgreSQL** y mostrar las tablas
+  **Gold** en un **dashboard**.
 - Que todo esté containerizado: con `docker compose up` el stack levanta y
   **empieza a generar datos solo**.
 
@@ -19,7 +22,7 @@
    `docker compose up`, el pipeline empieza a correr sin que haya que activar
    DAGs a mano ni crear schemas manualmente: **Bronze corre al levantar el
    stack y, cuando termina, dispara Silver y después Gold.**
-3. **Un dashboard en Streamlit** sobre las tablas Gold.
+3. **Un dashboard** sobre las tablas Gold.
 4. **Un README del grupo**: API elegida, modelo de datos, cómo levantarlo,
    usuario y contraseña de Airflow, e integrantes.
 5. **Trabajo repartido en git**: commits de varios integrantes, repartidos en el
@@ -179,9 +182,13 @@ TpFinal/grupos/G<NN>/
 
 > **El `.env` va al repo**, a propósito: así el stack levanta con un solo
 > comando, y el `.gitignore` ya tiene la excepción. Solo credenciales de juguete
-> (`admin/admin`). Una API key real no va ahí: se pasa como variable del host y
-> el `.env` la lee con `${MI_API_KEY}`. **Nada los frena si la suben**, así que
-> revisen antes de commitear.
+> (`admin/admin`).
+>
+> **Si su API necesita una key, esa no se comparte.** Dejen la variable en el
+> `.env` con un valor ficticio (`MI_API_KEY=completar_con_tu_key`) y **avísenlo
+> en el README del grupo**: qué variable hay que completar, dónde se saca la key,
+> y que va antes de levantar el stack. **Nada los frena si suben la key de
+> verdad**, así que revisen antes de commitear.
 
 ## Cómo entregar
 
@@ -189,15 +196,30 @@ TpFinal/grupos/G<NN>/
    en la carpeta y en el título del PR.
 2. Creen la rama **`tpfinal/G<NN>`** desde `main`, y la carpeta
    `TpFinal/grupos/G<NN>/`.
-3. Abran un **PR en draft** contra `main`, con título `TP Final - G<NN> - <API>`
+3. Abran un **PR** contra `main`, con título `TP Final - G<NN> - <API>`
    y en el cuerpo: integrantes (nombre + usuario de GitHub), API elegida e idea
    para Gold.
 4. Trabajen en esa rama: cada push actualiza el PR solo.
-5. **Entrega: domingo 15 de noviembre de 2026, 23:59 (hora Argentina)** — en el
-   PR, click en **"Ready for review"**.
+5. **Entrega: domingo 15 de noviembre de 2026, 23:59 (hora Argentina)**. Vale lo
+   que esté en la rama en ese momento: no hay que apretar ningún botón.
 6. **Presentación: jueves 19 de noviembre de 2026, remota**, 7 a 10 minutos con
-   el dashboard corriendo. Qué mostrar:
-   [`consigna_presentacion.pdf`](consigna_presentacion.pdf).
+   el dashboard corriendo. Qué mostrar y cómo contarlo: la sección 4 de la
+   [consigna](consigna_tp_final.pdf).
 
 Dudas de git (crear la rama, conflictos, trabajar de a varios):
 [`git-guia.md`](git-guia.md).
+
+## Cómo se evalúa
+
+1. **Entrega y funcionamiento.** Que con `docker compose up` el stack levante y
+   el pipeline empiece a generar datos solo.
+2. **Cumplir la consigna.** Lo que pide ["Qué tiene que tener"](#qué-tiene-que-tener),
+   respetando las versiones y las tecnologías pedidas: Airflow 3.1.5, Medallion, SQL.
+3. **Trabajo colaborativo en git.** Commits de varios integrantes, repartidos en
+   el tiempo.
+4. **Presentación final.** Tiempos y formas: 7 a 10 minutos con el dashboard
+   corriendo, y subida al campus en formato descargable.
+
+**Adicional, para la nota individual:**
+
+5. **Participación durante la cursada**: las entregas de cada clase, en tu PR.
