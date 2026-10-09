@@ -1,0 +1,6 @@
+Apellido: Allievi
+Nombre: Juan Manuel
+Usuario GitHub: JuanAllievi
+Rama: estudiante/allievi-juanmanuel
+Codigo: D6DF9165C52B
+Fecha: 2026-10-09
