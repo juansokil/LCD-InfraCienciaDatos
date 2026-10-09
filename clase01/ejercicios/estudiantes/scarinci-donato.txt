@@ -1,0 +1,6 @@
+Apellido: Scarinci
+Nombre: Donato
+Usuario GitHub: donascarinci
+Rama: estudiante/scarinci-donato
+Codigo: 63A60F579F3E
+Fecha: 2026-10-08
