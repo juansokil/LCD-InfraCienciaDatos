@@ -1,0 +1,6 @@
+Apellido: mesina
+Nombre: julian
+Usuario GitHub: Juliii00m
+Rama: estudiante/mesina-julian
+Codigo: DC54E54BAB07
+Fecha: 2026-10-03
