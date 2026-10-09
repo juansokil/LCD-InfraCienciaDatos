@@ -1,0 +1,16 @@
+Apellido: Alvarez
+Nombre: MatiasAgustin
+Rama: estudiante/alvarez-matiasagustin
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda metadatos de Airflow, como los historiales de ejecución de los DAGs. data_warehouse guarda datos del curso. Estan separados porque tiene funciones distintas
+Pregunta (b) - Datos despues del down:
+  Porque usamos Volúmenes para evitar que esto suceda. Docker compose down borra los contenedores pero no el volúmen. Cuando se vuelven a montar los contenedores, se vuelven a conectar al mismo volúmen
+Pregunta (c) - DAGs en el contenedor:
+  en el docker-compose.yml, la carpeta stack/dags se conecta a una carpeta dentro del contenedor de Airflow. Lo que se guarda en stack/dags se guarda dentro del contenedor de Airflow, donde luego se buscan los DAGs. Es una misma carpeta vista desde dos lados
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria el puerto del host, el del lado izquierdo. El puerto de la derecha es el del contenedor en Airflow que no tiene problemas.
+Pregunta (e) - Credenciales del warehouse:
+  Se define como variable de entorno y se toma su valor de un archivo .env (no estoy muy seguro)
+Codigo: 87DE859B0FD3
+Fecha: 2026-10-09
