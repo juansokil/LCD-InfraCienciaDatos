@@ -122,8 +122,8 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      # Las paginas viven en stack/dashboard/pages/: llegan con cada clase
-      # (y la del G10 del ejercicio 05 se copia aca). Este bind-mount hace
+      # Las paginas viven en stack/dashboard/pages/: llegan con cada clase.
+      # Este bind-mount hace
       # que el contenedor vea esa carpeta en vivo: agregas o cambias una
       # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
       - ./dashboard/pages:/app/pages

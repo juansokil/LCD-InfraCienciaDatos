@@ -43,6 +43,10 @@ data/gold/*
 # El tracking "de verdad" del curso vive en el server MLflow del docker-compose,
 # con backend Postgres — esta carpeta es solo el residuo de correrlo en local.
 mlruns/
+# El ejercicio de clase06 usa un file-store propio cuando no encuentra el server
+# (`mlruns_veredicto/`): la regla de arriba no lo matchea, y sin esta linea un
+# `git add .` del estudiante se sube el store entero.
+mlruns_veredicto/
 
 # Dumps del warehouse. Son binarios de varios MB que cambian en cada corrida:
 # no tienen nada que hacer en el historial de un repo publico. Los scripts que
@@ -64,8 +68,7 @@ stack/dags/**/*.py
 # incluye el texto de la nota, y no matchea nada.
 !stack/dags/common/*.py
 
-# Mismo criterio: las paginas del dashboard llegan con la clase que las enseña, y
-# en clase05 cada estudiante agrega la suya.
+# Mismo criterio: las paginas del dashboard llegan con la clase que las enseña.
 # OJO: las seis paginas DEL CURSO si estan trackeadas -- entraron con `git add -f`,
 # porque la fuente de verdad es `dev` y de ahi las porta cada release. Lo que esta
 # regla mantiene afuera es la pagina que escribe el estudiante. Si agregas una

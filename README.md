@@ -86,14 +86,15 @@ Las cuatro clases que arman el pipeline (**Bronze → Silver → Gold**, y Gold 
 
 **Por qué este diseño:**
 
-- La **notebook teórica** usa datos sintéticos hardcoded → cero dependencias entre clases. Cualquiera puede correr el cell `%%writefile` y disparar el DAG demo sin necesidad de haber corrido la clase anterior.
+- La **notebook teórica** usa datos sintéticos hardcoded → cero dependencias entre clases. Cualquiera puede correr el cell `%%writefile` y disparar el DAG demo sin necesidad de haber corrido la clase anterior. La **única excepción** es la segunda mitad de la clase 06 (el workshop de MLOps), que entrena sobre `gold.fact_crypto_markets`: ahí sí hace falta haber corrido el pipeline de las clases 03-05, y la notebook lo verifica antes de seguir.
 - El **ejercicio** aplica lo aprendido: en clase 03 sobre datos reales "vivos" (CoinGecko); en clase 04–05 sobre **SQL en Northwind** (los fundamentos SQL que Silver y Gold usan a nivel de registro y de agregación); en clase 06 sobre el **tracking de MLflow**, que es donde se decide qué modelo se promueve.
 - El **DAG productivo** es el "código listo" (crypto, las cuatro clases): un `cp` al stack y queda corriendo en Airflow. Juntos forman la cadena completa — `crypto_bronze` → `crypto_silver` → `crypto_gold` → `crypto_ml`.
 
 > **Clase 06 cierra el patrón con otra materia prima.** Las tres capas están: el
 > notebook teórico genera su DAG demo (`gold_02_abt.py`, la ABT sobre datos
 > sintéticos), hay ejercicio con entrega (*El veredicto*) y hay DAG productivo
-> (`ejercicios/dag_crypto_ml.py`), que cierra la cadena consumiendo la ABT de Gold.
+> (`ejercicios/dag_crypto_ml.py`), que cierra la cadena: lo despierta el asset de la
+> ABT y scorea sobre el hecho productivo.
 > Lo que cambia es **sobre qué se practica**: no SQL, sino leer el tracking y
 > decidir con lo que dice. Y la entrega es corta a propósito — el trabajo grande de
 > esa semana es el **TP Final**.
