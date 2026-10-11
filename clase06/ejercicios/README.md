@@ -28,6 +28,7 @@ autoreportada— más tu decisión. Vas a ver algo así:
 ```
 Apellido: Sokil
 Nombre: Juan
+Rama: estudiante/sokil-juan
 Tracking: server (http://localhost:5000)
 Experimento: clase06_veredicto
 Candidatos (leidos de MLflow, no autoreportados):
