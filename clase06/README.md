@@ -186,7 +186,7 @@ Lo que falta es **carrera completa**. Si te interesa profundizar:
 
 ## 📦 La entrega de esta clase
 
-Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb): la **Parte 1** deja siete candidatos en MLflow y te muestra cómo consultarlos; la **Parte 2** es tu veredicto — cuál promoverías a producción, o si ninguno está listo. La sección **📦 Entrega** relee el tracking y genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`.
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb): la **Parte 1** deja siete candidatos en MLflow y te muestra cómo consultarlos; la **Parte 2** es tu veredicto — cuál promoverías a producción (o si ninguno está listo) y qué dice tu tablero cuando pone al modelo del pipeline al lado de la persistencia. La sección **📦 Entrega** relee el tracking y genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`.
 
 **Commit y push.** Es **un** archivo. Desde la raíz del repo:
 
