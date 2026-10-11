@@ -2,7 +2,7 @@
 
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
-> 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`bronze.ventas_demo`)
+> 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (cada uno con su tabla: `bronze.ventas_demo` el básico, `bronze.ventas_contrato_demo` el del contrato)
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 10 ejercicios de SQL básico sobre **Northwind** (los fundamentos que Silver usa)
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py)) — para copy-paste a Airflow
 
@@ -132,13 +132,15 @@ git push origin estudiante/apellido-nombre
 
 ### Paso 3 — Deploy del DAG productivo crypto
 
-Al final del ejercicio.ipynb encontrás un cell con el comando para deployar el DAG productivo:
+El DAG productivo de esta clase es `clase04/ejercicios/dag_crypto_silver.py`. Para deployarlo, copialo a la carpeta que Airflow mira:
 
 ```bash
 cp clase04/ejercicios/dag_crypto_silver.py stack/dags/02-silver/
 ```
 
 Airflow detecta el archivo automáticamente (refresh cada 10s). Activalo en la UI y mirá los datos en `silver.crypto_markets` y `silver.quarantine_crypto_markets`.
+
+> **Si el DAG queda sin correr y sin error**: `dag_crypto_silver` no tiene cron, se dispara por el asset que emite `dag_crypto_bronze` (clase 03). Si ese DAG no está deployado y activo, el asset nunca se emite y este DAG **no arranca**: no falla, no hay log, no hay nada que mirar. Revisá primero que el Bronze esté corriendo.
 
 > Filtrá por tag **`prod`** en la UI para ver solo los DAGs productivos (separa el DAG real del crypto de la escalera didáctica `silver_01_*` → `silver_02_*`).
 >

@@ -1,6 +1,6 @@
 # Ejercicio 04 — Reglas de entrega
 
-> El Ejercicio 04 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
+> El Ejercicio 04 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB), **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, anti-join de integridad referencial y deduplicación con ROW_NUMBER) — los fundamentos que la Capa Silver usa todo el tiempo, a nivel de registro.
 >
 > Esta carpeta guarda tu entrega (`estudiantes/`) y el DAG productivo (`dag_crypto_silver.py`, referencia / deploy). **[`dag_crypto_silver.py`](dag_crypto_silver.py) es el patrón productivo de referencia de todo lo que practicás acá — leelo.**
 
@@ -23,6 +23,7 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 ```
 Apellido: Sokil
 Nombre: Juan
+Rama: estudiante/sokil-juan
 Motor: postgres
 Northwind: 8/8 tablas
 Customers: 91 filas
@@ -35,6 +36,11 @@ Ejercicios (extraido de las queries, no autoreporte):
   E8: FORMA INCORRECTA (obtuviste 5x3, esperado 20x3) (5x3) h=-
   ...
 Ejercicios con resultado: 8 / 10
+Precio min (E3): -10.0
+Precio max (E3): 263.5
+Precio promedio (E4): 28.61
+Huerfanos encontrados (E9): 3
+Clientes deduplicados (E10): 91 de 96
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-05-01
 ```
