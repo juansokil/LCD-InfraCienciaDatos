@@ -2,7 +2,7 @@
 
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
-> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAGs demo + página dashboard sobre datos sintéticos (`silver.ventas_demo`)
+> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAG demo + consumo de Gold desde el notebook, sobre datos sintéticos (`silver.ventas_demo`)
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **6 queries de SQL Gold** sobre **Northwind** (G1–G6) que arman, paso a paso, una misma tabla Gold
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
 
@@ -43,7 +43,7 @@ graph TD
         B --> F1[fact_crypto_markets]
     end
 
-    subgraph ML_Consumer
+    subgraph ML_Consumer["ML_Consumer (clase 06)"]
         M --> A[gold_abt_crypto]
     end
 
@@ -65,8 +65,7 @@ graph LR
     S2[silver_market_data] -->|Aggregate| F1[fact_crypto_markets]
     S3[dim_tiempo] -->|Time Hierarchy| F1
 
-    F1 -->|Point-in-Time Join| A[gold_abt_crypto]
-    D1 -->|Join| A
+    S1 -->|clase 06: la arma crypto_ml| A[gold_abt_crypto]
 ```
 
 ---
@@ -96,7 +95,7 @@ git merge main --no-edit
 
 ### Paso 1 — Leer el notebook teórico y correr los DAGs pedagógicos
 
-Abrí `clase05.ipynb`. Arranca con el patrón para materializar una tabla Gold (`CREATE TABLE` tipado + PK + `INSERT ... SELECT`, ejecutable en DuckDB), sigue con el Star Schema y cierra bajándolo a un DAG real sobre datos sintéticos:
+Abrí `clase05.ipynb`. Arranca con qué es la capa Gold y para quién se modela, sigue con el Star Schema (grano, hecho y dimensiones) y cierra bajándolo a un DAG real sobre datos sintéticos:
 
 | # | Archivo generado | Path destino | Qué introduce |
 |---|---|---|---|
@@ -136,7 +135,7 @@ El DAG productivo de Gold (ahora **SQL ELT**, ver su header) se deploya copiánd
 cp clase05/ejercicios/dag_crypto_gold.py stack/dags/03-gold/
 ```
 
-El DAG **arranca solo** (`is_paused_upon_creation=False`): apenas Airflow lo detecta se suma a la **cadena data-aware**: se dispara cuando `crypto_silver` actualiza el asset `silver_crypto_markets`, sin cron propio. En la corrida siguiente vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets`, `gold.fact_global_market` y `gold.gold_abt_crypto` poblándose con datos reales, más las **14 vistas semánticas** `gold.v_*` que crea la task `build_views` — la "API pública" de Gold que consumen el dashboard y el modelo. Van en tres grupos:
+El DAG **arranca solo** (`is_paused_upon_creation=False`): apenas Airflow lo detecta se suma a la **cadena data-aware**: se dispara cuando `crypto_silver` actualiza el asset `silver_crypto_markets`, sin cron propio. En la corrida siguiente vas a ver `gold.dim_crypto`, `gold.dim_tiempo`, `gold.fact_crypto_markets` y `gold.fact_global_market` poblándose con datos reales, más las **14 vistas semánticas** `gold.v_*` que crea la task `build_views` — la "API pública" de Gold que consumen el dashboard y el modelo. Van en tres grupos:
 >
 > - **Agregan a día**: `v_series_diaria`, `v_ohlc_diario`, `v_metricas_riesgo`, `v_amplitud_mercado`, `v_kpis_mercado`, `v_ohlc_mercado` (la vela del mercado entero, no la suma de las 50).
 > - **Conservan el grano fino de snapshot**: `v_ultimo_snapshot`, `v_intradia`, `v_global_serie`, `v_concentracion`, `v_mercado_24h` (el 24 h calculado por nosotros al lado del que manda la API) y `v_mercado_contexto` (dónde cae el valor de hoy en la serie acumulada).
@@ -188,9 +187,8 @@ UNION ALL
 SELECT 'fact_crypto_markets',  COUNT(*) FROM gold.fact_crypto_markets
 UNION ALL
 SELECT 'fact_global_market',   COUNT(*) FROM gold.fact_global_market
-UNION ALL
-SELECT 'gold_abt_crypto',      COUNT(*) FROM gold.gold_abt_crypto;
--- Esperado: las 5 con filas > 0
+;
+-- Esperado: las 4 con filas > 0
 
 -- 2. Integridad referencial: ¿hay registros huérfanos en fact_crypto_markets?
 SELECT COUNT(*) AS huerfanos
@@ -198,18 +196,9 @@ FROM gold.fact_crypto_markets f
 LEFT JOIN gold.dim_crypto d ON f.crypto_id = d.crypto_id
 WHERE d.crypto_id IS NULL;
 -- Esperado: 0
-
--- 3. ¿La ABT tiene todas las features?
-SELECT column_name
-FROM information_schema.columns
-WHERE table_schema = 'gold' AND table_name = 'gold_abt_crypto'
-ORDER BY ordinal_position;
--- Esperado: 30 columnas = 28 features + _processed_at + _source_table
--- (id, current_price, market_cap, total_volume, price_std, supply_ratio,
---  ath_distance_pct, volatility_category, market_cap_tier, ...)
 ```
 
-Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funcional + íntegro + listo para consumo BI/ML**.
+Si las 2 queries devuelven valores razonables, tu pipeline Gold está **funcional + íntegro + listo para consumo BI**. (La ABT y su chequeo de features son de la clase 06, que es donde se construye.)
 
 ---
 
@@ -218,8 +207,8 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 **Clase 06** es la **clase de cierre del cuatrimestre**: el pipeline pasa a modo producción y le metemos un modelo adentro. Tiene una **entrega chica y de criterio** — *El veredicto* — y no reemplaza al TP Final. Lo que vas a ver:
 
 - **El pipeline, cerrado**: recap del cuatrimestre, las cuatro capas encadenadas por **Assets** (un solo cron, en Bronze), el switch a **modo producción** y los tres niveles de monitoring.
-- **La ABT, hecha DAG**: la forma de tabla con la que se entrena un modelo — la definiste en esta clase y allá se usa.
-- **Airflow para ML**: el modelo como una **task más**. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_abt`.
+- **La ABT, hecha DAG**: la forma de tabla con la que se entrena un modelo. La arma `crypto_ml`, el pipeline que la usa — una tabla, un dueño.
+- **Airflow para ML**: el modelo como una **task más**. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_star` (o sea cuando el modelo de Gold quedó armado y verificado), que arma la ABT y scorea.
 - **MLflow como sistema**: tracking contra el server del stack, **Model Registry** y el alias `@champion` — promover es una decisión humana, y cambiar el alias cambia lo que predice el pipeline sin tocar código.
 - **El tablero corrige al modelo**: la página `6_Gold_ML` mide el acierto contra lo que efectivamente pasó, y contra dos varas.
 - **Bonus Track MLOps**: el mapa completo, con **cinco piezas ya hechas** en esa clase (tracking, registry, serving, training-serving skew y monitoring) y tres que quedan para después: Feature Stores, Drift Detection y Observability Gate.
@@ -234,4 +223,4 @@ Si las 3 queries devuelven valores razonables, tu pipeline Gold está **funciona
 | :--- | :--- |
 | El DAG no aparece en Airflow UI | Verificar que el archivo esté en `stack/dags/03-gold/`. Esperar 10-30s para que Airflow lo detecte. |
 | El DAG corre pero las tablas Gold están vacías | Verificá que `crypto_silver` (clase 04) haya corrido antes y poblado `silver.crypto_markets`. |
-| `IntegrityError: foreign key violation` | El DAG verifica integridad. Mirá la tabla `dim_crypto` — todos los `crypto_id` de `fact_crypto_markets` tienen que existir en `dim_crypto`. |
+| El DAG falla en `verify_integrity` con `Integridad Gold rota: N filas...` | Hay huérfanos: `crypto_id` en `fact_crypto_markets` que no están en `dim_crypto`. Las tablas Gold son `CREATE TABLE AS SELECT`, **sin foreign keys**, así que nada los impide: los caza ese chequeo, que corre antes de rehacer las vistas. Mirá si `dim_crypto` quedó a medio construir y volvé a correr el DAG completo. |
