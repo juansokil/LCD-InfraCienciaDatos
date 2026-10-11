@@ -14,24 +14,35 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 
 ## ¿Qué pongo adentro del archivo?
 
-**Nada manual.** El script del notebook lo escribe por vos a partir de lo que guardaste en Bronze: los archivos crudos de `stack/data/raw/crypto_markets/` y la tabla `bronze.crypto_markets_demo`. Vas a ver algo así:
+**Casi nada manual**: lo único que escribís vos son las tres respuestas del Paso 5. El resto lo arma el script del notebook a partir de lo que guardaste en Bronze — los archivos crudos de `stack/data/raw/crypto_markets/` y la tabla `bronze.crypto_markets_demo`. Vas a ver algo así:
 
 ```
 Apellido: Sokil
 Nombre: Juan
+Rama: estudiante/sokil-juan
 Motor: postgres
 Archivos crudos: 2
 Filas demo: 100
 Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 83069.0
 Doble ingesta: SI
 Ultima carga: 2026-09-22 10:30:15.123456
+Pregunta (a) - El crudo y la tabla:
+  <tu respuesta>
+Pregunta (b) - replace y append:
+  <tu respuesta>
+Pregunta (c) - Dos cargas identicas:
+  <tu respuesta>
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-09-22
 ```
 
+> **`Cripto mas cara` sale del archivo crudo**, no de la tabla ni de una variable del notebook: el script abre el JSON más nuevo del lake y busca el `current_price` más alto. Es una manera de comprobar que el crudo que guardaste sirve para contestar preguntas sin volver a pedirle nada a la API.
+
 > **Funciona con Postgres o DuckDB**: el ejercicio detecta solo qué motor usás (Postgres si levantaste el stack, DuckDB si trabajás local). La entrega reusa **ese mismo motor** y lo registra en el campo `Motor:`. No tenés que configurar nada.
 >
-> El **código** se deriva de tus cargas (cuántos archivos, cuántas filas y cuándo), el motor y la fecha: sale de **tus** datos, no es una constante. Si algo todavía no está, el notebook te avisa y podés generar igual con estado parcial.
+> El **código** se deriva de tus cargas (cuántos archivos, cuántas filas, qué cripto era la más cara y cuándo cargaste), el motor y la fecha: sale de **tus** datos, no es una constante. Si algo todavía no está, el notebook te avisa y podés generar igual con estado parcial.
 >
 > Los archivos crudos de `stack/data/raw/` quedan en tu máquina: git los ignora, así que no viajan con la entrega.
 
