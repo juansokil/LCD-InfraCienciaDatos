@@ -151,6 +151,28 @@ from common.contracts import load_contract  # noqa: E402
 
 CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
 
+# =============================================================================
+# CREDENCIAL DE LA API
+# =============================================================================
+# Sin API key, CoinGecko atiende por un pool compartido POR IP (~10-30 llamadas
+# por minuto, variable segun la carga global). Su propia documentacion dice que
+# ese acceso "is not suitable for production workloads, scheduled polling, or
+# high-frequency updates" -- y un DAG programado es exactamente scheduled
+# polling. El 2026-09-29 empezo a devolver 403 y la ingesta se corto.
+#
+# La Demo key es gratuita y da 100 llamadas por minuto PROPIAS, no compartidas.
+# Se saca en coingecko.com -> Developer Dashboard -> "+ Add New Key".
+#
+# La key viaja por variable de entorno y NUNCA se escribe en este archivo:
+# el .py esta versionado. Si la variable no esta, el diccionario queda sin el
+# header y el DAG se comporta igual que antes.
+#
+# OJO: con la Demo key el host NO cambia (sigue api.coingecko.com). Usar
+# pro-api.coingecko.com con una key Demo devuelve el error 10010/10011.
+CG_HEADERS = {"accept": "application/json"}
+if os.getenv("COINGECKO_API_KEY"):
+    CG_HEADERS["x-cg-demo-api-key"] = os.getenv("COINGECKO_API_KEY")
+
 
 def _required_contract_columns(contract: dict) -> list[str]:
     """Devuelve los nombres de columna del contrato que NO son nullable.
@@ -270,8 +292,11 @@ def crypto_bronze():
     # ============================================================
     # QUE ES COINGECKO?
     # CoinGecko es una plataforma que agrega datos de criptomonedas de
-    # cientos de exchanges (Binance, Coinbase, etc.). Su API es gratuita
-    # (con limites de uso) y NO requiere API key.
+    # cientos de exchanges (Binance, Coinbase, etc.). Su API es gratuita y NO
+    # requiere API key: sin key anda igual, pero el cupo es el de un pool
+    # compartido por IP y es bajo. Con la Demo key (gratuita) el cupo es propio
+    # y mucho mas alto -- por eso este DAG, que consulta cada 15 minutos, la
+    # manda si esta en el entorno (ver CG_HEADERS mas arriba).
     #
     # QUE DEVUELVE /coins/markets?
     # Una lista (array JSON) de objetos, uno por cada criptomoneda, con
@@ -315,7 +340,7 @@ def crypto_bronze():
         }
 
         print("Consultando CoinGecko /coins/markets ...")
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, headers=CG_HEADERS, timeout=30)
 
         # raise_for_status() lanza una excepcion HTTPError si el status code
         # es 4xx (error del cliente) o 5xx (error del servidor).
@@ -408,7 +433,7 @@ def crypto_bronze():
         url = "https://api.coingecko.com/api/v3/global"
 
         print("Consultando CoinGecko /global ...")
-        response = requests.get(url)
+        response = requests.get(url, headers=CG_HEADERS, timeout=30)
         response.raise_for_status()
 
         # La respuesta de /global viene ENVUELTA en un objeto:

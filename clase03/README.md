@@ -112,6 +112,7 @@ Después de correr los DAGs sintéticos + el productivo crypto, estas 3 verifica
 ```python
 import pandas as pd
 import sqlalchemy
+# El compose ofrece dos puertos para el warehouse: 5432 (OPCIÓN A) o 5433 (OPCIÓN B).
 engine = sqlalchemy.create_engine('postgresql://admin:admin@localhost:5432/InfraCienciaDatos')
 
 # 1. ¿Bronze tiene datos del DAG productivo crypto?
@@ -122,12 +123,16 @@ print(len(crypto), crypto['ingested_at'].max())
 # 2. ¿Cuántos archivos sintéticos se procesaron?
 ventas = pd.read_sql_table('ventas_simple', engine, schema='bronze')
 print(ventas.groupby(['source_file', 'file_hash']).size())
-# Esperado: una fila por archivo procesado (ventas_legacy.csv, etc.)
+# Esperado: una fila por archivo procesado. `bronze_01_simple` siembra y procesa
+# `ingesta_simple_profesional.csv`; los demás archivos del landing los toman
+# bronze_02/03/04, cada uno en su propia tabla.
 
 # 3. ¿La idempotencia funciona? (mismo contenido NO duplica filas)
 print(ventas['file_hash'].nunique(), len(ventas), ventas['source_file'].nunique())
-# Esperado: si subiste 2 archivos con el mismo contenido (experimento `ventas_duplicado_a/b.csv`),
-# hashes distintos == archivos distintos < total de archivos físicos. La tabla NO se duplica.
+# Esperado: corré el DAG dos veces sin tocar el archivo. El contenido no cambió,
+# así que el SHA256 es el MISMO: el DAG borra lo previo con ese hash y re-inserta,
+# y `len(ventas)` no crece. Mismo contenido == mismo hash; dos cargas distintas
+# se distinguen porque el hash es distinto.
 ```
 
 Si las 3 dan valores razonables, tu pipeline Bronze está **funcional + idempotente + auditable**.
