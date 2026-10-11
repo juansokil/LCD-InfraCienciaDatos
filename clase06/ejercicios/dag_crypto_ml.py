@@ -1,20 +1,27 @@
 """
 DAG: crypto_ml
-Clase 06 - Scoring (inferencia batch) con el modelo @champion del Registry
+Clase 06 - La ABT + scoring (inferencia batch) con el @champion del Registry
 
-Pipeline:  gold.fact_crypto_markets + MLflow Registry  ->  gold.predicciones
+Pipeline (dos ramas que no se cruzan):
+  silver.crypto_markets + bronze.global_market  ->  gold.gold_abt_crypto  (la ABT)
+  gold.fact_crypto_markets + MLflow Registry    ->  gold.predicciones     (scoring)
 
 Es la 4ta capa del pipeline productivo (SERVING) y el ultimo eslabon de la
-cadena data-aware: se dispara POR DATO (asset GOLD_ABT), no por reloj.
+cadena data-aware: se dispara POR DATO (asset GOLD_STAR), no por reloj.
 
     crypto_bronze  cron 0,15,30,45          --emite--> BRONZE_CRYPTO
     crypto_silver  schedule=[BRONZE_CRYPTO] --emite--> SILVER_CRYPTO
-    crypto_gold    schedule=[SILVER_CRYPTO] --emite--> GOLD_STAR + GOLD_ABT
-    crypto_ml      schedule=[GOLD_ABT]                 <-- este DAG
+    crypto_gold    schedule=[SILVER_CRYPTO] --emite--> GOLD_STAR
+    crypto_ml      schedule=[GOLD_STAR]     --emite--> GOLD_ABT   <-- este DAG
 
-GOLD_ABT lo emite `crypto_gold` en la task `build_abt`, o sea en el momento en
-que la ABT queda escrita -- no al final del DAG. Por eso el scoring arranca sin
-esperar a que Gold termine de verificar integridad.
+Espera GOLD_STAR y no otra cosa porque GOLD_STAR significa dos cosas a la vez:
+que el fact y las dimensiones que este DAG lee estan construidos, y que pasaron
+el chequeo de integridad de Gold. Un asset dice "el dato que vas a leer esta
+listo".
+
+A su vez emite GOLD_ABT en la task que escribe la ABT. Hoy nadie lo consume
+aguas abajo: lo declara igual, porque el asset documenta que ese dato existe y
+porque manana puede colgarse otro DAG ahi sin tocar este.
 
 =============================================================================
 DEPLOY
@@ -26,11 +33,17 @@ nace despausado: is_paused_upon_creation=False, modo produccion):
     cp clase06/ejercicios/dag_crypto_ml.py stack/dags/
 
 =============================================================================
-ESTE DAG NO ENTRENA: SOLO CONSUME EL CHAMPION
+ESTE DAG NO ELIGE EL CHAMPION, Y CASI NO ENTRENA
 =============================================================================
 El entrenamiento y la ELECCION del champion se hacen en el notebook de
 clase06 (model zoo -> comparar runs -> alias @champion). Eso involucra
 criterio humano y es la leccion de la clase: no se automatiza.
+
+Con UNA excepcion explicita: la task `completar_historico` reconstruye la
+serie hacia atras entrenando un RandomForest walk-forward por fecha (ver su
+docstring), para que el tablero tenga historia desde el primer dia y no
+desde hoy. Esas filas quedan marcadas con origen='reconstruido'; el scoring
+del dia es el que usa el champion y queda con origen='produccion'.
 
 Este DAG toma el champion VIGENTE por alias
 (`models:/crypto_volatilidad_{W}d@champion`, uno por ventana): cuando promuevas otra version
@@ -74,7 +87,7 @@ import sys
 # en silencio):
 # productor y consumidor tienen que referirse al MISMO Asset, definido UNA vez.
 sys.path.append("/opt/airflow/dags")
-from common.assets import GOLD_ABT  # noqa: E402
+from common.assets import GOLD_ABT, GOLD_STAR  # noqa: E402
 
 # --- Conexion a Postgres (mismo patron que bronze/silver/gold) ---
 DB_URI = (
@@ -137,7 +150,8 @@ def features_sql(W: int) -> str:
     nada para la direccion.
 
     DE DONDE SALE EL DATO
-    De los ~96 snapshots por cripto por dia que `fact_crypto_markets` acumula y
+    De los snapshots por cripto por dia que `fact_crypto_markets` acumula (uno cada
+15 minutos, hasta 96 si el stack queda prendido todo el dia) y
     que el cierre diario tira. La volatilidad intradiaria los usa: el pipeline ya
     los venia juntando, faltaba la pregunta que los aprovechara.
 
@@ -219,13 +233,54 @@ def columnas_features(W: int) -> list:
     return base
 
 
+# =============================================================================
+# HELPERS DE DDL (los usa build_abt, abajo)
+# =============================================================================
+# Vienen del DAG de Gold: la ABT se construye con el mismo patron de CTAS en
+# SQL. Van copiados y no en `common/` a proposito: cada DAG productivo del
+# curso es autocontenido, y `common/` guarda solo lo que DOS DAGs tienen que
+# compartir por fuerza (los assets, el contrato).
+
+def _run_ddl(sql: str):
+    """Ejecutar SQL DDL/CTAS en Postgres dentro de una transaccion.
+
+    Asegura el schema `gold` (idempotente, igual que Silver) y corre el
+    bloque SQL. `engine.begin()` hace commit al salir / rollback si falla.
+    """
+    import sqlalchemy
+
+    engine = sqlalchemy.create_engine(DB_URI)
+    with engine.begin() as conn:
+        # exec_driver_sql manda el SQL CRUDO a psycopg2 (sin parsear `text()`):
+        #   - psycopg2 ejecuta varios statements separados por `;` en una llamada
+        #     -> NO hace falta splitear por `;` (un split ingenuo rompia cuando
+        #        un `;` aparece dentro de un comentario `--` o de un string).
+        #   - evita que `text()` interprete `:` (cast `::`) o `%` como binds.
+        conn.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS gold")
+        conn.exec_driver_sql(sql)
+
+
+def _tabla_existe(nombre_calificado: str) -> bool:
+    """True si la tabla existe (to_regclass devuelve NULL si no)."""
+    import sqlalchemy
+
+    engine = sqlalchemy.create_engine(DB_URI)
+    with engine.connect() as conn:
+        r = conn.execute(
+            sqlalchemy.text("SELECT to_regclass(:t)"), {"t": nombre_calificado}
+        ).scalar()
+    return r is not None
+
+
 @dag(
     dag_id="crypto_ml",
     start_date=datetime(2024, 1, 1),
-    # DATA-AWARE: corre cuando `crypto_gold` termina de escribir la ABT y
-    # emite GOLD_ABT. Sin cron: el scoring no tiene sentido "a las y cinco",
-    # tiene sentido cuando hay features nuevas para scorear.
-    schedule=[GOLD_ABT],
+    # DATA-AWARE: corre cuando `crypto_gold` termina de publicar la capa
+    # semantica y emite GOLD_STAR -- o sea cuando el fact y las dimensiones que
+    # este DAG lee estan construidos Y verificados (verify_integrity paso).
+    # Sin cron: el scoring no tiene sentido "a las y cinco", tiene sentido
+    # cuando hay datos nuevos para scorear.
+    schedule=[GOLD_STAR],
     catchup=False,
     is_paused_upon_creation=False,  # modo produccion: nace prendido
     default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
@@ -233,8 +288,9 @@ def columnas_features(W: int) -> list:
     doc_md="""
     ## crypto_ml - Scoring con el @champion (serving)
 
-    Consume el asset **`gold_abt`**: cuando `crypto_gold` termina de construir
-    la ABT, carga `models:/crypto_volatilidad_{W}d@champion` del MLflow del stack
+    Consume el asset **`gold_star`**: cuando `crypto_gold` publica la capa
+    semantica (con el modelo ya verificado), este DAG arma la **ABT** y, en
+    paralelo, carga `models:/crypto_volatilidad_7d@champion` del MLflow del stack
     (`http://mlflow:5000`), reconstruye las features del ultimo dia con la
     MISMA query SQL del notebook y escribe **`gold.predicciones`**
     (idempotente por dia).
@@ -244,6 +300,133 @@ def columnas_features(W: int) -> list:
     """,
 )
 def crypto_ml():
+
+    # ============================================================
+    # LA ABT: la tabla de features de este pipeline
+    # ============================================================
+    # Vivia en crypto_gold y se mudo aca, al DAG que la usa: la ABT es la
+    # forma que Gold le da a los datos PARA ML, y quien la define es el
+    # pipeline de ML. Una tabla, un dueno.
+    #
+    # No lee nada de Gold: se arma desde silver.crypto_markets y
+    # bronze.global_market. Corre en paralelo al scoring porque no hay
+    # dependencia de datos entre las dos ramas (el modelo necesita los
+    # snapshots del fact, que la ABT ya colapso).
+    # ABT (Analytical Base Table) - wide table para ML
+    # ============================================================
+    # 1 fila por cripta. Construida con CTEs en SQL:
+    #   latest   = DISTINCT ON (id) -> features directas (ultimo snapshot)
+    #   temporal = GROUP BY id      -> avg/std/count (features temporales)
+    #   glob     = ultimo bronze.global_market (contexto macro)
+    # pd.cut() -> CASE WHEN (mismos bins/labels). market_dominance =
+    # window SUM() OVER (). stddev_samp = std muestral (== pandas .std()).
+    # El contexto global es OPCIONAL: si no existe bronze.global_market se
+    # construye la ABT sin esas columnas (LEFT JOIN ON true con la fila
+    # global, o se omite el bloque).
+    @task(outlets=[GOLD_ABT])
+    def build_abt():
+        """gold.gold_abt_crypto via SQL (CTEs + window + CASE)."""
+        tiene_global = _tabla_existe("bronze.global_market")
+
+        glob_cte = """,
+            glob AS (
+                SELECT total_market_cap_usd,
+                       btc_dominance,
+                       market_cap_change_pct_24h
+                FROM bronze.global_market
+                ORDER BY snapshot_ts DESC, ingested_at DESC
+                LIMIT 1
+            )""" if tiene_global else ""
+
+        glob_select = """,
+                g.total_market_cap_usd        AS global_total_market_cap,
+                g.btc_dominance               AS global_btc_dominance,
+                g.market_cap_change_pct_24h   AS global_market_change_24h,
+                round((b.market_cap
+                       / NULLIF(g.total_market_cap_usd, 0) * 100)::numeric, 6)
+                                              AS real_market_share""" if tiene_global else ""
+
+        glob_join = "LEFT JOIN glob g ON true" if tiene_global else ""
+
+        _run_ddl(f"""
+            DROP TABLE IF EXISTS gold.gold_abt_crypto CASCADE;
+            CREATE TABLE gold.gold_abt_crypto AS
+            WITH enr AS (
+                -- Metricas DERIVADAS en SQL (Silver no las trae): se calculan
+                -- una vez aca y las leen latest/temporal.
+                SELECT
+                    id, snapshot_ts, ingested_at,
+                    current_price, market_cap, total_volume,
+                    price_change_percentage_24h, market_cap_rank,
+                    high_24h, low_24h, circulating_supply,
+                    (high_24h - low_24h)                                 AS spread_24h,
+                    (high_24h - low_24h) / NULLIF(current_price, 0) * 100 AS spread_pct,
+                    circulating_supply / NULLIF(total_supply, 0)          AS supply_ratio,
+                    -- ::numeric: sin el cast es division entera (ver build_fact).
+                    market_cap::numeric
+                        / NULLIF(fully_diluted_valuation, 0)             AS fdv_ratio,
+                    ath_change_percentage                                 AS ath_distance_pct,
+                    atl_change_percentage                                 AS atl_distance_pct
+                FROM silver.crypto_markets
+            ),
+            latest AS (
+                SELECT DISTINCT ON (id)
+                    id, current_price, market_cap, total_volume,
+                    price_change_percentage_24h, market_cap_rank,
+                    high_24h, low_24h, spread_24h, spread_pct,
+                    circulating_supply, supply_ratio,
+                    ath_distance_pct, atl_distance_pct, fdv_ratio
+                FROM enr
+                ORDER BY id, snapshot_ts DESC, ingested_at DESC
+            ),
+            temporal AS (
+                SELECT
+                    id,
+                    avg(current_price)                      AS avg_price,
+                    coalesce(stddev_samp(current_price), 0) AS price_std,
+                    avg(spread_pct)                         AS avg_spread_pct,
+                    count(*)                                AS n_snapshots
+                FROM enr
+                GROUP BY id
+            ),
+            base AS (
+                SELECT l.*,
+                       t.avg_price, t.price_std,
+                       t.avg_spread_pct, t.n_snapshots
+                FROM latest l
+                JOIN temporal t USING (id)
+            ){glob_cte}
+            SELECT
+                b.id,
+                b.current_price, b.market_cap, b.total_volume,
+                b.price_change_percentage_24h, b.market_cap_rank,
+                b.high_24h, b.low_24h, b.spread_24h, b.spread_pct,
+                b.circulating_supply, b.supply_ratio,
+                b.ath_distance_pct, b.atl_distance_pct, b.fdv_ratio,
+                b.avg_price, b.price_std, b.avg_spread_pct, b.n_snapshots,
+                b.current_price / NULLIF(b.total_volume, 0)
+                                                      AS price_to_volume_ratio,
+                round((b.market_cap
+                       / NULLIF(SUM(b.market_cap) OVER (), 0) * 100)::numeric, 4)
+                                                      AS market_dominance,
+                CASE WHEN abs(b.price_change_percentage_24h) < 2 THEN 'baja'
+                     WHEN abs(b.price_change_percentage_24h) < 5 THEN 'media'
+                     ELSE 'alta' END                  AS volatility_category,
+                CASE WHEN b.market_cap_rank <= 10 THEN 'top_10'
+                     WHEN b.market_cap_rank <= 25 THEN 'top_25'
+                     ELSE 'rest' END                  AS market_cap_tier,
+                CASE WHEN b.current_price < 1     THEN 'micro'
+                     WHEN b.current_price < 100   THEN 'small'
+                     WHEN b.current_price < 10000 THEN 'medium'
+                     ELSE 'large' END                 AS price_tier{glob_select},
+                now()  AS _processed_at,
+                'silver.crypto_markets{' + bronze.global_market' if tiene_global else ''}'
+                       AS _source_table
+            FROM base b
+            {glob_join}
+        """)
+        print(f"gold.gold_abt_crypto reconstruida (global={'si' if tiene_global else 'no'})")
+
 
     # multiple_outputs=False EXPLICITO, y no es cosmetica.
     # TaskFlow INFIERE multiple_outputs=True cuando la funcion esta anotada
@@ -575,7 +758,7 @@ def crypto_ml():
             # Dos pasos, y ninguno usa un umbral fijo:
             #
             #   1) CUANTO se movio cada cripto ese dia. Se mide con la
-            #      dispersion de los ~96 precios intradia contra su propio
+            #      dispersion de los precios intradia del dia contra su propio
             #      promedio (coeficiente de variacion). Dividir por el
             #      promedio es lo que lo hace comparable entre monedas: sin
             #      eso, bitcoin a 121.000 dolares "se mueve" mil veces mas
@@ -673,6 +856,14 @@ def crypto_ml():
             # facil y declarar victoria es el error mas comun del oficio, y se
             # comete sin mala fe. Aca queda a la vista.
             # ------------------------------------------------------------
+            # OJO (medido el 2026-10-10): esta vista agrupa por ventana y dia
+            # SIN separar `origen`, asi que si una ventana tiene filas de
+            # produccion (champion) y de completar_historico (reconstruido),
+            # el accuracy publicado es el promedio de LOS DOS modelos. En la
+            # ventana 7 eso daba 80.6 (produccion, n=1193) y 68.3
+            # (reconstruido, n=142) promediados en 79.3. Separarlo cambia lo
+            # que muestra la pagina 6_Gold_ML (hoy espera una fila por
+            # ventana), asi que es una decision de diseno, no un typo.
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_veredicto")
             conn.exec_driver_sql("""
                 CREATE VIEW gold.v_ml_veredicto AS
@@ -740,6 +931,10 @@ def crypto_ml():
                   "manana no llego. Aparecen solas en la proxima corrida.")
 
 
+    # Dos ramas independientes, a proposito: la ABT no alimenta al scoring
+    # (el modelo lee el fact), asi que encadenarlas inventaria una dependencia
+    # que no existe y haria esperar a una por la otra sin motivo.
+    build_abt()
     write_predicciones(score_con_champion()) >> completar_historico() >> build_vista_aciertos()
 
 

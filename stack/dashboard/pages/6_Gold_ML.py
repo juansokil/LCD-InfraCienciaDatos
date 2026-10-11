@@ -547,7 +547,7 @@ with st.expander("📦 La ABT · el dataset que consume el modelo"):
 
     if abt.empty:
         st.info("🕐 **`gold.gold_abt_crypto` todavía no tiene datos.** La "
-                "construye `crypto_gold` en cada corrida (cada 15 minutos).")
+                "construye `crypto_ml` en cada corrida (cada 15 minutos).")
     else:
         feats = [c for c in abt.columns if not c.startswith("_")]
         cols = st.columns(4)
