@@ -24,6 +24,7 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 ```
 Apellido: Sokil
 Nombre: Juan
+Rama: estudiante/sokil-juan
 Motor: duckdb
 Northwind: 8/8 tablas
 Customers: 91 filas
@@ -36,6 +37,12 @@ Ejercicios SQL (forma verificada, extraido de las queries, no autoreporte):
   G5: FORMA_INESPERADA (1x1) h=-
   G6: OK (64x4) h=9C0D1E2F
 Items OK: 4 / 6
+Unidades totales (G1): 12663
+Pedidos distintos (G1): 195
+Segmentos (G4): -
+Pct del mes suman 100 (G5): -
+Meses sin variacion (G6): 8
+Variaciones con decimales (G6): SI
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-05-01
 ```
