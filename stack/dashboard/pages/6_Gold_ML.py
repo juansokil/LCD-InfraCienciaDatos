@@ -716,8 +716,9 @@ with st.expander("🔮 Las predicciones · `gold.predicciones`"):
         aviso(
             "<b>La tabla de predicciones todavía no existe.</b> La escribe el DAG "
             "<code>dag_crypto_ml</code>, que no corre por reloj sino <b>por "
-            "dato</b>: <code>schedule=[GOLD_ABT]</code> — se despierta cuando la "
-            f"ABT se actualiza.<br><br>{detalle}",
+            "dato</b>: <code>schedule=[GOLD_STAR]</code> — se despierta cuando "
+            "Gold publica su capa semántica verificada, y en esa misma corrida "
+            f"arma la ABT y scorea.<br><br>{detalle}",
             "🔮",
         )
     else:
