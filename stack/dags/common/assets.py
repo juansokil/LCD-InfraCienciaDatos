@@ -17,10 +17,10 @@ horario (cron):
         @dag(schedule=[SILVER_CRYPTO], ...)
     -> arranca solo cuando el productor actualiza el asset.
 
-  - UN DAG PUEDE PUBLICAR VARIOS ASSETS, y cada uno tener su propio consumidor.
-    `crypto_gold` emite GOLD_STAR (lo mira el dashboard) y GOLD_ABT (lo consume
-    crypto_ml): dos salidas del mismo DAG, dos audiencias distintas, cada una
-    avisada en el momento exacto en que SU dato quedo escrito.
+  - UN ASSET PUEDE TENER VARIOS CONSUMIDORES. `crypto_gold` emite GOLD_STAR
+    cuando la capa semantica quedo armada y verificada, y ahi arrancan DOS
+    cosas: el dashboard lo mira, y `crypto_ml` se despierta. Un productor, N
+    consumidores -- lo que el offset de cron no sabe expresar.
 
   - Y al reves: si N DAGs declaran el mismo `schedule=[X]`, TODOS se disparan
     cuando X se actualiza. Un upstream, N downstream -- lo que el offset de
@@ -48,8 +48,8 @@ from airflow.sdk import Asset
 #
 #   crypto_bronze   cron 0,15,30,45   --emite-->  BRONZE_CRYPTO
 #   crypto_silver   schedule=[BRONZE_CRYPTO]   --emite-->  SILVER_CRYPTO
-#   crypto_gold     schedule=[SILVER_CRYPTO]   --emite-->  GOLD_STAR + GOLD_ABT
-#   crypto_ml       schedule=[GOLD_ABT]
+#   crypto_gold     schedule=[SILVER_CRYPTO]   --emite-->  GOLD_STAR
+#   crypto_ml       schedule=[GOLD_STAR]       --emite-->  GOLD_ABT
 #
 # Bronze conserva cron porque es el BORDE: consulta una API externa y no tiene
 # nada aguas arriba que esperar. Ningun otro DAG adivina tiempos.
@@ -63,11 +63,14 @@ BRONZE_CRYPTO = Asset(name="bronze_crypto_markets")
 # Producido por crypto_silver (la tarea load_silver declara outlets=[SILVER_CRYPTO]).
 SILVER_CRYPTO = Asset(name="silver_crypto_markets")
 
-# Producidos por crypto_gold (el DAG productivo), que es el UNICO dueno de las
-# tablas gold.* reales. Un dato, un dueno.
-#   GOLD_STAR -> star schema BI (dim_* + fact_*) + las vistas semanticas gold.v_*
-#                Consumidor: el dashboard Streamlit (localhost:8501).
-#   GOLD_ABT  -> la ABT para ML (gold.gold_abt_crypto)
-#                Consumidor: crypto_ml (scoring batch) y el workshop de clase06.
+# Cada tabla tiene UN dueno, y el asset lo declara el DAG que la escribe:
+#   GOLD_STAR -> lo emite crypto_gold: star schema BI (dim_* + fact_*) + las
+#                vistas semanticas gold.v_*, ya verificadas (sin huerfanos).
+#                Consumidores: el dashboard Streamlit (localhost:8501) y
+#                crypto_ml, que lee el fact para scorear.
+#   GOLD_ABT  -> lo emite crypto_ml: la ABT para ML (gold.gold_abt_crypto), que
+#                es la forma que el pipeline de ML le da a los datos. Hoy no
+#                tiene consumidor aguas abajo; se declara porque documenta que
+#                ese dato existe y deja colgar otro DAG sin tocar este.
 GOLD_STAR = Asset(name="gold_star")
 GOLD_ABT = Asset(name="gold_abt")
