@@ -90,8 +90,11 @@ punto entero de tener un registry.
 chiquito con **`ml_01_prediccion_demo.py`**, que el notebook escribe con
 `%%writefile` y cierra la cadena de demos que venía desde la clase 05
 (`silver.ventas_demo` → star → ABT → predicciones), y en producción con
-[`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): scoring batch disparado **por
-el asset `gold_abt`**, no por reloj. Lee el champion del Registry, escribe
+[`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): arma la **ABT productiva**
+(`gold.gold_abt_crypto`, que vivía en el DAG de Gold y se mudó acá, al pipeline
+que la usa) y hace el scoring batch, disparado **por el asset `gold_star`**, no
+por reloj — o sea cuando Gold publicó su modelo ya verificado. Lee el champion
+del Registry, escribe
 `gold.predicciones` de forma **idempotente** (DELETE del día + INSERT), y
 **saltea con log claro** cuando todavía no hay champion, en vez de ponerse en
 rojo. El mismo encadenado por Assets de las clases 03-05, ahora con un modelo
@@ -113,10 +116,14 @@ con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
 - **La persistencia**, *«mañana se repite lo de hoy»*. Sin features, sin
   entrenar, sin MLflow.
 
-Con tres semanas de historia (octubre 2026) el modelo da ~86-88 % de accuracy,
-la persistencia ~82 % y la mayoritaria ~51 %; con dos semanas, el modelo quedaba
-por debajo de la persistencia. El mismo modelo, más historia: el tablero muestra
-los tres números día a día.
+Son dos mediciones distintas y conviene no mezclarlas. El **walk-forward del
+notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide las
+predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
+después pasó: con la historia acumulada al 10 de octubre de 2026 (31 días
+cargados, 28 verificables), `gold.v_ml_veredicto` devolvía 80,0 % en la ventana de
+1 día, 81,4 % en la de 3 y 79,3 % en la de 7, con la persistencia en 81,5 % y la
+mayoritaria cerca del 51 %. Los valores se mueven con la historia acumulada: el
+tablero muestra los tres números día a día.
 
 ---
 
@@ -130,9 +137,13 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   relativo queda balanceado por construcción, así que el número es comparable
   entre días.
 - **Con qué**: la volatilidad intradía, el rango, el volumen y el rank de cada
-  día, más los de ayer y sus promedios móviles. Salen de los **~96 snapshots por
-  cripto por día** que `gold.fact_crypto_markets` acumula y que el cierre diario
-  descarta — exactamente lo que se decidió guardar en la clase 05.
+  día, más los de ayer y sus promedios móviles. Salen de los snapshots por cripto
+  y por día que `gold.fact_crypto_markets` acumula y que el cierre diario descarta
+  — exactamente lo que se decidió guardar en la clase 05. Cuántos son depende de
+  las horas que tengas el stack prendido: uno cada 15 minutos, o sea **hasta 96
+  por día**; en el warehouse del curso la mediana es 86 y hay días de 14. Y
+  `features_sql` descarta el día entero si tiene 10 snapshots o menos
+  (`HAVING count(*) > 10`): con menos no hay volatilidad representativa.
 - **Cómo se mide**: split temporal por **fechas únicas** (walk-forward), jamás
   por posición de fila. Los 6 runs se evalúan sobre **las mismas fechas**: si
   cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las
@@ -215,6 +226,6 @@ El **mensaje final** completo está en la última celda del notebook.
 | `load_model(...)` desde el notebook se cuelga y da `Read timed out` | En Windows, el port-forward de Docker Desktop no cierra bien las respuestas *chunked* del proxy de artifacts (**la descarga al host se cuelga; la subida anda salvo con artefactos grandes — ver la fila siguiente**). Por eso la celda 3.4 recarga el champion **adentro de la red** (`docker exec` → `http://mlflow:5000`) — igual que el DAG. Adentro de la red no existe el problema |
 | `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso el zoo del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
 | El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
-| `crypto_ml` no se dispara nunca | Consume el asset `gold_abt`, que emite la task `build_abt` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara |
+| `crypto_ml` no se dispara nunca | Consume el asset `gold_star`, que emite la task `build_views` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara. Ojo también con `verify_integrity`: si Gold falla ahí, no emite el asset y este DAG no arranca (es lo que se busca) |
 | El modelo queda por debajo de la **persistencia** | Es un resultado posible: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla. Con pocas fechas de test, la diferencia suele ser menor que lo que mueve una sola predicción; la celda imprime ese número |
 | Accuracy sospechosamente alta | Sospechá **leakage**: target disfrazado de feature, split que mezcla días, o grano intradía filtrándose en el cierre |
