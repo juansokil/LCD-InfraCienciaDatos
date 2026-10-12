@@ -99,7 +99,7 @@ cols[1].markdown(kpi("Filas acumuladas", f"{int(b['filas']):,}".replace(",", "."
                  unsafe_allow_html=True)
 cols[2].markdown(kpi("Ancho de la tabla", f"{int(ancho)} columnas",
                      foot="Las que esta tabla eligió guardar. Lo que no mapeó (<code>image</code>, "
-                          "<code>roi</code>) está en la <b>landing</b>: el payload tal cual, por "
+                          "<code>roi</code>) está en la <b>zona raw</b>: el payload tal cual, por "
                           "si mañana hace falta."),
                  unsafe_allow_html=True)
 cols[3].markdown(kpi("Tamaño en disco", f"{b['bytes'] / 1024 / 1024:.1f} MB",
