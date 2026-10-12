@@ -1,0 +1,19 @@
+Apellido: sokil
+Nombre: juan
+Rama: estudiante/sokil-juan
+Motor: postgres
+Archivos crudos: 8
+Filas demo: 150
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82509
+Doble ingesta: SI
+Ultima carga: 2026-10-12 19:32:21.789111
+Pregunta (a) - La zona raw y la tabla:
+  no se
+Pregunta (b) - replace y append:
+  con replace solo la ultima opcion, y con append toda la historia. en productivo tiene que ir append
+Pregunta (c) - Dos cargas identicas:
+  porque el bronze se guarda todo
+Codigo: 8637D982E9A2
+Fecha: 2026-10-12
