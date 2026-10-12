@@ -17,14 +17,14 @@
 DAG: crypto_bronze
 Clase 03 - Ingesta desde API CoinGecko a Capa Bronze
 
-Pipeline: API CoinGecko -> landing (el crudo) -> DataFrame -> bronze.crypto_markets
+Pipeline: API CoinGecko -> zona raw (el crudo) -> DataFrame -> bronze.crypto_markets
                                                            + bronze.global_market
 Dos endpoints en paralelo:
   - /coins/markets -> top 50 criptos (datos por moneda)
   - /global -> datos agregados del mercado crypto total
 
 Cada corrida deja DOS cosas por endpoint, y hacen trabajos distintos:
-  - el payload tal cual llego, en la landing (stack/data/raw/, por dia)
+  - el payload tal cual llego, en la zona raw (stack/data/raw/, por dia)
   - las filas tabuladas en la tabla de Bronze, que es la que se consulta
 
 Corre cada 15 minutos, acumulando snapshots con precios en tiempo real.
@@ -163,7 +163,7 @@ except ImportError:  # fallback Airflow 2.x
 CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
 
 # =============================================================================
-# LA LANDING: EL PAYLOAD CRUDO, ANTES DE TOCARLO
+# LA ZONA RAW: EL PAYLOAD CRUDO, ANTES DE TOCARLO
 # =============================================================================
 # Cada fetch guarda en disco los BYTES EXACTOS que devolvio la API -- antes de
 # parsear nada -- particionados por dia con el mismo Hive Partitioning de la
@@ -177,12 +177,12 @@ CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
 # POR QUE, SI LA TABLA YA TIENE LOS DATOS
 # ---------------------------------------
 # Porque la tabla es una lectura ya INTERPRETADA del payload: elegimos columnas
-# y elegimos tipos. La landing es lo que contesto la fuente, y es lo unico que
+# y elegimos tipos. La zona raw es lo que contesto la fuente, y es lo unico que
 # te deja reprocesar con otro criterio sin volver a pedirle nada a la API. Y a
 # esta API no se le puede pedir el pasado: /coins/markets devuelve el precio de
 # AHORA, no el de las 14:30 de ayer.
 #
-# Las dos no compiten, hacen trabajos distintos: la landing se REPLAYEA, la
+# Las dos no compiten, hacen trabajos distintos: la zona raw se REPLAYEA, la
 # tabla se CONSULTA con SQL (es la que lee Silver en la clase 04).
 #
 # EL NOMBRE SALE DEL RUN, NO DEL RELOJ
@@ -421,7 +421,7 @@ def crypto_bronze():
         # respuesta de error sin darnos cuenta.
         response.raise_for_status()
 
-        # La landing, ANTES de parsear: lo que se guarda son los bytes que
+        # La zona raw, ANTES de parsear: lo que se guarda son los bytes que
         # mando la API, no una version nuestra de ellos.
         print(f"Crudo: {guardar_crudo('crypto_markets', response.content)}")
 
@@ -511,7 +511,7 @@ def crypto_bronze():
         response = requests.get(url, headers=CG_HEADERS, timeout=30)
         response.raise_for_status()
 
-        # La landing se queda con el payload ENTERO, las 63 monedas incluidas.
+        # La zona raw se queda con el payload ENTERO, las 63 monedas incluidas.
         # Abajo se explica por que de aca salen SOLO siete campos: el resto no
         # se descarta, queda en el archivo.
         print(f"Crudo: {guardar_crudo('global_market', response.content)}")
@@ -546,7 +546,7 @@ def crypto_bronze():
         # payload crudo de una API. Filtra lo que necesitas en el fetch.
         #
         # Y filtrar aca no pierde nada: el payload completo -- con ese numero
-        # en bolivares incluido -- ya quedo en la landing unas lineas arriba.
+        # en bolivares incluido -- ya quedo en la zona raw unas lineas arriba.
         # Es la division de trabajo de Bronze: el archivo guarda TODO para
         # poder volver, y por XCom viaja solo lo que la proxima task usa.
         # =============================================================
