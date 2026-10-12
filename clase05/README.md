@@ -61,11 +61,11 @@ En Gold, los datos se denormalizan para facilitar el consumo:
 
 ```mermaid
 graph LR
-    S1[silver_crypto] -->|Extract| D1[dim_crypto]
-    S2[silver_market_data] -->|Aggregate| F1[fact_crypto_markets]
+    S1[("silver.crypto_markets")] -->|"Extract: 1 fila por cripto"| D1[dim_crypto]
+    S1 -->|"Aggregate: 1 fila por cripto y día"| F1[fact_crypto_markets]
     S3[dim_tiempo] -->|Time Hierarchy| F1
 
-    S1 -->|clase 06: la arma crypto_ml| A[gold_abt_crypto]
+    S1 -->|"clase 06: la arma crypto_ml"| A[gold_abt_crypto]
 ```
 
 ---
