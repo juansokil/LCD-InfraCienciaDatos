@@ -163,6 +163,41 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
 
 ---
 
+## ✅ Verificación end-to-end
+
+Después del switch a producción y de promover un champion, estas cuatro respuestas dicen si la rama ML quedó cerrada.
+
+```bash
+# 1 · ¿La cadena quedó sin errores de import?
+docker exec airflow_standalone airflow dags list-import-errors
+# Esperado: "No data found"
+```
+
+```sql
+-- 2 · ¿crypto_ml escribió predicciones, y con qué modelo?
+SELECT origen, count(*) AS filas, count(DISTINCT fecha_features) AS dias,
+       max(champion_version) AS version
+FROM gold.predicciones GROUP BY origen;
+-- Esperado: filas > 0. `produccion` es lo que scoreó el champion;
+-- `reconstruido` es la historia que rellenó completar_historico.
+
+-- 3 · ¿El tablero puede comparar contra las dos varas?
+SELECT ventana, dias, accuracy, base_persistencia, base_mayoritaria
+FROM gold.v_ml_veredicto ORDER BY ventana;
+-- Esperado: 3 filas, una por ventana (1, 3 y 7 días). Si viene vacía, la
+-- predicción de hoy todavía no se puede corregir: apunta a mañana.
+
+-- 4 · ¿La ABT quedó escrita? Es la FOTO: una fila por cripto, sin historia.
+SELECT count(*) AS filas, max(_processed_at) AS armada FROM gold.gold_abt_crypto;
+-- Esperado: filas > 0, armada en la última corrida de crypto_ml.
+```
+
+Y en MLflow (`localhost:5000` → **Models**): cada `crypto_volatilidad_{1,3,7}d` tiene que tener una versión con el alias `@champion`. **Sin ese alias el DAG no falla**: loguea `[SKIP]` y sale limpio, así que las predicciones pueden faltar sin que nada se ponga en rojo. Es el diseño anti-rojo de la clase, y es la primera cosa a mirar si la query 2 devuelve vacío.
+
+Si las cuatro dan, la rama ML está **servida, corregida y mirable**: el DAG scorea solo cuando Gold publica su asset, el tablero compara contra la persistencia y la decisión de promover queda registrada en el Registry.
+
+---
+
 ## 🎁 Bonus Track: el mapa de MLOps, y dónde estás parado
 
 La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no para asustarte:
