@@ -176,7 +176,7 @@ Streamlit detecta cualquier `.py` que pongas en `stack/dashboard/pages/` (el pre
 
 ## ✅ Verificación end-to-end
 
-Después de correr `gold_01_star_basico` (sintético) + `dag_crypto_gold` (productivo), deberías poder responder estas 3 queries:
+Después de correr `gold_01_star_basico` (sintético) + `dag_crypto_gold` (productivo), deberías poder responder estas 2 queries:
 
 ```sql
 -- 1. ¿Las 5 tablas Gold productivas tienen datos?
