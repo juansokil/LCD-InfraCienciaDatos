@@ -97,9 +97,10 @@ cols[0].markdown(kpi("Snapshots ingestados", f"{int(b['snapshots']):,}".replace(
 cols[1].markdown(kpi("Filas acumuladas", f"{int(b['filas']):,}".replace(",", "."),
                      foot="snapshots × activos. Crece linealmente: es el costo de tener historia."),
                  unsafe_allow_html=True)
-cols[2].markdown(kpi("Ancho del payload", f"{int(ancho)} columnas",
-                     foot="Todo lo que devuelve la API se guarda, aunque hoy no se use. "
-                          "Mañana puede hacer falta y el crudo ya está."),
+cols[2].markdown(kpi("Ancho de la tabla", f"{int(ancho)} columnas",
+                     foot="Las que esta tabla eligió guardar. Lo que no mapeó (<code>image</code>, "
+                          "<code>roi</code>) está en la <b>landing</b>: el payload tal cual, por "
+                          "si mañana hace falta."),
                  unsafe_allow_html=True)
 cols[3].markdown(kpi("Tamaño en disco", f"{b['bytes'] / 1024 / 1024:.1f} MB",
                      foot=f"~{b['bytes'] / max(int(b['snapshots']), 1) / 1024:.0f} kB por snapshot."),
