@@ -17,10 +17,15 @@
 DAG: crypto_bronze
 Clase 03 - Ingesta desde API CoinGecko a Capa Bronze
 
-Pipeline: API CoinGecko -> DataFrame -> bronze.crypto_markets + bronze.global_market
+Pipeline: API CoinGecko -> landing (el crudo) -> DataFrame -> bronze.crypto_markets
+                                                           + bronze.global_market
 Dos endpoints en paralelo:
   - /coins/markets -> top 50 criptos (datos por moneda)
   - /global -> datos agregados del mercado crypto total
+
+Cada corrida deja DOS cosas por endpoint, y hacen trabajos distintos:
+  - el payload tal cual llego, en la landing (stack/data/raw/, por dia)
+  - las filas tabuladas en la tabla de Bronze, que es la que se consulta
 
 Corre cada 15 minutos, acumulando snapshots con precios en tiempo real.
 """
@@ -62,7 +67,8 @@ Corre cada 15 minutos, acumulando snapshots con precios en tiempo real.
 # Los decoradores simplifican enormemente el codigo.
 # =============================================================================
 from airflow.decorators import dag, task
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 import math
 import os
 
@@ -149,7 +155,72 @@ sys.path.append("/opt/airflow/dags")
 from common.assets import BRONZE_CRYPTO  # noqa: E402
 from common.contracts import load_contract  # noqa: E402
 
+try:  # Airflow 3.x
+    from airflow.sdk import get_current_context
+except ImportError:  # fallback Airflow 2.x
+    from airflow.operators.python import get_current_context  # noqa: E402
+
 CONTRACT_PATH = "/opt/airflow/data/contracts/crypto_markets.yaml"
+
+# =============================================================================
+# LA LANDING: EL PAYLOAD CRUDO, ANTES DE TOCARLO
+# =============================================================================
+# Cada fetch guarda en disco los BYTES EXACTOS que devolvio la API -- antes de
+# parsear nada -- particionados por dia con el mismo Hive Partitioning de la
+# clase:
+#
+#   /opt/airflow/data/raw/crypto_markets/ds=2026-10-12/143000.json
+#
+# Ese path es el de ADENTRO del contenedor; el compose montea ./data ahi, asi
+# que en tu maquina los archivos aparecen en stack/data/raw/.
+#
+# POR QUE, SI LA TABLA YA TIENE LOS DATOS
+# ---------------------------------------
+# Porque la tabla es una lectura ya INTERPRETADA del payload: elegimos columnas
+# y elegimos tipos. La landing es lo que contesto la fuente, y es lo unico que
+# te deja reprocesar con otro criterio sin volver a pedirle nada a la API. Y a
+# esta API no se le puede pedir el pasado: /coins/markets devuelve el precio de
+# AHORA, no el de las 14:30 de ayer.
+#
+# Las dos no compiten, hacen trabajos distintos: la landing se REPLAYEA, la
+# tabla se CONSULTA con SQL (es la que lee Silver en la clase 04).
+#
+# EL NOMBRE SALE DEL RUN, NO DEL RELOJ
+# ------------------------------------
+# Asi un retry REESCRIBE el mismo archivo en vez de dejar uno de mas: es la
+# idempotencia del glosario de la clase, aplicada a archivos. (El ejercicio de
+# esta clase nombra por reloj a proposito, para que se vean dos archivos
+# apilarse cuando cargas dos veces seguidas.)
+RAW_DIR = Path("/opt/airflow/data/raw")
+
+
+def guardar_crudo(carpeta: str, contenido: bytes) -> str:
+    """Escribe el payload tal cual llego y devuelve la ruta que quedo."""
+    ctx = get_current_context()
+
+    # De donde sale el momento, en orden, y por que ese orden:
+    #   1. `logical_date`: el slot del cron (13:15, 13:30...). Es lo que hace
+    #      reproducible un backfill.
+    #   2. `dag_run.run_after`: en Airflow 3 un run MANUAL no tiene
+    #      logical_date (queda NULL en la metadata), asi que el reloj del run
+    #      es lo unico estable. OJO: `run_after` NO esta en el contexto de la
+    #      task, hay que pedirselo al objeto dag_run.
+    #   3. El reloj: ultimo recurso. Dejaria dos archivos si la task reintenta,
+    #      asi que esta al final a proposito.
+    dag_run = ctx.get("dag_run")
+    momento = (
+        ctx.get("logical_date")
+        or getattr(dag_run, "run_after", None)
+        or getattr(dag_run, "start_date", None)
+        or datetime.now(timezone.utc)
+    )
+    ds = ctx.get("ds") or momento.strftime("%Y-%m-%d")
+
+    destino = RAW_DIR / carpeta / f"ds={ds}"
+    destino.mkdir(parents=True, exist_ok=True)
+    archivo = destino / f"{momento:%H%M%S}.json"
+    archivo.write_bytes(contenido)
+    return f"raw/{carpeta}/ds={ds}/{archivo.name}"
 
 # =============================================================================
 # CREDENCIAL DE LA API
@@ -350,6 +421,10 @@ def crypto_bronze():
         # respuesta de error sin darnos cuenta.
         response.raise_for_status()
 
+        # La landing, ANTES de parsear: lo que se guarda son los bytes que
+        # mando la API, no una version nuestra de ellos.
+        print(f"Crudo: {guardar_crudo('crypto_markets', response.content)}")
+
         data = response.json()
         print(f"Registros obtenidos: {len(data)}")
 
@@ -436,6 +511,11 @@ def crypto_bronze():
         response = requests.get(url, headers=CG_HEADERS, timeout=30)
         response.raise_for_status()
 
+        # La landing se queda con el payload ENTERO, las 63 monedas incluidas.
+        # Abajo se explica por que de aca salen SOLO siete campos: el resto no
+        # se descarta, queda en el archivo.
+        print(f"Crudo: {guardar_crudo('global_market', response.content)}")
+
         # La respuesta de /global viene ENVUELTA en un objeto:
         #   {"data": { ...los datos reales... }}
         # Por eso accedemos a ["data"] para obtener el contenido que nos interesa.
@@ -464,7 +544,11 @@ def crypto_bronze():
         #
         # REGLA GENERAL: XCom es para METADATA CHICA, no para arrastrar el
         # payload crudo de una API. Filtra lo que necesitas en el fetch.
-        # (Si necesitaras el crudo completo, va a Bronze como JSONB, no a XCom.)
+        #
+        # Y filtrar aca no pierde nada: el payload completo -- con ese numero
+        # en bolivares incluido -- ya quedo en la landing unas lineas arriba.
+        # Es la division de trabajo de Bronze: el archivo guarda TODO para
+        # poder volver, y por XCom viaja solo lo que la proxima task usa.
         # =============================================================
         return {
             "active_cryptocurrencies": data.get("active_cryptocurrencies"),
