@@ -14,7 +14,7 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 
 ## ¿Qué pongo adentro del archivo?
 
-**Casi nada manual**: lo único que escribís vos son las tres respuestas del Paso 5. El resto lo arma el script del notebook a partir de lo que guardaste en Bronze — los archivos crudos de `stack/data/raw/crypto_markets/` y la tabla `bronze.crypto_markets_demo`. Vas a ver algo así:
+**Casi nada manual**: lo único que escribís vos son las tres respuestas del Paso 5. El resto lo arma el script del notebook a partir de lo que guardaste — los archivos crudos de la **landing** (`stack/data/raw/crypto_markets/`) y la tabla de **Bronze** (`bronze.crypto_markets_demo`). Vas a ver algo así:
 
 ```
 Apellido: Sokil
@@ -28,7 +28,7 @@ Cripto mas cara: bitcoin
 Precio mas alto: 83069.0
 Doble ingesta: SI
 Ultima carga: 2026-09-22 10:30:15.123456
-Pregunta (a) - El crudo y la tabla:
+Pregunta (a) - La landing y la tabla:
   <tu respuesta>
 Pregunta (b) - replace y append:
   <tu respuesta>
@@ -46,7 +46,7 @@ Fecha: 2026-09-22
 >
 > Los archivos crudos de `stack/data/raw/` quedan en tu máquina: git los ignora, así que no viajan con la entrega.
 
-> 📖 **Patrón de referencia**: [`dag_crypto_bronze.py`](dag_crypto_bronze.py), en esta misma carpeta, es este pipeline como DAG productivo de Airflow (comentado línea por línea). Ojo: para ser más simple, el DAG elige y tipa columnas ya en Bronze y no guarda el crudo — lo correcto es lo que hacés en el ejercicio: guardar todo. Leelo antes de cerrar la clase.
+> 📖 **Patrón de referencia**: [`dag_crypto_bronze.py`](dag_crypto_bronze.py), en esta misma carpeta, es este pipeline como DAG productivo de Airflow (comentado línea por línea). Escribe la landing igual que vos, pero su tabla **elige y tipa columnas** —deja afuera `image` y `roi`, que la API sí manda—, mientras la de acá se queda con **todas**. Es una decisión de la tabla, no de la landing: lo que la tabla no mapea sigue estando en el archivo. Leelo antes de cerrar la clase.
 
 ## ⚠️ Importante: NO commitees el `.ipynb`
 
