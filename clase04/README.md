@@ -39,7 +39,7 @@ A diferencia de Bronze donde traemos todo crudo, en Silver pasa por 3 transforma
 %%{init: {"flowchart": {"subGraphTitleMargin": {"top": 0, "bottom": 28}}}}%%
 graph LR
     subgraph BR["bronze.crypto_markets"]
-        B[22+ columnas crudas<br/>de la API CoinGecko]
+        B[26 columnas crudas<br/>de la API CoinGecko]
     end
 
     subgraph PIPE["dag_crypto_silver"]
