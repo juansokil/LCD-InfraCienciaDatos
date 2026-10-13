@@ -2,12 +2,12 @@
 
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
-> 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (cada uno con su tabla: `bronze.ventas_demo` el básico, `bronze.ventas_contrato_demo` el del contrato)
+> 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (cada uno con su tabla: `bronze.ventas_demo` el básico, `bronze.ventas_contrato_demo` el del contrato) + **seis queries en vivo sobre el Bronze real** que cargó el pipeline de la clase 03
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 10 ejercicios de SQL básico sobre **Northwind** (los fundamentos que Silver usa)
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`silver_01_basico.py`, `silver_02_contrato.py`) que se generan vía `%%writefile` al ejecutar el notebook.
+> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`silver_01_basico.py`, `silver_02_contrato.py`) que se generan vía `%%writefile` al ejecutar el notebook, y la sección **🔎 4.5 Seis queries sobre tu propio Bronze**, que corre contra `bronze.crypto_markets`: lo único de la teórica que no es sintético.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (setup dual-engine Postgres/DuckDB) y **Parte 2** son **10 ejercicios de SQL básico** (SELECT/WHERE/ORDER BY, COUNT, MIN/MAX, AVG, normalización+nulos con COALESCE, DISTINCT/LIKE, atributo derivado con CASE, INNER JOIN, **anti-join** para integridad referencial y **dedup con `ROW_NUMBER`**), conectando cada técnica con un patrón real de Silver. La sección **📦 Entrega** genera tu `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo (con comentarios educativos), se copia al stack para correr el Silver real de crypto.
 
