@@ -119,10 +119,10 @@ con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
 Son dos mediciones distintas y conviene no mezclarlas. El **walk-forward del
 notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide las
 predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
-después pasó: con la historia acumulada al 10 de octubre de 2026 (31 días
-cargados, 28 verificables), `gold.v_ml_veredicto` devolvía 80,0 % en la ventana de
-1 día, 81,4 % en la de 3 y 79,3 % en la de 7, con la persistencia en 81,5 % y la
-mayoritaria cerca del 51 %. Los valores se mueven con la historia acumulada: el
+después pasó: con la historia acumulada al 13 de octubre de 2026 (31 días con
+veredicto), `gold.v_ml_veredicto` devolvía 80,6 % en la ventana de 1 día,
+81,7 % en la de 3 y 79,6 % en la de 7, con la persistencia en 82,0 % y la
+mayoritaria entre 50,8 % y 51,3 %. Los valores se mueven con la historia acumulada: el
 tablero muestra los tres números día a día.
 
 ---
