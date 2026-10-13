@@ -1,9 +1,21 @@
-name: Validar nombre de rama (PR)
+name: Validar PR (origen y nombre de rama)
 
-# Rechaza (cierra) automáticamente los PRs cuya rama NO sigue la convención del curso.
+# Rechaza (cierra) automáticamente los PRs que no sirven para el modelo del curso, por dos
+# motivos: que vengan de un FORK, o que la rama NO siga la convención.
 # Por qué cerrar y no solo bloquear: el PR del estudiante vive TODO el cuatrimestre (modelo
-# de PR vivo). Si arranca con la rama mal nombrada, el problema persiste hasta el final;
-# es más simple cerrarlo al abrirlo para que lo rehaga bien desde el día 1.
+# de PR vivo). Si arranca mal, el problema persiste hasta el final; es más simple cerrarlo al
+# abrirlo para que lo rehaga bien desde el día 1.
+#
+# Caso FORK (visto el 2026-10-08, PR #199): quien no acepta la invitación al repo no tiene
+# push, así que GitHub le ofrece forkear y abrir el PR desde su copia. El trabajo puede estar
+# perfecto, pero sus entregas quedan en el fork: no estan en este repo, el docente no las ve
+# donde las busca y el reporte de entregas (que lee `git ls-tree origin/<rama>`) no las cuenta.
+# El mensaje lo manda a aceptar la invitación y a resubir la rama acá, y menciona al docente
+# para que le llegue la notificación (el estudiante puede estar trabado esperando la invitación).
+#
+# Los dos chequeos van en el MISMO job y en orden: si el PR viene de un fork, el step del
+# origen cierra y sale con exit 1, así que el del nombre de rama no corre y el estudiante
+# recibe un solo comentario.
 #
 # Convención de ramas válidas para PRs hacia main:
 #   - estudiante/apellido-nombre   (entrega individual del estudiante)
@@ -15,8 +27,9 @@ name: Validar nombre de rama (PR)
 # exactamente uno y no hay ambiguedad sobre donde termina el apellido.
 # El docente (juansokil) queda exento (sus releases no se autocierran).
 #
-# Seguridad: usamos pull_request_target SOLO para leer el nombre de la rama y comentar/
-# cerrar con GITHUB_TOKEN. NO hacemos checkout del código del PR, así que es seguro.
+# Seguridad: usamos pull_request_target SOLO para leer el nombre de la rama y el repo de
+# origen, y para comentar/cerrar con GITHUB_TOKEN. NO hacemos checkout del código del PR, así
+# que es seguro aunque el PR venga de un fork (que es justo uno de los casos que detecta).
 #
 # NOTA: para que corra, este workflow tiene que estar en la rama default (main) cuando
 # arranque el cuatrimestre (incluilo en el reset de main de 2026-2C).
@@ -33,6 +46,71 @@ jobs:
   validar-rama:
     runs-on: ubuntu-latest
     steps:
+      - name: Validar que el PR venga de una rama de este repo (no de un fork)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BR: ${{ github.head_ref }}
+          PR: ${{ github.event.pull_request.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          REPO: ${{ github.repository }}
+          DOCENTE: juansokil
+        run: |
+          set -euo pipefail
+          echo "PR #$PR — origen: '${HEAD_REPO:-(sin repo)}' — base: '$REPO' — autor: $AUTHOR"
+
+          # El docente no se autovalida.
+          if [ "$AUTHOR" = "$DOCENTE" ]; then
+            echo "Autor docente ($AUTHOR): sin validar."
+            exit 0
+          fi
+
+          # head.repo vacio = el fork fue borrado. El PR ya esta roto y no hay nada que
+          # explicarle al estudiante: no comento para no generar un falso positivo.
+          if [ -z "${HEAD_REPO:-}" ]; then
+            echo "No pude determinar el repo de origen: no valido."
+            exit 0
+          fi
+
+          if [ "$HEAD_REPO" = "$REPO" ]; then
+            echo "Origen OK: la rama esta en este repo."
+            exit 0
+          fi
+
+          echo "PR desde un fork ($HEAD_REPO) — comento y cierro."
+          MENSAJE=$(cat <<EOF
+          Hola 👋 — **cerré este PR automáticamente** porque viene de un **fork** (\`$HEAD_REPO\`) y no de una rama de este repositorio. Tu trabajo puede estar perfecto: lo único que hay que cambiar es **de dónde sale el PR**.
+
+          Esto suele pasar cuando todavía no aceptaste la invitación al repo: sin eso Git no te deja subir una rama acá, y GitHub te ofrece el camino del fork.
+
+          En el curso trabajamos distinto: **una rama tuya dentro de este repo, y un solo PR abierto todo el cuatrimestre**, donde se van sumando las entregas de cada clase. Desde un fork ese modelo no funciona: tus entregas quedan en tu copia y no aparecen donde se buscan para corregir.
+
+          **Cómo arreglarlo** (el trabajo ya está hecho, es solo mudarlo de lugar):
+
+          **1.** Aceptá la invitación al repo: https://github.com/$REPO/invitations — si ya venció, avisá en este mismo PR y te la mando de nuevo.
+
+          **2.** En tu clon, apuntá \`origin\` a este repo y subí tu rama:
+
+          \`\`\`bash
+          git remote -v     # si apunta a tu fork, corré lo que sigue
+          git remote set-url origin https://github.com/$REPO.git
+          git push -u origin $BR
+          \`\`\`
+
+          **3.** Abrí un **PR nuevo** desde \`$BR\` hacia \`main\` y **dejalo abierto**: ese va a ser tu PR para todas las entregas del cuatrimestre.
+
+          Cualquier duda con Git, mirá \`TpFinal/git-guia.md\` o escribime.
+
+          @$DOCENTE te etiqueto para que lo tengas en el radar: este PR quedó cerrado y el estudiante necesita la invitación aceptada para rehacerlo.
+          EOF
+          )
+          # el heredoc va indentado para no romper el YAML: se le saca la sangria
+          printf '%s\n' "$MENSAJE" | sed 's/^          //' > /tmp/mensaje-fork.md
+          gh pr comment "$PR" --repo "$REPO" --body-file /tmp/mensaje-fork.md
+          gh pr close "$PR" --repo "$REPO"
+          echo "::error::PR #$PR viene del fork $HEAD_REPO. Cerrado: la rama tiene que estar en $REPO."
+          exit 1
+
       - name: Validar nombre de rama y cerrar si no corresponde
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
