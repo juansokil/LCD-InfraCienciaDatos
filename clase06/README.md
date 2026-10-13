@@ -89,7 +89,7 @@ punto entero de tener un registry.
 **4. ⚙️ Airflow para ML — el modelo como task de un DAG.** Se ve dos veces: en
 chiquito con **`ml_01_prediccion_demo.py`**, que el notebook escribe con
 `%%writefile` y cierra la cadena de demos que venía desde la clase 05
-(`silver.ventas_demo` → star → ABT → predicciones), y en producción con
+(`silver.ventas_demo` → ABT → predicciones, la rama hermana del star de la clase 05), y en producción con
 [`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): arma la **ABT productiva**
 (`gold.gold_abt_crypto`, que vivía en el DAG de Gold y se mudó acá, al pipeline
 que la usa) y hace el scoring batch, disparado **por el asset `gold_star`**, no
