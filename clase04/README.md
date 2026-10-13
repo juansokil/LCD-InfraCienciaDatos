@@ -101,7 +101,7 @@ Abrí `clase04.ipynb`. La primera parte explica conceptos (Contratos de Datos, P
 
 | # | DAG generado | Path destino | Qué aporta |
 |---|--------------|--------------|------------|
-| 01 | `silver_01_basico.py` | `stack/dags/02-silver/` | Limpieza básica: strip + Title Case + fillna + parser flexible de fechas |
+| 01 | `silver_01_basico.py` | `stack/dags/02-silver/` | Limpieza básica: strip + fillna + parser flexible de fechas, **sin tocar las mayúsculas** |
 | 02 | `silver_02_contrato.py` | `stack/dags/02-silver/` | **Contract-driven**: Pydantic generado en runtime desde `ventas.yaml` + Pattern Quarantine + Audit metadata |
 
 Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`). En la UI, filtrá por **tag `silver`** para verlos juntos. Activalos y verás los datos en `silver.ventas_basico` (del primer DAG) y en `silver.ventas_contrato` + `silver.quarantine_ventas_contrato` (del segundo).
@@ -213,7 +213,7 @@ Hasta acá tenemos `silver.crypto_markets` con datos limpios y validados (Pydant
 | Concepto | Qué construimos |
 |---|---|
 | **Star Schema** | Separar **dimensiones** (`dim_crypto`, `dim_tiempo`) de **hechos** (`fact_crypto_markets`, `fact_global_market`). Modelado dimensional clásico de Kimball, construido **en SQL** (ELT). |
-| **ABT (Analytical Base Table)** | Tabla ancha con features derivadas (avg_price, volatility_category, market_cap_tier) lista para alimentar modelos de ML. |
+| **ABT (Analytical Base Table)** | Tabla ancha con features derivadas, lista para alimentar modelos de ML. Se anticipa acá como forma; la construye la **clase 06**, que es donde se usa. |
 | **Integridad referencial** | Validar FKs antes de publicar a BI/ML — detectar fact rows huérfanos sin dimensión (LEFT JOIN). En Gold la unidad de validación deja de ser la fila (Pydantic) y pasa a ser el **schema completo**. |
 | **SCD Tipo 2** *(concepto)* | Cómo historizar cambios en una dimensión (`business_key`, `effective_date`). Se explica como concepto de modelado; el `dag_crypto_gold` productivo usa **full-refresh** (no implementa SCD2). |
 
