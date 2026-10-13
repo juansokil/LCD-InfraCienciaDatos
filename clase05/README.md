@@ -2,12 +2,12 @@
 
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
-> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAG demo + consumo de Gold desde el notebook, sobre datos sintéticos (`silver.ventas_demo`) + **cuatro queries medidas sobre el Gold real** del pipeline
+> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAG demo + consumo de Gold desde el notebook, sobre datos sintéticos (`silver.ventas_demo`) + **cinco queries medidas sobre el Gold real** del pipeline
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **6 queries de SQL Gold** sobre **Northwind** (G1–G6) que arman, paso a paso, una misma tabla Gold
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + el DAG pedagógico `gold_01_star_basico.py` (generado vía `%%writefile`), el chequeo de **integridad referencial en vivo**, el **consumo** del star desde el propio notebook y la sección **🔬 4.5 Cuatro queries para ver si el modelo sirve**, la única de la teórica que mide sobre el warehouse productivo. La **ABT** pasó a la clase 06, que es donde se usa.
+> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + el DAG pedagógico `gold_01_star_basico.py` (generado vía `%%writefile`), el chequeo de **integridad referencial en vivo**, el **consumo** del star desde el propio notebook y la sección **🔬 4.5 Cinco queries para ver si el modelo sirve**, la única de la teórica que mide sobre el warehouse productivo. La **ABT** pasó a la clase 06, que es donde se usa.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2** son **6 queries** (G1–G6) que arman la misma tabla Gold — el grano, el JOIN con la dimensión, el corte con `HAVING`, el segmento con `CASE`, la participación y el ranking con *window functions*, y la variación con `LAG`. La **📦 Entrega** ejecuta tus queries, verifica la forma exacta de cada resultado (sin autoreporte) y genera **un** archivo: el `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
 
@@ -15,7 +15,7 @@
 
 ## 🔁 Continuidad con la clase 04
 
-En la **clase 04** cargamos `silver.crypto_markets` con datos limpios validados contra el contrato `crypto_markets.yaml`, más una tabla `silver.quarantine_*` para los registros que fallaron Pydantic. En **Gold** consumimos `silver.crypto_markets` (NO `bronze.*`) y la transformamos en un modelo dimensional listo para BI (`dim_*` + `fact_*`) + una **ABT** lista para ML.
+En la **clase 04** cargamos `silver.crypto_markets` con datos limpios validados contra el contrato `crypto_markets.yaml`, más una tabla `silver.quarantine_*` para los registros que fallaron Pydantic. En **Gold** consumimos `silver.crypto_markets` (NO `bronze.*`) y la transformamos en un modelo dimensional listo para BI (`dim_*` + `fact_*`). La **ABT** —la otra forma de Gold, para ML— la arma `crypto_ml` en la **clase 06**, que es el pipeline que la usa.
 
 > **Decisión arquitectural** (excepción documentada): `fact_global_market` lee de `bronze.global_market` **directo**, salteándose Silver. Razón: el dato macro ya viene agregado por la API de CoinGecko (no son filas individuales que validar) y Silver no agrega valor. Está documentado en [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py).
 
@@ -51,7 +51,7 @@ graph TD
         D1 --- SL
         D2 --- SL
         F1 --- SL
-        SL[Global Metrics: Revenue, Volatility, etc.]
+        SL[Métricas globales: dominancia, volatilidad, concentración]
     end
 ```
 
@@ -62,8 +62,7 @@ En Gold, los datos se denormalizan para facilitar el consumo:
 ```mermaid
 graph LR
     S1[("silver.crypto_markets")] -->|"Extract: 1 fila por cripto"| D1[dim_crypto]
-    S1 -->|"Aggregate: 1 fila por cripto y día"| F1[fact_crypto_markets]
-    S3[dim_tiempo] -->|Time Hierarchy| F1
+    S1 -->|"1 fila por cripto y snapshot (sin agregar)"| F1[fact_crypto_markets]
 
     S1 -->|"clase 06: la arma crypto_ml"| A[gold_abt_crypto]
 ```
@@ -165,7 +164,7 @@ El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde l
 Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
 
 - **Los KPIs de las páginas 3–6 salen de vistas `gold.v_*`, no de tablas.** Esa es la **capa semántica** — la **API pública** de Gold: la métrica se define **una sola vez, en SQL**, y esa definición no se vuelve a escribir en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
-  Hay tres excepciones, y son deliberadas: la página 3 lee `gold.dim_crypto` para llenar el selector de categorías (es la dimensión, no una métrica), y la 6 lee `gold.gold_abt_crypto` y `gold.predicciones` **porque su tema ES la ABT y la tabla de predicciones** — no las está consumiendo, las está mostrando.
+  Las excepciones son deliberadas y de dos tipos. **Dimensiones y tablas que la página muestra como tema**: la 3 lee `gold.dim_crypto` para llenar el selector de categorías (es la dimensión, no una métrica), y la 6 lee `gold.gold_abt_crypto` y `gold.predicciones` porque su tema **es** la ABT y la tabla de predicciones. **Y el hecho, en dos lugares que la vista no puede dar**: la 3 lo consulta para la frescura del dato (`max(snapshot_ts)`) y la 6 para la volatilidad intradía, que necesita el grano de snapshot que la vista colapsó.
 - **La demo de ventas NO es una página del dashboard, y es deliberado.** Esas tablas `gold.*_demo` son **sintéticas**: el dashboard muestra el pipeline **productivo** de criptomonedas, y mezclarle una demo de juguete confunde las dos cosas. El notebook de la clase la grafica ahí mismo — el patrón de consumo es idéntico, lo que cambia es dónde vive.
 
 ### ¿Querés agregar tu propia visualización?
@@ -179,7 +178,7 @@ Streamlit detecta cualquier `.py` que pongas en `stack/dashboard/pages/` (el pre
 Después de correr `gold_01_star_basico` (sintético) + `dag_crypto_gold` (productivo), deberías poder responder estas 2 queries:
 
 ```sql
--- 1. ¿Las 5 tablas Gold productivas tienen datos?
+-- 1. ¿Las 4 tablas que escribe crypto_gold tienen datos?
 SELECT 'dim_crypto'           AS tabla, COUNT(*) AS filas FROM gold.dim_crypto
 UNION ALL
 SELECT 'dim_tiempo',           COUNT(*) FROM gold.dim_tiempo
