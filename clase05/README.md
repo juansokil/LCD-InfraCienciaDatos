@@ -2,12 +2,12 @@
 
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
-> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAG demo + consumo de Gold desde el notebook, sobre datos sintéticos (`silver.ventas_demo`)
+> 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAG demo + consumo de Gold desde el notebook, sobre datos sintéticos (`silver.ventas_demo`) + **cuatro queries medidas sobre el Gold real** del pipeline
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **6 queries de SQL Gold** sobre **Northwind** (G1–G6) que arman, paso a paso, una misma tabla Gold
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
-> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + el DAG pedagógico `gold_01_star_basico.py` (generado vía `%%writefile`), el chequeo de **integridad referencial en vivo** y el **consumo** del star desde el propio notebook. La **ABT** pasó a la clase 06, que es donde se usa.
+> - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + el DAG pedagógico `gold_01_star_basico.py` (generado vía `%%writefile`), el chequeo de **integridad referencial en vivo**, el **consumo** del star desde el propio notebook y la sección **🔬 4.5 Cuatro queries para ver si el modelo sirve**, la única de la teórica que mide sobre el warehouse productivo. La **ABT** pasó a la clase 06, que es donde se usa.
 > - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2** son **6 queries** (G1–G6) que arman la misma tabla Gold — el grano, el JOIN con la dimensión, el corte con `HAVING`, el segmento con `CASE`, la participación y el ranking con *window functions*, y la variación con `LAG`. La **📦 Entrega** ejecuta tus queries, verifica la forma exacta de cada resultado (sin autoreporte) y genera **un** archivo: el `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
 
@@ -164,7 +164,7 @@ El stack levanta un **dashboard de Streamlit** (`http://localhost:8501`) desde l
 
 Dos cosas para notar, porque son **doctrina** y no detalle de implementación:
 
-- **Los KPIs de las páginas 3–6 salen de vistas `gold.v_*`, no de tablas.** Esa es la **capa semántica** — la **API pública** de Gold: la métrica se define **una sola vez, en SQL**, y no se recalcula en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
+- **Los KPIs de las páginas 3–6 salen de vistas `gold.v_*`, no de tablas.** Esa es la **capa semántica** — la **API pública** de Gold: la métrica se define **una sola vez, en SQL**, y esa definición no se vuelve a escribir en cada página. Si mañana cambia la definición de "dominancia", cambia en un lugar.
   Hay tres excepciones, y son deliberadas: la página 3 lee `gold.dim_crypto` para llenar el selector de categorías (es la dimensión, no una métrica), y la 6 lee `gold.gold_abt_crypto` y `gold.predicciones` **porque su tema ES la ABT y la tabla de predicciones** — no las está consumiendo, las está mostrando.
 - **La demo de ventas NO es una página del dashboard, y es deliberado.** Esas tablas `gold.*_demo` son **sintéticas**: el dashboard muestra el pipeline **productivo** de criptomonedas, y mezclarle una demo de juguete confunde las dos cosas. El notebook de la clase la grafica ahí mismo — el patrón de consumo es idéntico, lo que cambia es dónde vive.
 
