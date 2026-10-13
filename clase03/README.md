@@ -62,7 +62,7 @@ Abrí `clase03.ipynb`. El notebook explica los conceptos y al ejecutarse genera 
 |---|--------------|--------------|------------|
 | — | (teoría — no archivo) | — | Carga manual con pandas (`to_sql`) a `bronze.test_manual_notebook`, **sin idempotencia**. Solo para entender la mecánica básica. |
 | 01 | `bronze_01_simple.py` | `stack/dags/01-bronze/` | + **Idempotencia** por SHA256 de archivo + Hive partitioning (`processed/ds=YYYY-MM-DD/`) |
-| 02 | `bronze_02_multiple.py` | `stack/dags/01-bronze/` | + **Multi-formato** (CSV/JSON/JSONL) + **quarantine** para archivos rotos (con for-loop manual) |
+| 02 | `bronze_02_multiple.py` | `stack/dags/01-bronze/` | + **Multi-formato** (CSV/JSON/JSONL/Parquet) + **quarantine** para archivos rotos (con for-loop manual) |
 | 03 | `bronze_03_dynamic.py` | `stack/dags/01-bronze/` | Refactor de `bronze_02_multiple` con **Dynamic Task Mapping** (`.expand()`) — una task por archivo, paralelizable y con aislamiento de errores |
 | 04 | `bronze_04_con_contrato.py` | `stack/dags/01-bronze/` | + **Data Contract YAML** — valida la forma del archivo contra `stack/data/contracts/ventas.yaml` antes de cargar |
 
@@ -149,7 +149,7 @@ Hasta acá tenemos `bronze.*` con datos crudos (forma validada por contrato `ven
 | **Pattern Quarantine** | Filas que fallan el contrato NO se descartan — van a `silver.quarantine_*` con `quarantine_reason` (motivo Pydantic estructurado) |
 | **Audit metadata por capa** | `silver_at`, `quarantined_at`, `_processed_at`, `_source_table`, `_contract_version` para lineage completo |
 | **SCD Tipo 2** *(concepto)* | Cómo se historizan los cambios de una dimensión (`business_key`, `effective_date`), con un mini-lab. El bloque `scd:` del YAML queda declarado para el futuro: **ningún DAG del curso lo implementa** |
-| **Upsert** (insertar o actualizar) | Idempotencia a nivel fila — el DAG puede fallar a la mitad y reanudarse sin duplicar |
+| **Idempotencia por día** (`DELETE` de la partición + `append`) | El DAG se puede re-correr, y reprocesar historia con un backfill, sin duplicar |
 
 > 🔁 **El círculo se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze ahora valida la **semántica** de cada fila en Silver. **Un contrato, dos capas, dos responsabilidades**.
 
