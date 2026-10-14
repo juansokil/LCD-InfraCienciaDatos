@@ -97,12 +97,12 @@ services:
       # OPCION A (default): host 5432 -> contenedor 5432
       #   Si tenés un Postgres instalado en Windows o algun otro contenedor usando 5432,
       #   este mapeo va a fallar con "failed to set up container networking".
-      - "5432:5432"
+      # - "5432:5432"
       #
       # OPCION B: host 5433 -> contenedor 5432
       #   Descomentá esta linea y comentá la de arriba si el puerto 5432 esta ocupado.
       #   IMPORTANTE: si cambiás a 5433, también hay que actualizar las conexiones  que usen `localhost:5432`.
-      # - "5433:5432"
+      - "5433:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}" ]
       interval: 10s
