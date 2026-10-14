@@ -1,6 +1,6 @@
 # Ejercicio 05 — Reglas de entrega
 
-> El Ejercicio 05 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2 — 5 queries** (G1–G5) que arman **la misma tabla Gold**, unidades vendidas por categoría y mes: las métricas por mes, el JOIN que trae la categoría, el corte con `HAVING`, la participación y el puesto con *window functions*, y la variación con `LAG`. Cada consigna dice **qué hacer paso por paso** y **qué columnas** tiene que devolver. Son los patrones que la Capa Gold usa para **agregar y responder preguntas de negocio** (colapsan el grano, al revés que Silver en el ejercicio 04).
+> El Ejercicio 05 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** — un solo archivo, autocontenido (lo que se **entrega** es el `.txt` que genera, nunca el notebook): **Parte 1 — Setup** carga la base **Northwind** (Postgres o DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2 — 6 queries** (G1–G6) que arman **la misma tabla Gold**, ventas por categoría y mes: el grano, el JOIN con la dimensión (*star*), el corte con `HAVING`, el segmento con `CASE`, la participación y el ranking con *window functions*, y la variación con `LAG`. Son los patrones que la Capa Gold usa para **agregar y responder preguntas de negocio** (colapsan el grano, al revés que Silver en el ejercicio 04).
 >
 > Esta carpeta guarda tu entrega (`estudiantes/`) y el **material de referencia del pipeline productivo**: el DAG [`dag_crypto_gold.py`](dag_crypto_gold.py) (ELT: todo en SQL, con `CREATE TABLE ... AS SELECT`), que es esto mismo en grande.
 
@@ -35,12 +35,14 @@ Ejercicios SQL (forma verificada, extraido de las queries, no autoreporte):
   G3: OK (27x3) h=C0DF431C
   G4: SIN_QUERY (0x0) h=-
   G5: FORMA_INESPERADA (1x1) h=-
-Items OK: 3 / 5
+  G6: OK (64x4) h=9C0D1E2F
+Items OK: 4 / 6
 Unidades totales (G1): 12663
 Pedidos distintos (G1): 195
-Pct del mes suman 100 (G4): -
-Meses sin variacion (G5): -
-Variaciones con decimales (G5): -
+Segmentos (G4): -
+Pct del mes suman 100 (G5): -
+Meses sin variacion (G6): 8
+Variaciones con decimales (G6): SI
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-05-01
 ```
@@ -49,7 +51,7 @@ Fecha: 2026-05-01
 >
 > **Las queries NO se autocorrigen contra una solución** (las soluciones no se publican — el aprendizaje es pelearla). Pero la entrega **sí verifica**:
 >
-> - **G1–G5**: ejecuta tus `query_g1..query_g5` y exige la **forma exacta** del resultado (`filas×cols`). Una query que corre pero devuelve otra cosa (ej. `SELECT 1`) figura como `FORMA_INESPERADA` y **no cuenta**. Además registra un hash sha256 del resultado — **extraído automáticamente, NO se autoreporta nada**.
+> - **G1–G6**: ejecuta tus `query_g1..query_g6` y exige la **forma exacta** del resultado (`filas×cols`). Una query que corre pero devuelve otra cosa (ej. `SELECT 1`) figura como `FORMA_INESPERADA` y **no cuenta**. Además registra un hash sha256 del resultado — **extraído automáticamente, NO se autoreporta nada**.
 >
 > El **código** sha256 final se deriva de esos fingerprints + el motor + Northwind. **Si alguna query no te salió, entregá igual**: queda como `SIN_QUERY` y las demás cuentan lo mismo.
 
