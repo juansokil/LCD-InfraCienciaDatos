@@ -3,12 +3,12 @@
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
 > 1. **Notebook teórico** ([`clase05.ipynb`](clase05.ipynb)) — conceptos + DAG demo + consumo de Gold desde el notebook, sobre datos sintéticos (`silver.ventas_demo`) + **cinco queries medidas sobre el Gold real** del pipeline
-> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **5 queries de SQL Gold** sobre **Northwind** (G1–G5) que arman, paso a paso, una misma tabla Gold
+> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — **6 queries de SQL Gold** sobre **Northwind** (G1–G6) que arman, paso a paso, una misma tabla Gold
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py)) — para copy-paste a Airflow
 
 > **Material de la clase**:
 > - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + el DAG pedagógico `gold_01_star_basico.py` (generado vía `%%writefile`), el chequeo de **integridad referencial en vivo**, el **consumo** del star desde el propio notebook y la sección **🔬 4.5 Cinco queries para ver si el modelo sirve**, la única de la teórica que mide sobre el warehouse productivo. La **ABT** pasó a la clase 06, que es donde se usa.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2** son **5 queries** (G1–G5) que arman la misma tabla Gold — las métricas por mes, el JOIN que trae la categoría, el corte con `HAVING`, la participación y el puesto con *window functions*, y la variación con `LAG`. Cada consigna está escrita como pasos numerados, con el nombre exacto de las columnas que tiene que devolver. La **📦 Entrega** ejecuta tus queries, verifica la forma exacta de cada resultado (sin autoreporte) y genera **un** archivo: el `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (dual-engine Postgres/DuckDB) y le aplica la limpieza que ya hizo Silver; **Parte 2** son **6 queries** (G1–G6) que arman la misma tabla Gold — el grano, el JOIN con la dimensión, el corte con `HAVING`, el segmento con `CASE`, la participación y el ranking con *window functions*, y la variación con `LAG`. La **📦 Entrega** ejecuta tus queries, verifica la forma exacta de cada resultado (sin autoreporte) y genera **un** archivo: el `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
 
 ---
@@ -111,7 +111,7 @@ Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`
 
 ### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-Abrí `ejercicios/ejercicio.ipynb` (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB, y le aplica la limpieza que ya hizo Silver: país normalizado y el precio inválido en cuarentena), y resolvé las **5 queries** de la **Parte 2**. Las cinco arman la misma tabla Gold —unidades por categoría y mes— y cada consigna dice, paso por paso, qué hacer y qué columnas devolver. Al final, la sección **📦 Entrega** **ejecuta tus `query_g1..query_g5`**, verifica la forma exacta de cada resultado y genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`, que se sube con commit + push: tu PR se actualiza solo. Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+Abrí `ejercicios/ejercicio.ipynb` (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB, y le aplica la limpieza que ya hizo Silver: país normalizado y el precio inválido en cuarentena) y resolvé las **6 queries** de la **Parte 2**. Las seis arman la misma tabla Gold —ventas por categoría y mes— y cada consigna dice qué pieza le suma. Al final, la sección **📦 Entrega** **ejecuta tus `query_g1..query_g6`**, verifica la forma exacta de cada resultado y genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`, que se sube con commit + push: tu PR se actualiza solo. Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
 
 **Commit y push.** Es **un** archivo. Desde la raíz del repo:
 
