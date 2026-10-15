@@ -5,7 +5,6 @@
 FROM python:3.11-slim
 
 # psycopg2-binary: driver para el backend store en Postgres (data_warehouse).
-# Fijamos SQLAlchemy en la rama 2.0 para evitar la incompatibilidad de mlflow 3.4.0 con SQLAlchemy 2.1.
-RUN pip install --no-cache-dir mlflow==3.4.0 SQLAlchemy==2.0.44 psycopg2-binary==2.9.11
+RUN pip install --no-cache-dir mlflow==3.4.0 psycopg2-binary==2.9.11
 
 EXPOSE 5000
