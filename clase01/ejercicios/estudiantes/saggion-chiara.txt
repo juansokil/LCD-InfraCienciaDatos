@@ -1,0 +1,6 @@
+Apellido: Saggion
+Nombre: Chiara
+Usuario GitHub: saggionchiara0108-dotcom
+Rama: estudiante/saggion-chiara
+Codigo: 94F9C615545F
+Fecha: 2026-10-16
