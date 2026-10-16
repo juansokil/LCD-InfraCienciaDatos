@@ -1,0 +1,16 @@
+Apellido: Goñi
+Nombre: Juan Cruz
+Rama: estudiante/goni-juancruz
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los metadatos internos de Airflow (DAGs, corridas, estado de las tareas, XComs, conexiones y usuarios) y no se expone al host: solo lo usa Airflow por la red de Docker. data_warehouse guarda los datos del curso (esquemas bronze, silver y gold, y la base mlflow) y se publica en el 5432 para usarlo desde notebooks y el dashboard. Están separados para no mezclar el estado del orquestador con los datos analíticos: se pueden reiniciar, respaldar o borrar por separado, tienen credenciales distintas y un problema en uno no afecta al otro.
+Pregunta (b) - Datos despues del down:
+  Porque los datos de Postgres se guardan en un volumen nombrado de Docker (data_warehouse_data, montado en /var/lib/postgresql/data) que vive fuera del contenedor. docker compose down elimina los contenedores y la red, pero no los volúmenes nombrados, así que al volver a levantar el stack Postgres encuentra los datos. Solo se pierden con docker compose down -v. Además init.sql solo corre cuando el volumen está vacío.
+Pregunta (c) - DAGs en el contenedor:
+  Con un bind mount: en el compose, ./dags (la carpeta stack/dags de mi máquina) se monta en /opt/airflow/dags dentro del contenedor. No es una copia, es la misma carpeta compartida, así que lo que guardo en mi máquina lo ve Airflow al instante. Además Airflow re-escanea esa carpeta cada 10 segundos (REFRESH_INTERVAL y DAG_DIR_LIST_INTERVAL = 10), por lo que un DAG nuevo aparece sin reconstruir nada
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría solo el lado del host del mapeo: "8081:8080" en lugar de "8080:8080" (la opción B del compose). El formato es HOST:CONTENEDOR y Airflow sigue escuchando en el 8080 dentro del contenedor, así que solo cambia el puerto por el que entro desde mi máquina (http://localhost:8081). El puerto del contenedor no se toca porque Airflow escucha ahí
+Pregunta (e) - Credenciales del warehouse:
+  No está escrita en el YAML: el compose usa variables (${SOURCE_DB_PASS}, junto con SOURCE_DB_USER y SOURCE_DB_NAME) y Docker Compose las toma automáticamente del archivo .env de la carpeta stack/. Con eso la imagen de Postgres crea el usuario, la contraseña y la base la primera vez que arranca. Así las credenciales se cambian en un solo lugar sin tocar el docker-compose.yml.
+Codigo: 37A5B2242A8A
+Fecha: 2026-10-14
