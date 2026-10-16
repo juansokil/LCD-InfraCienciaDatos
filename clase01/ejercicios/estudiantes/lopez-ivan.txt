@@ -1,0 +1,6 @@
+Apellido: lopez
+Nombre: ivan
+Usuario GitHub: IvanLpp
+Rama: estudiante/lopez-ivan
+Codigo: 1CCE28A4F8D8
+Fecha: 2026-10-04
