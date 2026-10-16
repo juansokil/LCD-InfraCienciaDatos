@@ -1,0 +1,6 @@
+Apellido: Wallach
+Nombre: Clara Hinde
+Usuario GitHub: ClaraWallach
+Rama: estudiante/wallach-clarahinde
+Codigo: 805494256F87
+Fecha: 2026-10-05
