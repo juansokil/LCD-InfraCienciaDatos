@@ -1,0 +1,16 @@
+Apellido: Oyola
+Nombre: Ezequiel
+Rama: estudiante/oyola-ezequiel
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los metadatos, logea todos los estados, historial y dependencias. data_warehouse guarda los datos utilizados para los analisis en las fases de Bronze, Silver y Gold. estan separados para aislar los datos de analisis de los logs de la metadata.
+Pregunta (b) - Datos despues del down:
+  porque los datos se guardan en el volumen data_warehouse_data el cual persiste la informacion del contenedor.
+Pregunta (c) - DAGs en el contenedor:
+  porque en la configuracion del docker se especifica un "bind" de origen "./dags" y objetivo "/opt/airflow/dags" para que airflow lea esa carpeta.
+Pregunta (d) - Puerto 8080 ocupado:
+  cambiaria el puerto por 8081:8080 asi airflow sigue escuchando el puerto 8080 y accede desde localhost:8081.
+Pregunta (e) - Credenciales del warehouse:
+  Lo sabe porque se esta haciendo referencia a la variable SOURCE_DB_PASS que esta guardado dentro del archivo .env
+Codigo: C70EEDBA1290
+Fecha: 2026-10-15
