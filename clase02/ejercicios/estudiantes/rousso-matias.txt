@@ -1,0 +1,16 @@
+Apellido: rousso
+Nombre: matias
+Rama: estudiante/rousso-matias
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Uno guarda Metadatos de Airflow (Interno) (Si algo fallo, etc), el otro guarda los datos que procesamos (csv, modificaciones a estos, etc). Estan separados para que no se mezclen
+Pregunta (b) - Datos despues del down:
+  Por los volumenes, que justamente sirven para esto, los dockers son temporales y se pierde la informacion si no hay un volumen
+Pregunta (c) - DAGs en el contenedor:
+  se vincula la carpeta dags con una carpeta del contenedor con un bind mount, y es como que ambos acceden a los mismos archivos
+Pregunta (d) - Puerto 8080 ocupado:
+  en el docker-compose.yml dice que si esta ocupada usar 8081:8080, lo mismo con lo del puerto 5000:5000. Esto es por que el segundo 8080 es el puerto del docker, y el primero es el de mi pc.
+Pregunta (e) - Credenciales del warehouse:
+  La contraseña que aparece es ${SOURCE_DB_PASS}, la cual es una variable previamente definida con la contraseña en el .env y se reemplaza por esto.
+Codigo: 0BA0A5736A43
+Fecha: 2026-10-17
