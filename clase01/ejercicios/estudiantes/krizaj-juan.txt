@@ -1,0 +1,6 @@
+Apellido: Krizaj
+Nombre: Juan
+Usuario GitHub: juankrizaj
+Rama: estudiante/krizaj-juan
+Codigo: 17C384194204
+Fecha: 2026-10-08
