@@ -1,0 +1,190 @@
+# =====================================================================
+# Data Contract — dataset: crypto_markets
+# ---------------------------------------------------------------------
+# Manifiesto declarativo del dataset que ingestamos desde la API publica
+# de CoinGecko (/coins/markets). Es el equivalente a `ventas.yaml` pero
+# para un dataset REAL (no sintetico) y con origen API (no archivos).
+#
+# Diferencias clave vs `ventas.yaml`:
+#   - `format.type: api`              (no es csv/json/jsonl, es payload de API)
+#   - `evolution_policy.allow_new_columns: true`  (las APIs evolucionan,
+#                                                  agregan campos sin avisar)
+#   - Sin SCD por ahora: crypto se ingesta como snapshot historico via
+#     `ingested_at`, no como dimension cambiante.
+#
+# Este contrato lo consumen:
+#   - Bronze (clase03): valida que la API devolvio las columnas core.
+#     Si falta `current_price`, el DAG aborta antes de insertar (no escribe
+#     bronze.crypto_markets corrupto).
+#   - Silver (clase04, futuro): aplicara `quality_rules` (current_price >= 0,
+#     market_cap >= 0, market_cap_rank >= 1).
+# =====================================================================
+
+dataset: crypto_markets
+version: 1.0
+owner: data_engineering
+source: coingecko_api
+
+# ----- FORMA DEL ORIGEN -----------------------------------------------
+# A diferencia de `ventas` (archivos), crypto viene de una API HTTP.
+format:
+  type: api
+  encoding: "utf-8"
+
+delivery:
+  frequency: hourly
+  source_endpoint: "https://api.coingecko.com/api/v3/coins/markets"
+  source_params:
+    vs_currency: usd
+    order: market_cap_desc
+
+# ----- SCHEMA ESPERADO (columnas core) -------------------------------
+# CoinGecko devuelve 22+ columnas. Solo declaramos las que consideramos
+# CORE (las que el DAG productivo necesita para funcionar).
+# El resto entra automaticamente porque `evolution_policy.allow_new_columns: true`.
+schema:
+  - name: id
+    type: string
+    nullable: false
+    primary_key: true     # ej: "bitcoin", "ethereum", "solana"
+
+  - name: symbol
+    type: string
+    nullable: false       # ej: "btc", "eth", "sol"
+
+  - name: name
+    type: string
+    nullable: false       # ej: "Bitcoin", "Ethereum"
+
+  - name: current_price
+    type: numeric
+    nullable: false
+    rules:
+      ge: 0               # los precios no pueden ser negativos
+
+  - name: market_cap
+    type: numeric
+    nullable: true        # algunas criptos chicas pueden tener market_cap null
+    rules:
+      ge: 0
+
+  - name: market_cap_rank
+    type: integer
+    nullable: true
+    rules:
+      ge: 1               # el ranking arranca en 1
+
+  - name: last_updated
+    type: timestamp
+    nullable: false       # CoinGecko siempre devuelve cuando refresco el dato
+
+# ----- REGLAS DE CALIDAD ---------------------------------------------
+# ---------------------------------------------------------------------
+# REGLAS DE CALIDAD
+# ---------------------------------------------------------------------
+# Las aplica `evaluar_reglas()` de common/contracts.py sobre el lote entero,
+# NO Pydantic. Pydantic valida fila por fila y por eso no puede evaluar
+# `unique` (necesita el conjunto) ni comparar dos columnas entre si.
+#
+# SEVERIDAD -- dos niveles, y la diferencia importa:
+#   error   -> el registro va a CUARENTENA. Es inutilizable.
+#   warning -> el registro PASA a Silver, marcado en `_quality_flags`.
+#              Es usable pero sospechoso.
+#
+# Con un solo nivel hay dos salidas y las dos son malas: reglas laxas que no
+# atrapan nada, o reglas estrictas que tiran datos buenos.
+#
+# LOS UMBRALES SE MIDIERON, NO SE INVENTARON. Sobre 11.250 registros reales:
+#   reconciliacion market_cap : error mediano 0,009% · p95 0,26% · max 0,73%
+#   frescura de la fuente      : mediana 2,8 min · p95 3,8 min · max 4,7 min
+# De ahi salen `tolerance: 0.01` y `max_age_minutes: 20`: en operacion normal
+# no se disparan nunca, y si se disparan es porque algo cambio. Una regla cuyo
+# umbral se elige sin mirar los datos da siempre cero o siempre todo.
+# ---------------------------------------------------------------------
+quality_rules:
+
+  # --- ERROR: sin esto el registro no sirve -------------------------
+  - rule: not_null
+    column: id
+    severity: error
+
+  - rule: not_null
+    column: current_price
+    severity: error
+
+  - rule: positive
+    column: current_price
+    severity: error
+
+  # Grano declarado de bronze/silver: 1 fila por cripto por snapshot.
+  # `unique` es de CONJUNTO: mira todas las filas a la vez.
+  - rule: unique
+    columns: [id, snapshot_ts]
+    severity: error
+
+  # --- WARNING: usable, pero mirar -----------------------------------
+  # El precio deberia estar dentro del rango de las ultimas 24 h... y a veces
+  # no lo esta. No es un dato corrupto: las tres columnas NO se refrescan en
+  # el mismo instante, asi que un precio que acaba de romper el minimo del dia
+  # aparece fuera del rango hasta que `low_24h` se actualiza.
+  # Medido: 399 de 11.250 (3,5%).
+  - name: precio_dentro_del_rango_24h
+    rule: within_columns
+    column: current_price
+    min_column: low_24h
+    max_column: high_24h
+    severity: warning
+
+  # El maximo del dia no puede ser menor que el minimo. Si esto se dispara,
+  # la fuente rompio algo de verdad. Medido: 0 de 11.250 -- es una alarma.
+  - name: rango_24h_coherente
+    rule: ordered
+    columns: [low_24h, high_24h]
+    severity: warning
+
+  # market_cap deberia ser precio x supply circulante.
+  # Medido: error mediano 0,009%, maximo 0,73%. Con 1% no se dispara en
+  # operacion normal; si se dispara, alguna de las tres columnas se desalineo.
+  - name: market_cap_reconcilia
+    rule: ratio_close
+    column: market_cap
+    equals: [current_price, circulating_supply]
+    tolerance: 0.01
+    severity: warning
+
+  # No puede circular mas de lo que existe. Medido: 1.291 de 11.250 (11,5%),
+  # y son diferencias de redondeo (bitcoin-cash: 20.087.699 vs 20.087.418).
+  # Warning y no error justamente por eso: el dato sirve.
+  - name: supply_coherente
+    rule: ordered
+    columns: [circulating_supply, total_supply]
+    severity: warning
+
+  # Volumen cero en un feed de "top 50 por capitalizacion" no es un error de
+  # dato: son fondos institucionales que no cotizan en mercado abierto
+  # (medido: 2 activos, 225 snapshots cada uno). La regla no dice "esto esta
+  # mal", dice "ojo, este activo no deberia entrar en un analisis de volumen".
+  - name: volumen_positivo
+    rule: positive
+    column: total_volume
+    severity: warning
+
+  # Frescura DE LA FUENTE: cuan viejo venia el dato de CoinGecko.
+  # Medido: mediana 2,8 min, maximo 4,7. Con 20 min es una alarma, no un filtro.
+  - name: fuente_fresca
+    rule: fresh
+    column: last_updated
+    compared_to: snapshot_ts     # <- contra la captura, NO contra el reloj
+    max_age_minutes: 20
+    severity: warning
+
+# ----- EVOLUCION DE SCHEMA -------------------------------------------
+# DIFERENCIA CLAVE con ventas.yaml: las APIs externas evolucionan y agregan
+# campos sin previo aviso. Si rechazaramos cada vez que CoinGecko agrega una
+# columna nueva, el pipeline se romperia constantemente. Por eso permitimos
+# columnas nuevas (allow_new_columns: true) pero exigimos que no falten las
+# requeridas (allow_missing_columns: false).
+evolution_policy:
+  allow_new_columns: true
+  allow_missing_columns: false
+  allow_type_changes: false
