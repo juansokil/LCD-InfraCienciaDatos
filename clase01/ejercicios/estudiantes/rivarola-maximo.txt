@@ -1,0 +1,6 @@
+Apellido: Rivarola
+Nombre: Maximo
+Usuario GitHub: Maximo001
+Rama: estudiante/rivarola-maximo
+Codigo: 26112C8B324D
+Fecha: 2026-10-18
