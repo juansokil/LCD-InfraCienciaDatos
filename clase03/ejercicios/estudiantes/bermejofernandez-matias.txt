@@ -1,0 +1,19 @@
+Apellido: Bermejo Fernandez
+Nombre: Matias
+Rama: estudiante/bermejofernandez-matias
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81226
+Doble ingesta: SI
+Ultima carga: 2026-10-18 11:25:14.680705
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla Bronze y conservaria el archivo raw, porque desde el crudo puedo reconstruir la tabla despues. Si borro el raw, pierdo la respuesta original de la API y ya no podria reprocesarla con otros criterios.
+Pregunta (b) - replace y append:
+  Con replace queda solo la ultima carga porque reemplaza la tabla completa. Con append se agregan nuevas filas y se conserva el historial. El DAG productivo usa append.
+Pregunta (c) - Dos cargas identicas:
+  Pueden quedar identicos porque las dos llamadas se hicieron casi seguidas y CoinGecko devolvio los mismos datos. Se guardan igual porque cada archivo representa una corrida distinta y Bronze conserva cada snapshot para auditoria e historial.
+Codigo: 26CE44386F48
+Fecha: 2026-10-18
