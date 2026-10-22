@@ -1,0 +1,19 @@
+Apellido: Martin
+Nombre: Tomas
+Rama: estudiante/martin-tomas
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 84207
+Doble ingesta: SI
+Ultima carga: 2026-10-21 21:59:47.873343
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla, el archivo crudo tiene la respuesta de la API tal cual llego y hasta el momento de la carga esta en su nombre, asi que con los archivos puedo reconstruir la tabla sin volver a llamar a la API
+Pregunta (b) - replace y append:
+  Con replace la tabla se borra y queda solo la ultima carga. Con append se le suma la carga nueva y quedan todas. El DAG productivo usa append, porque corre cada 15 minutos y tiene que ir acumulando el historial.
+Pregunta (c) - Dos cargas identicas:
+  Porque el Paso 4 no vuelve a llamar a la API, reescribe el mismo response que ya estaba en memoria. Igual se guardan los dos porque cada archivo representa una ejecucion distinta y se guarda con la fecha y hora de cada uno.
+Codigo: CE415E78C4C8
+Fecha: 2026-10-21
