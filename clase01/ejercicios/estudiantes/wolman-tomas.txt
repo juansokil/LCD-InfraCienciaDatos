@@ -1,0 +1,6 @@
+Apellido: Wolman
+Nombre: Tomas
+Usuario GitHub: tomas-wolman
+Rama: estudiante/wolman-tomas
+Codigo: FDD611C63F4C
+Fecha: 2026-10-01

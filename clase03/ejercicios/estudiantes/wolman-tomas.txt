@@ -1,0 +1,19 @@
+Apellido: Wolman
+Nombre: Tomas
+Rama: estudiante/wolman-tomas
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82410
+Doble ingesta: SI
+Ultima carga: 2026-10-15 14:40:49.982485
+Pregunta (a) - La zona raw y la tabla:
+  borraria la tabla de bronze.crypto_markets_demo porque sino perderia ls datos originales porque la funetes raw guarda los archivos en crudo
+Pregunta (b) - replace y append:
+  con replace se sobreescribe y queda solo la ultima carga y con append se acumulan todas las cargas y el dag productivo usa append
+Pregunta (c) - Dos cargas identicas:
+  porque la api devuelve el mismo resultados si consulta seguido y el mercado no cambio y el pipeline los guarda igual porque la zona raw es un registro historico
+Codigo: 0B052319261A
+Fecha: 2026-10-15
