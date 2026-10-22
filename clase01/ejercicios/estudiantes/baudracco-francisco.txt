@@ -1,0 +1,6 @@
+Apellido: Baudracco
+Nombre: Francisco
+Usuario GitHub: franbaudra
+Rama: estudiante/baudracco-francisco
+Codigo: E1558C864B35
+Fecha: 2026-10-06
