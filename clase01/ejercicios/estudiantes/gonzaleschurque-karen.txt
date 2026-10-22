@@ -1,0 +1,6 @@
+Apellido: GonzalesChurque
+Nombre: Karen
+Usuario GitHub: KarenGonzalesCh
+Rama: estudiante/gonzaleschurque-karen
+Codigo: 0F68E94F313C
+Fecha: 2026-10-08
