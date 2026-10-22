@@ -1,0 +1,19 @@
+Apellido: grochowski
+Nombre: uriel
+Rama: estudiante/grochowski-uriel
+Motor: duckdb
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81038
+Doble ingesta: SI
+Ultima carga: 2026-10-22 15:23:45.256149
+Pregunta (a) - La zona raw y la tabla:
+  Se borra la tabla y se queda el arhivo raw, porque desde el crudo se puede voler a crear la tabla. Se perderia la posibilidad de consultar los datos directamente hasta que se haga nuevamente
+Pregunta (b) - replace y append:
+  Si usamos replace se borra lo anterior y queda solo la nueva carga, con append se agregan los datos nuevos a los que estaban. El DAG usa append para guardar el historial
+Pregunta (c) - Dos cargas identicas:
+  Pueden quedar iguales porque las dos consultas se hicieron casi al mismo tiempo y la API puede devolver los mismos datos. Se guardan igual porque brnoze conserva cada carga tal como llego y se duplicarian despues
+Codigo: 3BE42840BC7F
+Fecha: 2026-10-22
