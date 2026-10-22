@@ -1,0 +1,16 @@
+Apellido: Allievi
+Nombre: Juan
+Rama: estudiante/allievi-juanmanuel
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda su propio estado y data_warehouse los datos del curso; están separados por funciones
+Pregunta (b) - Datos despues del down:
+  Porque utilizan un volumen persistente que sobrevive al borrado de contenedores
+Pregunta (c) - DAGs en el contenedor:
+  Mediante un bind mount que sincroniza la carpeta local con la del contenedor
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el mapeo de puertos en el docker-compose.yml (ej. "8081:8080") para evitar conflictos
+Pregunta (e) - Credenciales del warehouse:
+  Se configuran a través de variables de entorno definidas en el compose
+Codigo: 3A1A44535583
+Fecha: 2026-10-22
