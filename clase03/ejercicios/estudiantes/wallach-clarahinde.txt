@@ -1,0 +1,19 @@
+Apellido: Wallach
+Nombre: ClaraHinde
+Rama: estudiante/wallach-clarahinde
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81652
+Doble ingesta: SI
+Ultima carga: 2026-10-22 13:14:20.916826
+Pregunta (a) - La zona raw y la tabla:
+  Borraria stack/data/raw este archivo guarda los datos de la API tal cual llegan en un archivo JSON. Al borrarlo se pierde la posibilidad de reconstruir los datos en caso de que haya un error
+Pregunta (b) - replace y append:
+  Al utilizar "replace" se remplazan toods los datos existentes (en caso de haber) por los datos nuevos. Append en cambio, agrega los datos nuevos a los datos ya existentes. El DAG productivo utiliza append.
+Pregunta (c) - Dos cargas identicas:
+  Los archivos pueden quedar identicos porque al haber pasado poco tiempo los datos que trae de la API son iguales. El pipeline guarda ambos porque en la capa bronze hay que guardar todos los datos como vienen. Luego habra que reconocer los duplicados para no cometer errores con la informacion
+Codigo: 620C9B4FCAC1
+Fecha: 2026-10-22

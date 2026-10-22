@@ -1,0 +1,16 @@
+Apellido: Wallach
+Nombre: Clara Hinde
+Rama: estudiante/wallach-clarahinde
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  El postgres de Airflow guarda su propio estado: Dag runs, task instances, Xcoms. El postgres data-warehouse guarda los datos utilizando el esquema medallion. El primero no esta expuesto al host mientras que el primero si.
+Pregunta (b) - Datos despues del down:
+  Los datos siguen estando porque aunque el contenedor se destruye, los datos estan guardados en volumenes
+Pregunta (c) - DAGs en el contenedor:
+  Airflow accede a traves de un enlace directo a los DAGs. De este modo si se modifica el archivo de python los cambios se ven dentro del contenedor. Ademas Airflow escanea periodicamente la carpeta en la que se escriben los DAGs para encontrar modificaciones o nuevos archivos
+Pregunta (d) - Puerto 8080 ocupado:
+  Habria que modficar el puerto para evitar conflictos con la aplicacion que lo esta utilizando
+Pregunta (e) - Credenciales del warehouse:
+  Utiliza el archivo .env donde se encuentran las variables de entorno
+Codigo: 097EFB018215
+Fecha: 2026-10-20
