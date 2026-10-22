@@ -1,0 +1,6 @@
+Apellido: ramos
+Nombre: lautaro
+Usuario GitHub: lautira2006
+Rama: estudiante/ramos-lautaro
+Codigo: 7B6AA6087BF6
+Fecha: 2026-10-05
