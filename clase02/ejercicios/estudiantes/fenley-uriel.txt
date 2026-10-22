@@ -1,0 +1,16 @@
+Apellido: Fenley
+Nombre: Uriel
+Rama: estudiante/fenley-uriel
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la información interna de Airflow, mientras que data_warehouse guarda los datos del proyecto. Están separados para que cada uno tenga su función y no se mezcle todo.
+Pregunta (b) - Datos despues del down:
+  Porque los datos se guardan en un volumen de Docker que no se borra al bajar el stack. Entonces, cuando lo volvés a levantar, los datos siguen estando.
+Pregunta (c) - DAGs en el contenedor:
+  Porque Docker conecta la carpeta stack/dags de mi máquina con la carpeta que Airflow lee dentro del contenedor. Así puede acceder a los archivos sin tener que copiarlos.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría 8080:8080 por 8081:8080, porque el puerto 8080 de mi máquina está ocupado. Así accedo por el 8081 sin cambiar el puerto interno de Airflow.
+Pregunta (e) - Credenciales del warehouse:
+  La contraseña está definida en el archivo .env del proyecto mediante la variable SOURCE_DB_PASS. Docker Compose toma ese valor y se lo pasa a PostgreSQL.
+Codigo: 44FF352F5D75
+Fecha: 2026-10-14
