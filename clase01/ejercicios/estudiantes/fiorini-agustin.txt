@@ -1,0 +1,6 @@
+Apellido: fiorini
+Nombre: agustin
+Usuario GitHub: agustinfiorini06-max
+Rama: estudiante/fiorini-agustin
+Codigo: 692654347677
+Fecha: 2026-10-14

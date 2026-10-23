@@ -1,0 +1,16 @@
+Apellido: fiorini
+Nombre: agustin
+Rama: estudiante/fiorini-agustin
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db almacena metadatos internos de Airflow como usuarios, ejecucion de DAGs y logs, mientras que data_warehouse almacena los datos y tablas de negocio. Se separan para aislar la orquestacion de la carga analitica y evitar que problemas en una base afecten a la otra.
+Pregunta (b) - Datos despues del down:
+  Porque utiliza volumenes de Docker persistentes en el disco de la maquina. Al ejecutar docker compose down se destruyen los contenedores pero no los volumenes con los datos.
+Pregunta (c) - DAGs en el contenedor:
+  A traves de un bind mount configurado en los volumenes del compose, donde la carpeta local stack/dags se monta directamente dentro de la ruta del contenedor de Airflow.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria el primer numero, por ejemplo a 8081:8080 o 8082:8080, porque representa el puerto de escucha en la maquina host. El segundo numero es el puerto interno del contenedor y debe mantenerse igual.
+Pregunta (e) - Credenciales del warehouse:
+  La obtiene mediante variables de entorno definidas en un archivo .env o en el entorno del sistema, interpoladas por Docker Compose mediante la sintaxis ${VARIABLE}.
+Codigo: C37EF2609F88
+Fecha: 2026-10-15
