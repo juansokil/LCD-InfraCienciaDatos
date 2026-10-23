@@ -1,0 +1,16 @@
+Apellido: Scarinci
+Nombre: Donato
+Rama: estudiante/scarinci-donato
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los metadatos internos q tiene airflow mientras que data_warehouse posee los datos del proyecto separados en las capas bronze, silver y gold, estos estan separados especificamente para que no se mezclen estos datos
+Pregunta (b) - Datos despues del down:
+  siguen estando ya que estan guardados en un volumen persistente
+Pregunta (c) - DAGs en el contenedor:
+  Airflow accede a los archivos DAGs mediante un bind mount el cual vincula a las carpetas
+Pregunta (d) - Puerto 8080 ocupado:
+  cambiaria solo el primer numero por 8081 para acceder al Airflow desde el local host sin cambiar el puerto del contenedor
+Pregunta (e) - Credenciales del warehouse:
+  el compose las lee gracias al archivo .env reemplazando la variable por su valor real
+Codigo: 9CDD2AA14C9F
+Fecha: 2026-10-08
