@@ -1,0 +1,19 @@
+Apellido: Arcondo
+Nombre: Mia
+Rama: estudiante/arcondo-mia
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82774
+Doble ingesta: SI
+Ultima carga: 2026-10-20 14:53:03.721774
+Pregunta (a) - La zona raw y la tabla:
+  Dejaría el archivo crudo, porque conserva la respuesta original completa y permite reconstruir o reprocesar los datos sin volver a consultar la API. Sin la tabla perdería una forma cómoda de consultar los datos, pero podría volver a crearla desde los archivos crudos.
+Pregunta (b) - replace y append:
+  Con if_exists='replace', se reemplaza toda la tabla con los nuevos datos. Con if_exists='append', se agregan los nuevos datos a los existentes. El DAG productivo usa 'append' para evitar perder datos en caso de fallos.
+Pregunta (c) - Dos cargas identicas:
+  Las respuestas pueden ser idénticas porque se consultó la API con muy poca diferencia de tiempo y los datos no cambiaron. Igual guardamos cada archivo para conservar cada evento de ingesta y su momento; Bronze registra lo que llegó y no deduplica.
+Codigo: 81D9F531CDE9
+Fecha: 2026-10-20
