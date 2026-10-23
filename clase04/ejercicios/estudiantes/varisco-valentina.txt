@@ -1,0 +1,30 @@
+Apellido: Varisco
+Nombre: Valentina
+Rama: estudiante/varisco-valentina
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (24x3) h=F9977B80
+  E2: OK (1x4) h=89C86E19
+  E3: OK (24x1) h=993DC2D7
+  E4: OK (91x4) h=3E0FDB30
+  E5: OK (77x4) h=B5518D87
+  E6: OK (20x3) h=41F90B3A
+  E7: OK (3x4) h=4B545305
+  E8: OK (91x3) h=7CB2C6BD
+  E9: OK (8x3) h=F1CDE70C
+  E10: OK (27x3) h=3FB47831
+Ejercicios con resultado: 10 / 10
+Productos (E2): 77
+Precio min (E2): -10.0
+Precio max (E2): 263.5
+Precio promedio (E2): 28.606623376623375
+Huerfanos encontrados (E7): 3
+Clientes deduplicados (E8): 91 de 96
+Unidades totales (E9): 12764
+Pedidos distintos (E9): 196
+Combinaciones sobre 200 unidades (E10): 27
+Codigo: 48D17D4543F1
+Fecha: 2026-10-23
