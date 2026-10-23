@@ -7,24 +7,24 @@ Customers: 91 filas
 Orders: 196 filas
 Ejercicios (extraido de las queries, no autoreporte):
   E1: OK (24x3) h=EA14FC0B
-  E2: COLUMNAS INCORRECTAS (esperadas: total_productos, precio_min, precio_max, precio_promedio) (1x4) h=-
-  E3: SIN_QUERY (0x0) h=-
-  E4: SIN_QUERY (0x0) h=-
-  E5: SIN_QUERY (0x0) h=-
-  E6: SIN_QUERY (0x0) h=-
-  E7: SIN_QUERY (0x0) h=-
-  E8: SIN_QUERY (0x0) h=-
-  E9: SIN_QUERY (0x0) h=-
-  E10: SIN_QUERY (0x0) h=-
-Ejercicios con resultado: 1 / 10
-Productos (E2): -
-Precio min (E2): -
-Precio max (E2): -
-Precio promedio (E2): -
-Huerfanos encontrados (E7): -
-Clientes deduplicados (E8): - de 96
-Unidades totales (E9): -
-Pedidos distintos (E9): -
-Combinaciones sobre 200 unidades (E10): -
-Codigo: 9E060541943C
+  E2: OK (1x4) h=3F35B2C8
+  E3: OK (24x1) h=42B5A0CE
+  E4: OK (91x4) h=FE0EE2C3
+  E5: OK (77x4) h=C2CCEB9F
+  E6: OK (20x3) h=2B866EB7
+  E7: OK (3x4) h=6EA42275
+  E8: OK (91x3) h=99FE766C
+  E9: OK (8x3) h=F1CDE70C
+  E10: OK (27x3) h=3FB47831
+Ejercicios con resultado: 10 / 10
+Productos (E2): 77
+Precio min (E2): -10.0
+Precio max (E2): 263.5
+Precio promedio (E2): 28.61
+Huerfanos encontrados (E7): 3
+Clientes deduplicados (E8): 91 de 96
+Unidades totales (E9): 12764
+Pedidos distintos (E9): 196
+Combinaciones sobre 200 unidades (E10): 27
+Codigo: 8E3FC54B3DFF
 Fecha: 2026-10-23
