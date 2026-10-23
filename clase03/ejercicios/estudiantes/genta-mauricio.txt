@@ -1,0 +1,19 @@
+Apellido: genta
+Nombre: mauricio
+Rama: estudiante/genta-mauricio
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 84485
+Doble ingesta: SI
+Ultima carga: 2026-10-21 16:52:26.852683
+Pregunta (a) - La zona raw y la tabla:
+  Nunca debería borrar el raw, ya que esto impide poder procesar nuevamente a posteriori (si perdemos el raw, necesariamente habría que volver a llamar a la API). Por lo que si tuviese que borrar, sería la tabla en bronze, esto inhabilitaría a ejecutar la siguiente etapa (Silver), primero debería procesar nuevamente los archivos raw (es decir, no es una pérdida definitiva).
+Pregunta (b) - replace y append:
+  En el caso del append se preservan ambas versiones del dato con diferente timestamp de ingesta (ingested_at), mientras que en el replace se sustituye la tabla completamente, es decir, sólo estarán los datos correspondientes a esa carga en la tabla. Respecto a producción, se utiliza append, ya que de no ser así, sólo tendríamos la última versión recuperada de la API en la tabla en un momento dado.
+Pregunta (c) - Dos cargas identicas:
+  Porque se está recuperando lo enviado por la API y guardándolo nuevamente, se guarda la misma información, pero por diseño el crudo nunca se debe pisar (carpeta raw) y la tabla se escribe como append (parámetro de cargar_bronze()) por lo tanto los datos aparecen dos veces. Deduplicar es tarea de Silver (y no de Bronze).
+Codigo: 77B1868C7D04
+Fecha: 2026-10-21
