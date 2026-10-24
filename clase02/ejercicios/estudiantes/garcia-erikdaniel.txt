@@ -1,0 +1,16 @@
+Apellido: Garcia
+Nombre: ErikDaniel
+Rama: estudiante/garcia-erikdaniel
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db almacena los metadatos de airflow mientras que en el data_warehouse estan los datos para el negocio.
+Pregunta (b) - Datos despues del down:
+  Porque los datos se almacenan en un volumen persistente de Docker (data_warehouse_data) definido en el archivo docker-compose.yml
+Pregunta (c) - DAGs en el contenedor:
+  Gracias a un mapeo de volúmenes (bind mount) configurado en el archivo docker-compose.yml, que conecta la carpeta local de LA computadora directamente con el directorio interno de DAGs dentro del contenedor de Airflow.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambio el puerto del host en el mapeo del archivo docker-compose.yml
+Pregunta (e) - Credenciales del warehouse:
+  Porque las lee dinámicamente desde un archivo de variables de entorno (.env) ubicado en el proyecto mediante la sintaxis de variables
+Codigo: 8EB7AF568B4A
+Fecha: 2026-10-10
