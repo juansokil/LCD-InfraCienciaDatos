@@ -10,7 +10,7 @@
 |---|---|
 | Matías Agustín Alvarez | Pendiente |
 | Tomás Wolman | Pendiente |
-| Karen Gonzales | Pendiente |
+| Karen Gonzales | KarenGonzalesCh |
 | Ignacio Tomás Gauto | Pendiente |
 | Luna Gomez | Pendiente |
 
