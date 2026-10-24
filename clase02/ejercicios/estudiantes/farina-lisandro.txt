@@ -1,0 +1,16 @@
+Apellido: Farina
+Nombre: Lisandro
+Rama: estudiante/farina-lisandro
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Se separan para no mezclar las cosas. airflow_db es solo para que el programa guarde su propio historial y control interno. data_warehouse es nuestra base de datos real del curso, donde vamos a meter las tablas y los datos de las capas bronze, silver y gold.
+Pregunta (b) - Datos despues del down:
+  Siguen estando porque el compose tiene configurado un volumen. Eso significa que los datos se guardan directamente en el disco de mi computadora, así que aunque apague o borre el contenedor, los archivos no se pierden.
+Pregunta (c) - DAGs en el contenedor:
+  Los puede ver porque se hace un "mapeo" o sincronización entre carpetas (bind mount). Lo que yo guardo en la carpeta stack/dags de mi PC se refleja automáticamente adentro del contenedor de Airflow en tiempo real.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el primer número del mapeo en el archivo compose, por ejemplo poner "8081:8080". Cambio el de la izquierda porque es el puerto de mi computadora, el de la derecha es el de adentro de Docker y ese no se toca.
+Pregunta (e) - Credenciales del warehouse:
+  La sabe porque la saca de las variables de entorno o de un archivo de configuración .env donde ya se dejan guardados el usuario y la contraseña (admin/admin) para todo el grupo de contenedores.
+Codigo: BA4D25DDB014
+Fecha: 2026-10-09
