@@ -1,0 +1,19 @@
+Apellido: Valdez
+Nombre: Javier Gonzalo
+Rama: estudiante/valdez-javiergonzalo
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80460
+Doble ingesta: SI
+Ultima carga: 2026-10-24 16:48:43.045852
+Pregunta (a) - La zona raw y la tabla:
+  sería la tabla ya que stack/data/raw con cada carga crea un archivo nuevo sin pisar al otro.
+Pregunta (b) - replace y append:
+  en el paso 3 se queda con los archivos y los datos crudos, es el que usa el DAG productivo que corre cada 15 minutos
+Pregunta (c) - Dos cargas identicas:
+  porque la funcion append del paso 4 utiliza distintos ingested_at. No vuelve a llamar a la API, guarda de nuevo la misma respuesta que ya tenia en memoria
+Codigo: EF0443515D66
+Fecha: 2026-10-24
