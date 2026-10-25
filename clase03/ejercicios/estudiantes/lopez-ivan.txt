@@ -1,0 +1,19 @@
+Apellido: lopez
+Nombre: ivan
+Rama: estudiante/lopez-ivan
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80515
+Doble ingesta: SI
+Ultima carga: 2026-10-25 16:59:09.206262
+Pregunta (a) - La zona raw y la tabla:
+  Borraria bronze.crypto_markets_demo. Ya que si mantengo los JSON en data/raw puedo reconstruir la tabla cuando quiera
+Pregunta (b) - replace y append:
+  con if_exists="replace" borra y vuelve a crear la tabla con los datos de esa ejecucion. Con if_exists="append" agrega filas a la tabla existente y conserva las de ejecuciones anteriores. En el DAG productivo se usa append
+Pregunta (c) - Dos cargas identicas:
+  Esto es porque las llamadas a la api son relativamente cercanas en tiempo y con cada llamada se guarda un archivo nuevo y en la tabla aparecen dos veces las cripto pero con distinto campo "ingested_at". El pipeline los guarda para mantener la reproducibilidad de los datos
+Codigo: 575814E21BEE
+Fecha: 2026-10-25
