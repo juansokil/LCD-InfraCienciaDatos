@@ -1,0 +1,6 @@
+Apellido: Oyola
+Nombre: Ezequiel
+Usuario GitHub: Equi00
+Rama: estudiante/oyola-ezequiel
+Codigo: EC2B1AF2035E
+Fecha: 2026-10-14
