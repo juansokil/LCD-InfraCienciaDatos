@@ -1,0 +1,16 @@
+Apellido: Varini
+Nombre: Juan Pablo
+Rama: estudiante/varini-juanpablo
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Airflow_db guarda la organización y el estado de las tareas de Airflow, mientras que data_warehouse guarda los datos que se procesaran en las clases. Estan separados porque airflow se guarda los procesos de administración del trabajo mientras que en data_warehouse guarda el resultado del trabajo por lo que se deben manejar de manera independiente
+Pregunta (b) - Datos despues del down:
+  Si, siguen estando porque docker guarda los datos en data_warehouse_data y no depende del estado del contenedor.
+Pregunta (c) - DAGs en el contenedor:
+  Lo puede ver porque en el compose esta la linea "volumes" la cual hace que una carpeta dentro del local sea accecible dentro del contenedor. El DAG se guarda en stack/dags y Airflow lo ve en airflow/dags automaticamente.
+Pregunta (d) - Puerto 8080 ocupado:
+  Si estaria ocupado cambiaria el puerto de mi pc en ports: - "...".
+Pregunta (e) - Credenciales del warehouse:
+  la sabe porque docker compose toma el valor de Source_db_Pass del archivo .env de la carpeta stack y lo coloca ahi al crear el contenedor
+Codigo: A67E10E1162B
+Fecha: 2026-10-27
