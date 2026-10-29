@@ -1,7 +1,7 @@
 # Ejercicio 05 — Reglas de entrega
 
 > El Ejercicio 05 vive en **[`ejercicio.ipynb`](ejercicio.ipynb)** y **no tiene SQL**: es el paso
-> que viene antes. Leés un caso —**una cadena de gimnasios**: qué registra su sistema y qué tres
+> que viene antes. Leés un caso —**una cadena de gimnasios**: qué registra su sistema y qué cuatro
 > preguntas quiere contestar el tablero— y decidís **qué es el hecho, cuáles son las dimensiones y
 > qué se mide**. Es el mismo ejercicio que en la clase se desarrolla con el caso del hotel.
 >
@@ -38,9 +38,9 @@ Apellido: Sokil
 Nombre: Juan
 Rama: estudiante/sokil-juan
 Caso: gimnasio
-Hecho: el ingreso al gimnasio: una fila cada vez que un socio pasa el molinete
-Dimensiones: socio (trae el plan), sede (trae el barrio) y la fecha/hora del ingreso
-Metricas: la cantidad de ingresos, que se cuenta; no hay ninguna columna que se sume
+Hecho: <tu respuesta (a), en una sola línea>
+Dimensiones: <tu respuesta (b)>
+Metricas: <tu respuesta (c)>
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-05-01
 ```
