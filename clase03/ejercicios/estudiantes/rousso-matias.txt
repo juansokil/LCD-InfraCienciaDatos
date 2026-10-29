@@ -1,0 +1,19 @@
+Apellido: Rousso
+Nombre: Matias
+Rama: estudiante/rousso-matias
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80286
+Doble ingesta: SI
+Ultima carga: 2026-10-29 17:39:22.564600
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla bronze, ya que si borro el archivo raw perderia los datos originales, en cambio si borro la tabla, puedo volver a hacerla con el archivo crudo
+Pregunta (b) - replace y append:
+  El 3 si existe una tabla la reemplaza por el nuevo, el 4 agrega sin borrar nada. El DAG productivo tiene que usar append para no perder los datos anteriores.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque ambos pasos descargan los mismos datos de la API. Se guardan ambos archivos porque cada uno representa una carga distinta
+Codigo: A6DD67754BD7
+Fecha: 2026-10-29
