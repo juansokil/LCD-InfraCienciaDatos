@@ -8,7 +8,8 @@
 
 > **Material de la clase**:
 > - [`clase05.ipynb`](clase05.ipynb) — desarrollo teórico + el DAG pedagógico `gold_01_star_basico.py` (generado vía `%%writefile`), el chequeo de **integridad referencial en vivo**, el **consumo** del star desde el propio notebook y la sección **🔬 4.5 Cinco queries para ver si el modelo sirve**, la única de la teórica que mide sobre el warehouse productivo. La **ABT** pasó a la clase 06, que es donde se usa.
-> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, sin SQL y sin base de datos: un caso de negocio —una cadena de gimnasios, con las tablas que su sistema registra y las tres preguntas que el tablero tiene que contestar— y tres respuestas en castellano: **el hecho, las dimensiones y las métricas**. Es el mismo ejercicio que en la clase se desarrolla con el caso del hotel. La **📦 Entrega** genera el `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`ModeladoStar.xlsx`](ModeladoStar.xlsx) — un star schema de ejemplo para armar un dashboard (cursos online): el hecho diario por curso, sus dimensiones y el detalle del que sale, con una solapa **00_Guia** que explica el grano, las claves, cómo se agrega cada métrica y de dónde sale una fila del hecho, con SQL.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, sin SQL y sin base de datos: un caso de negocio —una cadena de gimnasios, con lo que registra su sistema y las cuatro preguntas que el tablero tiene que contestar— y tres respuestas en castellano: **el hecho, las dimensiones y las métricas**. Es el mismo ejercicio que en la clase se desarrolla con el caso del hotel. La **📦 Entrega** genera el `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
 >
 >   Las queries de SQL Gold que estaban acá se mudaron a **clase04** (E9 `GROUP BY` y E10 `HAVING`): son el primer paso de agregación y van mejor pegadas a los fundamentos de SQL.
 > - [`ejercicios/dag_crypto_gold.py`](ejercicios/dag_crypto_gold.py) — DAG productivo, se copia al stack al final del ejercicio.
@@ -113,7 +114,7 @@ Después de correr las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`
 
 ### Paso 2 — Hacer el ejercicio práctico (con entrega)
 
-Abrí `ejercicios/ejercicio.ipynb`: no hace falta ni el stack ni DuckDB. Leé el caso de la cadena de gimnasios —qué registra el sistema y qué tres preguntas quiere contestar el tablero— y escribí tus tres respuestas: **el hecho**, **las dimensiones** y **las métricas**. No hay una única respuesta correcta; lo que se mira es que sean consistentes entre sí y que contesten las tres preguntas. Al final, la sección **📦 Entrega** genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`, que se sube con commit + push: tu PR se actualiza solo. Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+Abrí `ejercicios/ejercicio.ipynb`: no hace falta ni el stack ni DuckDB. Leé el caso de la cadena de gimnasios —qué registra el sistema y qué cuatro preguntas quiere contestar el tablero— y escribí tus tres respuestas: **el hecho**, **las dimensiones** y **las métricas**. No hay una única respuesta correcta; lo que se mira es que sean consistentes entre sí y que contesten las cuatro preguntas. Al final, la sección **📦 Entrega** genera `ejercicios/estudiantes/<apellido>-<nombre>.txt`, que se sube con commit + push: tu PR se actualiza solo. Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
 
 **Commit y push.** Es **un** archivo. Desde la raíz del repo:
 
