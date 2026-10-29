@@ -1,0 +1,6 @@
+Apellido: Kalinscky
+Nombre: Tomas
+Usuario GitHub: tomasKalinscky
+Rama: estudiante/kalinscky-tomas
+Codigo: 16DBE5C10D78
+Fecha: 2026-10-29
