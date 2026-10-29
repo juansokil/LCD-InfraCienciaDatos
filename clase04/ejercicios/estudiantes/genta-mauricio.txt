@@ -1,0 +1,30 @@
+Apellido: genta
+Nombre: mauricio
+Rama: estudiante/genta-mauricio
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (24x3) h=F9977B80
+  E2: OK (1x4) h=3F35B2C8
+  E3: OK (24x1) h=993DC2D7
+  E4: OK (91x4) h=3E0FDB30
+  E5: OK (77x4) h=36CCB595
+  E6: OK (20x3) h=41F90B3A
+  E7: OK (3x4) h=4B545305
+  E8: OK (91x3) h=7CB2C6BD
+  E9: OK (8x3) h=E864C80C
+  E10: OK (27x3) h=E96081C6
+Ejercicios con resultado: 10 / 10
+Productos (E2): 77
+Precio min (E2): -10.0
+Precio max (E2): 263.5
+Precio promedio (E2): 28.61
+Huerfanos encontrados (E7): 3
+Clientes deduplicados (E8): 91 de 96
+Unidades totales (E9): 12764
+Pedidos distintos (E9): 196
+Combinaciones sobre 200 unidades (E10): 27
+Codigo: E5655D0A97A5
+Fecha: 2026-10-29

@@ -1,0 +1,16 @@
+Apellido: genta
+Nombre: mauricio
+Rama: estudiante/genta-mauricio
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Para aislar la información de Airflow (metadatos, logs, etc) de la info del warehouse, es una buena práctica para evitar corrupción de datos y mantener estables a los dos contenedores.
+Pregunta (b) - Datos despues del down:
+  Porque se persisten en la carpeta stack/data_warehouse_data, no es volátil como el contendor.
+Pregunta (c) - DAGs en el contenedor:
+  Porque se monta la carpeta stack/dags dentro del conteneder de Airflow, así que es capaz de verlo.
+Pregunta (d) - Puerto 8080 ocupado:
+  Tendría que cambiar el puerto de la izquierda, para que no choque con el puerto en uso en mi máquina.
+Pregunta (e) - Credenciales del warehouse:
+  Porque corresponde que esos valores (info sensible) vivan como variable de entorno, se cargan de el .env y docker compose se lo pasa al contenedor.
+Codigo: 22835FA0DB24
+Fecha: 2026-10-08
