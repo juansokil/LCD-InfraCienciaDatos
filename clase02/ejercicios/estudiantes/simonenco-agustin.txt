@@ -1,0 +1,16 @@
+Apellido: Simonenco
+Nombre: Agustín
+Rama: estudiante/simonenco-agustin
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db es la base interna de Airflow: ahí guarda todo lo suyo, qué DAGs hay, cuándo corrieron, si las tasks salieron bien o mal, los XComs, etc. data_warehouse es donde van nuestros datos de verdad, con los schemas bronze, silver y gold. Los separan para no mezclar las cosas: si rompo algo en el warehouse no me llevo puesto a Airflow (y al revés). Además la de Airflow ni siquiera tiene un puerto publicado, en cambio al warehouse me conecto desde el notebook por el 5432.
+Pregunta (b) - Datos despues del down:
+  Porque los datos no quedan guardados adentro del contenedor sino en un volumen (data_warehouse_data). Con el down se borran los contenedores pero los volúmenes quedan, entonces cuando lo vuelvo a levantar el Postgres nuevo agarra el mismo volumen y está todo como lo dejé. Si hiciera down -v ahí sí perdería todo.
+Pregunta (c) - DAGs en el contenedor:
+  Por un bind mount: la carpeta stack/dags de mi compu está "enchufada" a /opt/airflow/dags adentro del contenedor. En la práctica es la misma carpeta vista desde los dos lados, así que cuando guardo un DAG Airflow ya lo ve, y cada 10 segundos se fija si hay algo nuevo.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el número de la izquierda, que es el puerto de mi máquina, por ejemplo "8081:8080", y entraría a la UI por localhost:8081. El de la derecha lo dejo como está porque es el puerto donde escucha Airflow adentro del contenedor, y ahí no hay ningún conflicto: el problema es solo que en mi compu el 8080 ya lo está usando otra cosa.
+Pregunta (e) - Credenciales del warehouse:
+  La saca del archivo .env que está en la carpeta stack. En el compose solo aparece ${SOURCE_DB_PASS}, y cuando hacés docker compose up se reemplaza por lo que dice el .env (admin). Así la contraseña no queda escrita en el compose.
+Codigo: 8B56E4C10CD3
+Fecha: 2026-10-15
