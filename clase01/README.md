@@ -94,7 +94,7 @@ git commit -m "clase01 (Registro)"
 git push origin estudiante/apellido-nombre
 ```
 
-> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
+> ⚠️ **Lo único que commiteás es tu `.txt`.** No uses `git add .`, y no commitees el `.ipynb` ni nada de `stack/` — son archivos que comparte todo el curso. Si tuviste que cambiar algo ahí para que te funcione (un puerto, una versión), dejalo en tu máquina **sin commitear**. Y si encontraste algo roto en el material, **abrí un issue** en vez de arreglarlo en tu rama: así se corrige para todos.
 
 > **Nota 1**: si es la primera vez que hacés `git commit`, configurá tu identidad para que tus commits queden bien identificados:
 >
