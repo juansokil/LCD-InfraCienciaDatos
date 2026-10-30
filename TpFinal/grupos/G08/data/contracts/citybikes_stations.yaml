@@ -1,0 +1,168 @@
+# =====================================================================
+# Data Contract — dataset: citybikes_stations
+# =====================================================================
+
+dataset: citybikes_stations
+version: "1.0"
+owner: G08
+source: citybikes_api
+
+delivery:
+  frequency: "*/5 * * * *"
+  source_endpoint: "https://api.citybik.es/v2/networks/{network_id}"
+  # Redes argentinas
+  networks:
+    - ecobici-buenos-aires
+    - mibicitubici
+    - bike-itau-nordelta
+  rate_limit_per_hour: 300
+  timeout_seconds: 30
+
+payload:
+  root_key: network
+  records_key: stations
+  min_records: 1
+
+# ----- SCHEMA (columnas de bronze.citybikes_stations) -----------------
+schema:
+  - name: network_id
+    type: string
+    nullable: false
+    source: network.id
+
+  - name: station_id
+    type: string
+    nullable: false
+    source: stations[].id
+
+  - name: name
+    type: string
+    nullable: false
+    source: stations[].name
+
+  - name: latitude
+    type: numeric
+    nullable: false
+    source: stations[].latitude
+    rules: { ge: -90, le: 90 }
+
+  - name: longitude
+    type: numeric
+    nullable: false
+    source: stations[].longitude
+    rules: { ge: -180, le: 180 }
+
+  - name: source_timestamp
+    type: timestamp
+    nullable: false
+    source: stations[].timestamp
+
+  - name: free_bikes
+    type: integer
+    nullable: false
+    source: stations[].free_bikes
+    rules: { ge: 0 }
+
+  - name: empty_slots
+    type: integer
+    nullable: false
+    source: stations[].empty_slots
+    rules: { ge: 0 }
+
+  - name: station_uid
+    type: string
+    nullable: true
+    source: stations[].extra.uid
+
+  - name: address
+    type: string
+    nullable: true
+    source: stations[].extra.address
+
+  - name: post_code
+    type: string
+    nullable: true
+    source: stations[].extra.post_code
+
+  - name: slots
+    type: integer
+    nullable: true
+    source: stations[].extra.slots
+    rules: { ge: 0 }
+
+  - name: normal_bikes
+    type: integer
+    nullable: true
+    source: stations[].extra.normal_bikes
+
+  - name: ebikes
+    type: integer
+    nullable: true
+    source: stations[].extra.ebikes
+
+  - name: renting
+    type: boolean
+    nullable: true
+    source: stations[].extra.renting
+
+  - name: returning
+    type: boolean
+    nullable: true
+    source: stations[].extra.returning
+
+  - name: virtual
+    type: boolean
+    nullable: true
+    source: stations[].extra.virtual
+
+  - name: source_last_updated
+    type: timestamp
+    nullable: true
+    source: stations[].extra.last_updated
+
+  - name: snapshot_ts
+    type: timestamp
+    nullable: false
+    source: dag_run
+
+# ----- REGLAS (aplicadas por silver - tentativas) -----------------
+
+quality_rules:
+
+  - rule: not_null
+    column: station_id
+    severity: error
+
+  - rule: not_null
+    column: free_bikes
+    severity: error
+
+  - rule: non_negative
+    column: free_bikes
+    severity: error
+
+  - rule: non_negative
+    column: empty_slots
+    severity: error
+
+  - rule: unique
+    columns: [network_id, station_id, snapshot_ts]
+    severity: error
+
+  - name: estacion_alquilando
+    rule: in_set
+    column: renting
+    values: [true]
+    severity: warning
+
+  - name: operador_fresco
+    rule: fresh
+    column: source_last_updated
+    compared_to: snapshot_ts
+    max_age_minutes: 60
+    severity: warning
+
+evolution_policy:
+  allow_new_columns: true
+  allow_missing_columns: false
+  allow_type_changes: false
