@@ -112,37 +112,37 @@ services:
     networks:
       - de_stack_network
 
-  # Streamlit - Dashboard BI
-  dashboard:
-    build: ./dashboard
-    container_name: dashboard
-    env_file: .env
-    environment:
-      - SOURCE_DB_HOST=data_warehouse
-    ports:
-      - "8501:8501"
-    volumes:
-      # Las paginas viven en stack/dashboard/pages/: llegan con cada clase
-      # (y la del G10 del ejercicio 05 se copia aca). Este bind-mount hace
-      # que el contenedor vea esa carpeta en vivo: agregas o cambias una
-      # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
-      - ./dashboard/pages:/app/pages
-      # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
-      # quien produce y quien consume: que el consumidor pueda leerlo es el
-      # punto. La pagina de Silver muestra las reglas VIGENTES desde el YAML,
-      # en vez de una copia pegada en el HTML que se desactualiza en silencio.
-      - ./data/contracts:/app/contracts:ro
-    depends_on:
-      data_warehouse:
-        condition: service_healthy
-    restart: "no"
-    networks:
-      - de_stack_network
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
+#   # Streamlit - Dashboard BI
+#   dashboard:
+#     build: ./dashboard
+#     container_name: dashboard
+#     env_file: .env
+#     environment:
+#       - SOURCE_DB_HOST=data_warehouse
+#     ports:
+#       - "8501:8501"
+#     volumes:
+#       # Las paginas viven en stack/dashboard/pages/: llegan con cada clase
+#       # (y la del G10 del ejercicio 05 se copia aca). Este bind-mount hace
+#       # que el contenedor vea esa carpeta en vivo: agregas o cambias una
+#       # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
+#       - ./dashboard/pages:/app/pages
+#       # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
+#       # quien produce y quien consume: que el consumidor pueda leerlo es el
+#       # punto. La pagina de Silver muestra las reglas VIGENTES desde el YAML,
+#       # en vez de una copia pegada en el HTML que se desactualiza en silencio.
+#       - ./data/contracts:/app/contracts:ro
+#     depends_on:
+#       data_warehouse:
+#         condition: service_healthy
+#     restart: "no"
+#     networks:
+#       - de_stack_network
+#     deploy:
+#       resources:
+#         limits:
+#           memory: 512M
+#           cpus: '0.5'
 
 volumes:
   airflow_db_data:
