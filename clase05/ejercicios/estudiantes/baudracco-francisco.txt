@@ -1,0 +1,9 @@
+Apellido: Baudracco
+Nombre: Francisco
+Rama: estudiante/baudracco-francisco
+Caso: gimnasio
+Hecho: Visita, cada fila es una visita con fecha y hora de entrada y salida, y el ID de la persona que realizó la visita.
+Dimensiones: Socio, Sede, Fecha/hora
+Metricas: Minutos de visita, número de visitas, gasto promedio por visita, cantidad gastado en la barra por socio
+Codigo: DB49842AEB08
+Fecha: 2026-10-30

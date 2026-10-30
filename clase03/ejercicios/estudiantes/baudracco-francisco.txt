@@ -1,0 +1,19 @@
+Apellido: Baudracco
+Nombre: Francisco
+Rama: estudiante/baudracco-francisco
+Motor: duckdb
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81781
+Doble ingesta: SI
+Ultima carga: 2026-10-22 12:17:44.973907
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla bronze.crypto_markets_demo y conservaría el archivo raw. La tabla se puede reconstruir reprocesando el archivo original, pero si borro el archivo raw pierdo eayload originl pal y dependo de volver a consultar la API, que puede devolver datos diferentes o dejar de estar disponible.
+Pregunta (b) - replace y append:
+  Con if_exists='replace', se reemplaza el contenido de la tabla por los datos nuevos. con if_exists='append', se agregan los datos nuevos a los existentes. El DAG productivo usa append para registrar las nuevas ingestas cada 15 minutos sin borrar las anteriores.
+Pregunta (c) - Dos cargas identicas:
+  Porque los dos pasos consultan la API casi al mismo tiempo y reciben los mismos datos. Se guardan igual porque en Bronze se guarda la información cruda tal como llega, sin modificarla ni eliminar duplicados, para poder revisar o reprocesar los datos después.
+Codigo: A81BD58C9C35
+Fecha: 2026-10-22
