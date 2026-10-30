@@ -1,0 +1,7 @@
+data/raw/**
+!data/raw/.gitkeep
+data/quarantine/**
+!data/quarantine/.gitkeep
+credentials/**
+!credentials/.gitkeep
+__pycache__/
