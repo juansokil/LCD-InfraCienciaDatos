@@ -1,0 +1,19 @@
+Apellido: Saggion
+Nombre: Chiara
+Rama: estudiante/saggion-chiara
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82229
+Doble ingesta: SI
+Ultima carga: 2026-10-19 11:54:15.779770
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla bronze.crypto_markets_demo y conservaría los archivos de stack/data/raw, porque con ellos puedo reconstruir la tabla sin volver a consultar la API. Perdería la posibilidad de consultar directamente esa tabla hasta volver a generarla.
+Pregunta (b) - replace y append:
+  Con replace se reemplaza la tabla anterior por los datos de la nueva carga. Con append se agregan nuevas filas sin borrar las anteriores. El DAG productivo que corre cada 15 minutos utiliza append para guardar el historial de cada ejecución.
+Pregunta (c) - Dos cargas identicas:
+  Porque las 2 consultas fueron realizadas en momentos distintos, aunque la API haya devuelto los mismos datos. C/ archivo representa una ejecución diferente y se guarda con su propia fecha y hora.
+Codigo: 1D4B228DACB1
+Fecha: 2026-10-19
