@@ -1,0 +1,9 @@
+Apellido: Oyola
+Nombre: Ezequiel
+Rama: estudiante/oyola-ezequiel
+Caso: gimnasio
+Hecho: Cada fila registra una visita individual por un socio en una sede especifica.
+Dimensiones: Dimension de tiempo, de la fecha y hora de entrada registrada en el molinete. Dimension de sede, con los datos de la sede (barrio, cantidad de maquinas, etc). Dimension de socio, sale del sistema de registro. Dimension de plan, viene del perfil del socio.
+Metricas: De la tabla de hechos se mide cantidad de minutos que duro la visita, monto total de la visita, contador de visitas. Se calcula despues minutos totales entrenados agrupado por mes y sede, facturacion total agrupado por sede y franja horaria, cantidad total de visitas agrupado por plan, gasto promedio por visita agrupado por plan.
+Codigo: 8F4CB1B1715B
+Fecha: 2026-11-01
