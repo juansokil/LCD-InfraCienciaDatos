@@ -1,0 +1,19 @@
+Apellido: Alvarez
+Nombre: MatiasAgustin
+Rama: estudiante/alvarez-matiasagustin
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 83059
+Doble ingesta: SI
+Ultima carga: 2026-10-20 23:13:43.273374
+Pregunta (a) - La zona raw y la tabla:
+  Borraria broze.crypto_markets_demo ya que si borro stack/data/raw, pierdo el dato original crudo, y eso es un problema para el seguimiento de los datos y las futuras auditorias. Perderia por ejemplo el dashboard.
+Pregunta (b) - replace y append:
+  Con replace, queda el ultimo dato cargado, ya que se van reemplazando. Con append, quedan todos los datos aplidados y visibiles. El DAG que corre cada 15 minutos usa append, ya que si usara replace se perderian datos
+Pregunta (c) - Dos cargas identicas:
+  Ya que los datos de la API no se actualizan en cada instante, hay una cierta demora. Si corro los pasos 3 y 4 seguidos sin pausa, se van a guardar los datos de la ultima actualización de la API. El pipeline los guarda igual ya que a la etapa Bronze no le importa si hay datos duplicados, los ingresa igual.
+Codigo: B419DD362098
+Fecha: 2026-10-20
