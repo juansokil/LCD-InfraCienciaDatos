@@ -1,0 +1,9 @@
+Apellido: Parente
+Nombre: Fabrizio
+Rama: estudiante/parente-fabrizio
+Caso: gimnasio
+Hecho: Una visita al gimnasio: un socio entra por el molinete a una sede, entrena y sale. Cada fila es una visita.
+Dimensiones: Fecha (de la hora de entrada salen el mes y la franja horaria), sede (barrio, cantidad de maquinas, horario) y socio (nombre, fecha de alta, sede donde se asocio y plan).
+Metricas: Minutos de la visita (salida menos entrada) y monto gastado en la barra. La cantidad de visitas se cuenta con las filas y el gasto promedio se calcula al final: gasto total dividido cantidad de visitas.
+Codigo: A1D434985DA2
+Fecha: 2026-11-01

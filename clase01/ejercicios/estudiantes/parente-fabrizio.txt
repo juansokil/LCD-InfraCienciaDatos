@@ -1,0 +1,6 @@
+Apellido: Parente
+Nombre: Fabrizio
+Usuario GitHub: zfabro
+Rama: estudiante/parente-fabrizio
+Codigo: 0A608277FEB2
+Fecha: 2026-10-15
