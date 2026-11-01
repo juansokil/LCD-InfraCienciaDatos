@@ -84,7 +84,7 @@ git commit -m "clase03 (Bronze)"
 git push origin estudiante/apellido-nombre
 ```
 
-> ⚠️ **No** uses `git add .` ni commitees el `.ipynb` modificado — es un template compartido entre todos los estudiantes.
+> ⚠️ **Lo único que commiteás es tu `.txt`.** No uses `git add .`, y no commitees el `.ipynb` ni nada de `stack/` — son archivos que comparte todo el curso. Si tuviste que cambiar algo ahí para que te funcione (un puerto, una versión), dejalo en tu máquina **sin commitear**. Y si encontraste algo roto en el material, **abrí un issue** en vez de arreglarlo en tu rama: así se corrige para todos.
 
 > **Una rama para siempre, un PR para siempre**: tu rama `estudiante/apellido-nombre` y tu PR son los mismos desde la Clase 01; el push actualiza ese mismo PR (no abrís uno nuevo). Detalle en el [README raíz](../README.md).
 

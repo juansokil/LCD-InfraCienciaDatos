@@ -1,0 +1,232 @@
+# Clase 04: La Refinería (Capa Silver)
+
+> 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
+>
+> 1. **Notebook teórico** ([`clase04.ipynb`](clase04.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (cada uno con su tabla: `bronze.ventas_demo` el básico, `bronze.ventas_contrato_demo` el del contrato) + **seis queries en vivo sobre el Bronze real** que cargó el pipeline de la clase 03
+> 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — 10 ejercicios de SQL sobre **Northwind**: los fundamentos de Silver, y los dos que cruzan a Gold (`GROUP BY` y `HAVING`)
+> 3. **DAG productivo** ([`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py)) — para copy-paste a Airflow
+
+> **Material de la clase**:
+> - [`clase04.ipynb`](clase04.ipynb) — desarrollo teórico + 2 DAGs pedagógicos progresivos (`silver_01_basico.py`, `silver_02_contrato.py`) que se generan vía `%%writefile` al ejecutar el notebook, y la sección **🔎 4.5 Seis queries sobre tu propio Bronze**, que corre contra `bronze.crypto_markets`: lo único de la teórica que no es sintético.
+> - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **el ejercicio entregable**, un solo archivo autocontenido: **Parte 1** carga **Northwind** (setup dual-engine Postgres/DuckDB) y **Parte 2** son **10 ejercicios de SQL**: filtrar y ordenar, las cuatro agregaciones en una fila, `DISTINCT`, normalizar texto y nulos, `CASE WHEN`, `INNER JOIN`, **anti-join** para integridad referencial, **dedup con `ROW_NUMBER`** y —los dos que cruzan a Gold— **`GROUP BY`** y **`HAVING`**. La sección **📦 Entrega** genera tu `.txt` en `ejercicios/estudiantes/` (ver [`ejercicios/README.md`](ejercicios/README.md)).
+> - [`ejercicios/dag_crypto_silver.py`](ejercicios/dag_crypto_silver.py) — DAG productivo (con comentarios educativos), se copia al stack para correr el Silver real de crypto.
+
+---
+
+## 🎯 Objetivos
+
+- Transformar datos crudos (**Capa Bronze**) en datos técnicos limpios (**Capa Silver**).
+- Definir y validar **Contratos de Datos** profesionales (Data Quality).
+- Implementar limpieza avanzada: normalización técnica y deductiva.
+- Aplicar el patrón de **Cuarentena** para registros que no cumplen calidad.
+
+---
+
+## 🏗️ El Proceso de Refinería
+
+```mermaid
+graph LR
+    B[(Capa Bronze)] --> QC{Quality Checks}
+    QC -->|Valid| S[(Capa Silver)]
+    QC -->|Invalid| Q[(Cuarentena)]
+```
+
+## 🗺️ Linaje de Datos (Bronze → Silver)
+
+A diferencia de Bronze donde traemos todo crudo, en Silver pasa por 3 transformaciones antes de llegar a la tabla final. El DAG productivo `dag_crypto_silver` separa válidos de inválidos sin descartar nada:
+
+```mermaid
+%%{init: {"flowchart": {"subGraphTitleMargin": {"top": 0, "bottom": 28}}}}%%
+graph LR
+    subgraph BR["bronze.crypto_markets"]
+        B[26 columnas crudas<br/>de la API CoinGecko]
+    end
+
+    subgraph PIPE["dag_crypto_silver"]
+        P1[1. Deduplicar<br/>por id + snapshot_ts]
+        P2[2. Normalizar strings<br/>symbol → UPPER<br/>trim + vacío → NULL]
+        P3[3. Validar con Pydantic<br/>generado dinamicamente<br/>desde crypto_markets.yaml]
+    end
+
+    subgraph SV["silver.crypto_markets (validos)"]
+        SVOK[Columnas originales<br/>+ _processed_at<br/>+ _source_table<br/>+ _contract_version<br/>+ _quality_flags]
+    end
+
+    subgraph SQ["silver.quarantine_crypto_markets (rechazados)"]
+        SQNG[Columnas originales<br/>+ quarantine_reason<br/>+ _processed_at<br/>+ _source_table<br/>+ _contract_version]
+    end
+
+    B --> P1 --> P2 --> P3
+    P3 -->|cumple contrato| SVOK
+    P3 -->|falla contrato| SQNG
+
+    style BR fill:#fff3e033,stroke:#e65100
+    style PIPE fill:#f3e5f533,stroke:#4a148c
+    style SV fill:#e8f5e933,stroke:#1b5e20
+    style SQ fill:#ffebee33,stroke:#c62828
+```
+
+> **Nota**: el lineage NO renombra columnas (no hay `id_key`, `symbol_upper`, etc. — los nombres se mantienen). Lo que cambia es el **contenido** (normalizado) y la **garantía de validez** (Pydantic ya las chequeó).
+
+> **Qué es `snapshot_ts`**: la marca de la corrida, redondeada al minuto, que escribe el DAG de Bronze (clase 03). Las 50 criptos de una misma corrida la comparten, así que sirve para agrupar y para deduplicar. `ingested_at` es el momento exacto de cada carga: sirve para auditar y es el que desempata cuando hay duplicados.
+
+---
+
+## 🚀 Setup
+
+- Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`).
+- Datos de Bronze ya cargados (los generaste en la **Clase 03** corriendo el `dag_crypto_bronze.py`).
+
+**Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
+
+```bash
+# 1. Bajar lo nuevo de main
+git checkout main
+git pull origin main
+
+# 2. Volver a tu rama personal y mergear
+git checkout estudiante/apellido-nombre   # reemplazá por tu rama
+git merge main --no-edit
+```
+
+> Vas a repetir esto al empezar **cada** clase. El detalle de cada comando está en el [README raíz](../README.md), sección "Cómo Consumir el Repo Semana a Semana".
+
+---
+
+## 📋 Cómo trabajar la clase
+
+### Paso 1 — Leer el notebook teórico y correr los DAGs pedagógicos
+
+Abrí `clase04.ipynb`. La primera parte explica conceptos (Contratos de Datos, Pydantic, SCD Tipo 2, Cuarentena). La parte final tiene cells `%%writefile` que generan **2 DAGs sintéticos numerados** — al ejecutarlos, los `.py` aparecen automáticamente en `stack/dags/02-silver/`:
+
+| # | DAG generado | Path destino | Qué aporta |
+|---|--------------|--------------|------------|
+| 01 | `silver_01_basico.py` | `stack/dags/02-silver/` | Limpieza básica: strip + fillna + parser flexible de fechas, **sin tocar las mayúsculas** |
+| 02 | `silver_02_contrato.py` | `stack/dags/02-silver/` | **Contract-driven**: Pydantic generado en runtime desde `ventas.yaml` + Pattern Quarantine + Audit metadata |
+
+Después de ejecutar las celdas, los DAGs aparecen en Airflow UI (`localhost:8080`). En la UI, filtrá por **tag `silver`** para verlos juntos. Activalos y verás los datos en `silver.ventas_basico` (del primer DAG) y en `silver.ventas_contrato` + `silver.quarantine_ventas_contrato` (del segundo).
+
+> **Convención de carpetas**: cada DAG vive en la carpeta de su **capa Medallion destino** (`02-silver/` para todo lo que escribe a `silver.*`). Mismo patrón que `01-bronze/` en la clase 03.
+>
+> **Convención de tags**: sintéticos didácticos llevan `tags=["silver"]`. El DAG productivo (crypto) lleva `tags=["prod", "silver", "crypto"]` para distinguirlo en la UI con el filtro `prod`.
+>
+> **🔁 Continuidad con la clase 03**: el `silver_02_contrato` lee el **mismo `ventas.yaml`** que usaba `bronze_04_con_contrato`. Bronze validaba la *forma*, Silver valida la *semántica*. Un contrato, dos capas.
+
+### Paso 2 — Hacer el ejercicio práctico (con entrega)
+
+El ejercicio entregable de esta clase es **[`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)** (un solo archivo): corré la **Parte 1 — Setup** (carga Northwind, dual-engine Postgres/DuckDB) y resolvé los **10 ejercicios** de la **Parte 2**. Cada consigna dice qué hacer, paso por paso, y con qué nombre tiene que devolver cada columna. Al final, la sección **📦 Entrega** genera automáticamente tu archivo `ejercicios/estudiantes/<apellido>-<nombre>.txt` (motor usado + evidencia de que Northwind cargó + cuántos ejercicios corrieron y devolvieron resultado, **extraído automáticamente ejecutando tus queries — no se autoreporta**) y te indica cómo subirlo (solo commit + push: tu PR se actualiza solo). Reglas completas en [`ejercicios/README.md`](ejercicios/README.md).
+
+> Las queries **no se autocorrigen** (las soluciones no se publican — el aprendizaje es pelearla). Silver es SQL-intensivo: estos patrones son exactamente los del DAG productivo `dag_crypto_silver.py`.
+
+**Commit y push.** Reemplazá `<apellido>-<nombre>` por el filename que te imprimió la sección 📦 Entrega. Desde la raíz del repo:
+
+```bash
+git add clase04/ejercicios/estudiantes/<apellido>-<nombre>.txt
+git commit -m "clase04 (Silver)"
+git push origin estudiante/apellido-nombre
+```
+
+> ⚠️ **Lo único que commiteás es tu `.txt`.** No uses `git add .`, y no commitees el `.ipynb` ni nada de `stack/` — son archivos que comparte todo el curso. Si tuviste que cambiar algo ahí para que te funcione (un puerto, una versión), dejalo en tu máquina **sin commitear**. Y si encontraste algo roto en el material, **abrí un issue** en vez de arreglarlo en tu rama: así se corrige para todos.
+
+> **Una rama para siempre, un PR para siempre**: tu rama `estudiante/apellido-nombre` y tu PR son los mismos desde la Clase 01; el push actualiza ese mismo PR (no abrís uno nuevo). Detalle en el [README raíz](../README.md).
+
+### Paso 3 — Deploy del DAG productivo crypto
+
+El DAG productivo de esta clase es `clase04/ejercicios/dag_crypto_silver.py`. Para deployarlo, copialo a la carpeta que Airflow mira:
+
+```bash
+cp clase04/ejercicios/dag_crypto_silver.py stack/dags/02-silver/
+```
+
+Airflow detecta el archivo automáticamente (refresh cada 10s). Activalo en la UI y mirá los datos en `silver.crypto_markets` y `silver.quarantine_crypto_markets`.
+
+> **Si el DAG queda sin correr y sin error**: `dag_crypto_silver` no tiene cron, se dispara por el asset que emite `dag_crypto_bronze` (clase 03). Si ese DAG no está deployado y activo, el asset nunca se emite y este DAG **no arranca**: no falla, no hay log, no hay nada que mirar. Revisá primero que el Bronze esté corriendo.
+
+> Filtrá por tag **`prod`** en la UI para ver solo los DAGs productivos (separa el DAG real del crypto de la escalera didáctica `silver_01_*` → `silver_02_*`).
+>
+> El DAG productivo aplica el **mismo patrón data contract** que `dag_crypto_bronze` — carga `crypto_markets.yaml`, construye `CryptoContract` con `build_pydantic_from_contract()` en runtime y separa filas válidas de inválidas (con `quarantine_reason` por fila). Para verlo en acción: en los logs de la task `clean_and_split` aparece `Contrato cargado: crypto_markets v1.0`.
+
+### ⚠️ Si modificás el DAG productivo
+
+Si tocás `clase04/ejercicios/dag_crypto_silver.py`, **acordate de re-copiar** al stack — sino Airflow corre la versión vieja:
+
+```bash
+cp clase04/ejercicios/dag_crypto_silver.py stack/dags/02-silver/
+```
+
+---
+
+## 📚 El ejercicio en detalle (SQL básico — Northwind)
+
+El ejercicio entregable (Paso 2) es [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb). Resumen:
+
+| Aspecto | Detalle |
+|---|---|
+| **Qué practicás** | Los fundamentos de SQL que Silver usa todo el tiempo: filtrar, medir una tabla (`COUNT`/`MIN`/`MAX`/`AVG`), `DISTINCT`, normalizar y limpiar nulos, derivar atributos con `CASE`, `JOIN` — los dos que sostienen el TP (**anti-join** y **dedup con `ROW_NUMBER`**) — y el primer paso hacia Gold: **`GROUP BY`** y **`HAVING`**. |
+| **Cómo está armado** | Un solo archivo: **Parte 1 — Setup** (carga Northwind, con datos sucios sembrados a propósito) + **Parte 2** con 10 ejercicios (E1 WHERE/ORDER BY · E2 COUNT+MIN+MAX+AVG en una fila · E3 DISTINCT · E4 normalizar texto y nulos · E5 CASE WHEN · E6 INNER JOIN · E7 anti-join · E8 dedup con ROW_NUMBER · **E9 GROUP BY · E10 HAVING**) + **📦 Entrega**. Podés cortar y volver. |
+| **Dónde corre** | Postgres (si tenés el stack) **o** DuckDB (offline). La Parte 1 detecta auto cuál usar y carga Northwind. |
+| **Entrega** | Sección **📦 Entrega** al final de `ejercicio.ipynb` → `.txt` en `ejercicios/estudiantes/`. |
+
+📖 **Reglas de entrega**: [`ejercicios/README.md`](ejercicios/README.md)
+
+> Cada consigna cierra con una línea de *para qué sirve*, que conecta la técnica con un caso real del pipeline. No es SQL desconectado: es la herramienta concreta para construir Silver — y, en los dos últimos, para empezar Gold.
+
+---
+
+## ✅ Verificación end-to-end
+
+Después de correr el pipeline Silver completo (DAG `crypto_silver` activado y triggered), deberías poder responder estas 3 queries:
+
+```sql
+-- 1. ¿Hay datos en silver?
+SELECT COUNT(*) AS validos FROM silver.crypto_markets;
+-- Esperado: > 0 (~50 filas por snapshot)
+
+-- 2. ¿Cuántos fueron a quarantine y por qué?
+SELECT quarantine_reason, COUNT(*) AS cantidad
+FROM silver.quarantine_crypto_markets
+GROUP BY 1
+ORDER BY 2 DESC;
+-- Esperado: pocos rechazos, motivos claros (ValidationError de Pydantic)
+
+-- 3. ¿La tasa de éxito es razonable?
+SELECT
+  (SELECT COUNT(*) FROM silver.crypto_markets) AS validos,
+  (SELECT COUNT(*) FROM silver.quarantine_crypto_markets) AS rechazados,
+  ROUND(
+    (SELECT COUNT(*) FROM silver.crypto_markets) * 100.0 /
+    NULLIF((SELECT COUNT(*) FROM silver.crypto_markets) +
+           (SELECT COUNT(*) FROM silver.quarantine_crypto_markets), 0),
+    2
+  ) AS tasa_exito_pct;
+-- Esperado: tasa > 95% en datos crypto reales
+```
+
+Si las 3 queries devuelven valores razonables, tu pipeline Silver está **funcional + observable + auditable**.
+
+---
+
+## 🔮 Forward reference a Gold (clase 05)
+
+Hasta acá tenemos `silver.crypto_markets` con datos limpios y validados (Pydantic + quarantine + audit metadata). En la **clase 05** vamos a:
+
+| Concepto | Qué construimos |
+|---|---|
+| **Star Schema** | Separar **dimensiones** (`dim_crypto`, `dim_tiempo`) de **hechos** (`fact_crypto_markets`, `fact_global_market`). Modelado dimensional clásico de Kimball, construido **en SQL** (ELT). |
+| **ABT (Analytical Base Table)** | Tabla ancha con features derivadas, lista para alimentar modelos de ML. Se anticipa acá como forma; la construye la **clase 06**, que es donde se usa. |
+| **Integridad referencial** | Validar FKs antes de publicar a BI/ML — detectar fact rows huérfanos sin dimensión (LEFT JOIN). En Gold la unidad de validación deja de ser la fila (Pydantic) y pasa a ser el **schema completo**. |
+| **SCD Tipo 2** *(concepto)* | Cómo historizar cambios en una dimensión (`business_key`, `effective_date`). Se explica como concepto de modelado; el `dag_crypto_gold` productivo usa **full-refresh** (no implementa SCD2). |
+
+> 🔁 **El contrato a lo largo del pipeline**: `crypto_markets.yaml` validó **forma** en Bronze (clase 03) y **semántica** fila a fila en Silver (clase 04). En **Gold** la responsabilidad cambia: ya no se revalida con el contrato (decisión documentada en el header de `dag_crypto_gold.py`) — Gold se enfoca en **modelado dimensional + integridad referencial**.
+
+---
+
+## 🛠️ Troubleshooting
+
+| Problema | Solución |
+| :--- | :--- |
+| El DAG no aparece en Airflow UI | Verificar que el archivo esté en `stack/dags/02-silver/`. Esperar 10-30s para que Airflow lo detecte. |
+| `ImportError: pydantic` (en el DAG silver) | El módulo viene en el Dockerfile del stack. Si falla, rebuild: `docker compose down && docker compose up -d --build`. |
+| El DAG corre pero `silver.crypto_markets` está vacío | Verificá que el DAG `crypto_bronze` (clase 03) haya corrido antes y poblado `bronze.crypto_markets`. |
+| Muchos registros van a quarantine | Mirá la tabla `silver.quarantine_crypto_markets` — el campo `quarantine_reason` te dice por qué fueron rechazados. |
+| El DAG productivo no aplica el contract refactorizado | La copia en `stack/dags/02-silver/dag_crypto_silver.py` quedó desactualizada. Re-copiá: `cp clase04/ejercicios/dag_crypto_silver.py stack/dags/02-silver/` |
