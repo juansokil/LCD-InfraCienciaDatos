@@ -61,7 +61,7 @@ git merge main --no-edit
 
 ### Paso 1 — Recorrer el notebook
 
-Abrí [`clase06.ipynb`](clase06.ipynb) y corrélo de arriba abajo, con el stack levantado. La **Parte 1** deja el pipeline en producción y la **Parte 2** le mete un modelo adentro; el detalle de cada sección está en *Lo que vas a ver en clase*, acá abajo. El switch a producción copia `dag_crypto_ml.py` al stack por vos: no hay ningún DAG que copiar a mano.
+Abrí [`clase06.ipynb`](clase06.ipynb) y corrélo de arriba abajo, con el stack levantado. La **Parte 1** deja el pipeline en producción y la **Parte 2** le mete un modelo adentro; el detalle de cada sección está en *Lo que vas a ver en clase*, acá abajo. El copy-paste de `dag_crypto_ml.py` al stack lo hace por vos la celda del switch a producción.
 
 ### Paso 2 — El ejercicio y la entrega
 
@@ -145,7 +145,7 @@ notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide 
 predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
 después pasó: con la historia acumulada al 2 de noviembre de 2026 (49 días con
 veredicto), `gold.v_ml_veredicto` devolvía 81,0 % en la ventana de 1 día,
-81,8 % en la de 3 y 80,6 % en la de 7, con la persistencia en 82,0 % y la
+81,7 % en la de 3 y 80,5 % en la de 7, con la persistencia en 82,0 % y la
 mayoritaria entre 50,7 % y 51,4 %. Los valores se mueven con la historia acumulada: el
 tablero muestra los tres números día a día.
 
