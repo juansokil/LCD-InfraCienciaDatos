@@ -223,8 +223,11 @@ features AS (
         -- TARGET: manana, ¿esta cripto va a estar entre las mas movidas?
         -- Se compara contra la mediana de MANANA, no contra la de hoy: la
         -- pregunta es quien se mueve mas que el resto en ese momento.
-        (LEAD(vol) OVER w_hist > LEAD(mediana_vol_del_dia) OVER w_hist)::int
-                                                                  AS target_alta_vol
+        -- Solo si la fila siguiente ES manana: si falta ese dia (stack apagado,
+        -- o la cripto no aparecio), la fila queda sin respuesta.
+        CASE WHEN LEAD(fecha) OVER w_hist = fecha + 1
+             THEN (LEAD(vol) OVER w_hist > LEAD(mediana_vol_del_dia) OVER w_hist)::int
+        END                                                       AS target_alta_vol
     FROM serie
     WINDOW w_hist AS (PARTITION BY crypto_id ORDER BY fecha){decl}
 )
