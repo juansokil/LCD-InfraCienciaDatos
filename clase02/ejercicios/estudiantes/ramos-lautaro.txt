@@ -1,0 +1,16 @@
+Apellido: ramos
+Nombre: lautaro
+Rama: estudiante/ramos-lautaro
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  El airflow_db guarda el estado interno del airflow el data_warehouse guarda los datos de neogocio
+Pregunta (b) - Datos despues del down:
+  se guarda en el disco rigido
+Pregunta (c) - DAGs en el contenedor:
+  por la seccion de volume
+Pregunta (d) - Puerto 8080 ocupado:
+  podes cambair de 8080:8080 a 8081:8080
+Pregunta (e) - Credenciales del warehouse:
+  esta decladarada en el environment
+Codigo: 3630077A4810
+Fecha: 2026-10-13

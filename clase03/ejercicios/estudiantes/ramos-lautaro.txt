@@ -1,0 +1,19 @@
+Apellido: ramos
+Nombre: lautaro
+Rama: estudiante/ramos-lautaro
+Motor: duckdb
+Archivos crudos: 9
+Filas demo: 0
+Criptos distintas: 0
+Cripto mas cara: bitcoin
+Precio mas alto: 83748
+Doble ingesta: NO
+Ultima carga: -
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla bronze.crypto... porque el crudo me sirve por si algo falla en un futuro o se modificaron mal los datos tengo el archivo originalsin modifaciones. No podría hacer cosultas sql directas y las columnas no estarian estructuradas en formatos silver
+Pregunta (b) - replace y append:
+  El replace elimina la tabla y la vuelve a crear de 0, quedan los ultimos datos enviados sirve para no duplicarel append añade las filas nuevas al final y quedan todas las ejecuionesm, este es el que usar el dag productivo
+Pregunta (c) - Dos cargas identicas:
+  Al ejecutar el Paso 4 inmediatamente después del Paso 3 (con solo segundos de diferencia), la API de CoinGecko aún no ha actualizado los precios en sus servidores o las cotizaciones no han cambiado. Por lo tanto, el payload (JSON) devuelto por la API contiene exactamente la misma informaciónComentario, no pude correr la celda 4 todas las demas celdas del notebook si
+Codigo: D1CA6B4CF072
+Fecha: 2026-10-21
