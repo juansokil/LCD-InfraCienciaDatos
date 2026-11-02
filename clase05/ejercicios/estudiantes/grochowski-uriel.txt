@@ -4,6 +4,6 @@ Rama: estudiante/grochowski-uriel
 Caso: gimnasio
 Hecho: una fila representa una visita de un socio desde que llega hasta que se va
 Dimensiones: Socio, con su respectivo plan. Sede y tiempo, con fecha, mes y horario. Son los atributos que se buscan analizar en cada visita al gimnasio
-Metricas: Cuanto duró la visita de cada socio, que se calcula contanto la cantidad de filas. El gasto promedio por plan lo calculamos dividiendo el consumo total por la cantidad de visitas.
-Codigo: 622D21FF7CF2
+Metricas: Cuanto duró la visita de cada socio y el monto que se consumió en la barra. Para calcular la cantidad de visitas contamos las filas y para el gasto promedio por plan dividimos el consumo total por la cantidad de visitas.
+Codigo: 2FF786CDCFC9
 Fecha: 2026-11-02
