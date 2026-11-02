@@ -103,16 +103,10 @@ DB_URI = (
 
 # --- MLflow / modelo (coincide con la seccion 3 del notebook de clase06) ---
 MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
-# Un modelo registrado POR VENTANA: cada uno tiene su propio @champion.
-# Asi se pueden promover y comparar por separado, que es el punto de la clase.
-# El Registry tiene un modelo POR VENTANA (crypto_volatilidad_1d/3d/7d),
-# cada uno con su alias @champion. Pero este DAG sirve UNO SOLO: el de la
-# ventana mas larga, que es la que mas historia mira.
-#
-# No es un olvido: servir los tres significaria escribir tres predicciones
-# por cripto y por dia, y la tabla ya tiene la ventana en la PK para
-# soportarlo -- pero que modelo va a produccion se decide moviendo el alias
-# (seccion 3.3 del notebook), no multiplicando el scoring.
+# El Registry tiene UN modelo: crypto_volatilidad_7d, el de la ventana mas
+# larga. La grilla del notebook compara las tres ventanas como runs (en
+# Experiments); al Registry entra solo lo que puede ir a produccion, y que
+# version va se decide moviendo el alias (seccion 3.3 del notebook).
 #
 # Si manana se quiere servir otra ventana, se cambia esta constante (o se
 # parametriza con una Variable de Airflow). La ventana con la que entrenar
