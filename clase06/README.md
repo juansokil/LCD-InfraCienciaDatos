@@ -34,7 +34,7 @@
 ## 🚀 Setup mínimo
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`) — incluye Postgres, Airflow, el dashboard **y el MLflow Tracking Server** (`localhost:5000`).
-- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que consume el dashboard (`gold.v_ultimo_snapshot`, `gold.v_series_diaria`, `gold.v_kpis_mercado`). El modelo de esta clase, en cambio, se entrena desde el **hecho** (`gold.fact_crypto_markets`): necesita el grano de los snapshots para calcular la volatilidad de cada día, que la serie diaria ya colapsó.
+- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que consume el dashboard (`gold.v_ultimo_snapshot`, `gold.v_series_diaria`, `gold.v_kpis_mercado`). El modelo de esta clase, en cambio, se entrena desde **Silver** (`silver.crypto_markets`): necesita el grano de los snapshots para calcular la volatilidad de cada día, que la serie diaria ya colapsó.
 - Entorno Python local con `scikit-learn`, `mlflow`, `pandas` (`pip install -r requirements.txt`, raíz del repo).
 
 **Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
@@ -75,9 +75,9 @@ El docente recorre el notebook en vivo. Estructura real:
 
 ### Parte 1 — El pipeline, en producción
 
-1. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior.
-2. **🚀 Switch a modo producción**: se copia `dag_crypto_ml.py` al stack y se despausan los cuatro `crypto_*`, mirando el resultado de cada uno: un DAG pausado no se dispara por asset, y no da ningún error.
-3. **👀 Quién disparó cada corrida**: una consulta a la metadata de Airflow muestra la última cadena en el orden en que arrancó, y qué disparó cada corrida — a bronze, el reloj; a cada una de las otras, el asset que emitió la anterior.
+1. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze`, de ahí `crypto_silver`, y de Silver, en paralelo, `crypto_gold` (BI) y `crypto_ml` (ML), cada uno disparado por el dato que lee.
+2. **🚀 Switch a modo producción**: se copia `dag_crypto_ml.py` al stack (y se vuelve a copiar `dag_crypto_gold.py`, que ahora baja solo sus vistas) y se despausan los cuatro `crypto_*`, mirando el resultado de cada uno: un DAG pausado no se dispara por asset, y no da ningún error.
+3. **👀 Quién disparó cada corrida**: una consulta a la metadata de Airflow muestra la última cadena en el orden en que arrancó, y qué disparó cada corrida — a bronze, el reloj; a silver, el asset de bronze; a gold y a ml, los dos, el de silver.
 
 ### Parte 2 — MLOps: del notebook a producción
 
@@ -90,7 +90,7 @@ de una ABT sobre las mismas ventas, verifica el grano y lo rompe con un refactor
 después `gold_02_abt.py` arma esa ABT como DAG, con una task que verifica el grano.
 
 **1. 🧪 El dataset y la medición, lo mínimo honesto.** Las features salen de una
-query SQL sobre `gold.fact_crypto_markets` (solo información ≤ t) y el target de
+query SQL sobre `silver.crypto_markets` (solo información ≤ t) y el target de
 un `LEAD`. La validación es temporal, **por fechas únicas**, y se mide contra dos
 referencias. No es una clase de modelado: es el piso sin el cual las métricas que
 vienen después mienten.
@@ -113,8 +113,7 @@ punto entero de tener un registry.
 
 **4. ⚙️ Airflow para ML — el modelo como task de un DAG.**
 [`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) predice en batch, disparado
-**por el asset `gold_star`** —cuando Gold publicó su modelo ya verificado—, no
-por reloj. Carga el champion del Registry, escribe `gold.predicciones` de forma
+**por el asset de Silver**, en paralelo a Gold, no por reloj. Carga el champion del Registry, escribe `gold.predicciones` de forma
 **idempotente** (DELETE del día + INSERT) y **saltea con log claro** cuando
 todavía no hay champion, en vez de ponerse en rojo. En la misma corrida arma
 `gold.gold_abt_crypto`, la ABT con el último estado de cada cripto (una fila
@@ -160,7 +159,7 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   entre días.
 - **Con qué**: la volatilidad intradía, el rango, el volumen y el rank de cada
   día, más los de ayer y sus promedios móviles. Salen de los snapshots por cripto
-  y por día que `gold.fact_crypto_markets` acumula y que el cierre diario descarta
+  y por día que `silver.crypto_markets` acumula y que el cierre diario descarta
   — exactamente lo que se decidió guardar en la clase 05. Cuántos son depende de
   las horas que tengas el stack prendido: uno cada 15 minutos, o sea **hasta 96
   por día** con el reloj solo; en el warehouse del curso, medido el 2026-11-02
@@ -279,7 +278,7 @@ El **mensaje final** completo está en la última celda del notebook.
 
 | Problema | Solución |
 | :--- | :--- |
-| `gold.fact_crypto_markets` está vacía | La llena `crypto_gold` en cada corrida, con lo que dejó Silver. Verificá que `crypto_gold` haya corrido OK en Airflow (se dispara solo cuando `crypto_silver` termina) |
+| `silver.crypto_markets` está vacía | La llena `crypto_silver` en cada corrida, con lo que trae Bronze. Verificá que `crypto_bronze` y `crypto_silver` hayan corrido OK en Airflow |
 | Todo aparece como **NO CONCLUYENTE** | Esperable con poca historia: el guard pide ≥ 14 fechas distintas y el warehouse suma 1 por día. Dejá el stack corriendo y volvé a correr la Parte 2 |
 | `ImportError: sklearn` o `mlflow` | Activá tu entorno y `pip install -r requirements.txt` (raíz del repo) |
 | MLflow no responde en `localhost:5000` | El server es **parte del stack** (no hay que correr nada a mano). Primero mirá si el container está vivo: `docker compose ps mlflow`. Si no está, levantalo con `docker compose up -d mlflow` desde `stack/` |
@@ -288,6 +287,6 @@ El **mensaje final** completo está en la última celda del notebook.
 | `load_model(...)` desde el notebook se cuelga y da `Read timed out` | En Windows, el port-forward de Docker Desktop no cierra bien las respuestas *chunked* del proxy de artifacts (**la descarga al host se cuelga; la subida anda salvo con artefactos grandes — ver la fila siguiente**). Por eso la celda 3.4 recarga el champion **adentro de la red** (`docker exec` → `http://mlflow:5000`) — igual que el DAG. Adentro de la red no existe el problema |
 | `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso la grilla del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
 | El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
-| `crypto_ml` no se dispara nunca | Consume el asset `gold_star`, que emite la task `build_views` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara. Ojo también con `verify_integrity`: si Gold falla ahí, no emite el asset y este DAG no arranca (es lo que se busca) |
+| `crypto_ml` no se dispara nunca | Consume el asset `silver_crypto_markets`, que emite `crypto_silver`: hace falta que `crypto_silver` esté **despausado** y corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara |
 | El modelo queda por debajo de la **persistencia** | Es un resultado posible: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla. Con pocas fechas de test, la diferencia suele ser menor que lo que mueve una sola predicción; la celda imprime ese número |
 | Accuracy sospechosamente alta | Sospechá **leakage**: target disfrazado de feature, split que mezcla días, o grano intradía filtrándose en el cierre |
