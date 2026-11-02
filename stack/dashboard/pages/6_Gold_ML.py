@@ -706,9 +706,9 @@ with st.expander("🔮 Las predicciones · `gold.predicciones`"):
             "terminó OK todas: no falló, <b>salteó</b>. Sin un modelo con alias "
             "<code>@champion</code> en el Registry no tiene con qué scorear, así "
             "que loguea <code>[SKIP]</code> y sale limpio.<br><br>"
-            "Para que aparezcan predicciones hay que <b>promover un champion</b> "
-            "desde el notebook de la clase 06 — esa decisión es humana a "
-            "propósito y no se automatiza."
+            "Para que aparezcan predicciones hay que correr la <b>sección 3.3</b> "
+            "del notebook de la clase 06: registra el primer modelo y, como "
+            "todavía no hay champion, lo promueve."
             if veces else
             "Cuando haya champion y predicciones, acá van a aparecer la señal "
             "del día por activo y el acierto acumulado contra lo que pasó."

@@ -2,7 +2,7 @@
 
 > 📚 **Cómo está estructurada esta clase** (patrón compartido por clase03/04/05/06):
 >
-> 1. **Notebook teórico** ([`clase06.ipynb`](clase06.ipynb)) — conceptos + DAGs demo sobre datos sintéticos (`silver.ventas_demo`, la misma fuente de la clase 05)
+> 1. **Notebook teórico** ([`clase06.ipynb`](clase06.ipynb)) — conceptos + un DAG demo sobre datos sintéticos (`silver.ventas_demo`, la misma fuente de la clase 05)
 > 2. **Ejercicio práctico (con entrega)** ([`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb)) — *El veredicto*: siete candidatos en MLflow y una decisión
 > 3. **DAG productivo** ([`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py)) — para copy-paste a Airflow
 
@@ -15,7 +15,7 @@
 ## 🎯 Objetivos
 
 - Distinguir las dos formas de Gold —el **star schema** para BI y la **ABT** para ML— y construir una ABT verificando su grano.
-- Dejar el pipeline en **modo producción**: las capas encadenadas por datos y sin DAGs de práctica.
+- Dejar el pipeline en **modo producción**: las cuatro capas encadenadas por el dato, y ver quién disparó cada corrida.
 - Medir un modelo **sin engañarse**: features sin futuro, validación por fechas y dos referencias (la clase mayoritaria y la persistencia).
 - Registrar experimentos en **MLflow** y reemplazar el modelo en producción **solo si el nuevo le gana** (champion contra challenger).
 - Servir el modelo con un **DAG disparado por el dato** y corregirlo con un tablero contra lo que efectivamente pasó.
@@ -25,7 +25,7 @@
 ## 📚 Material
 
 - [`clase06.ipynb`](clase06.ipynb) — el workshop (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
-- El notebook genera además **dos DAGs pedagógicos** (vía `%%writefile`): `gold_02_abt.py`, que arma una **ABT** sobre datos sintéticos —la forma de tabla con la que se entrena un modelo—, y `ml_01_prediccion_demo.py`, que la **consume**: lee la ABT, entrena registrando en MLflow y escribe predicciones de forma idempotente. Entre los dos cierran la cadena de demos que venía desde la clase 05.
+- El notebook genera además un **DAG pedagógico** (vía `%%writefile`): `gold_02_abt.py`, que arma una **ABT** sobre los datos sintéticos de la clase 05 —una fila por cliente, con las features en SQL— y verifica su grano.
 - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **El veredicto**, la entrega de la clase: siete candidatos en MLflow y una decisión. Tu `.txt` cae en [`ejercicios/estudiantes/`](ejercicios/estudiantes/) (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
 - [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/`).
 
@@ -73,14 +73,11 @@ Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb): **El veredicto
 
 El docente recorre el notebook en vivo. Estructura real:
 
-### Parte 1 — El pipeline, cerrado (de andamiaje a producción)
+### Parte 1 — El pipeline, en producción
 
-1. **📋 Recap del cuatrimestre**: tabla + diagrama del pipeline (Bronze → Silver → Gold → ML).
-2. **🎯 Decisiones técnicas clave**: por qué SHA256 en Bronze, Pydantic + Cuarentena en Silver, Star Schema en Gold (clase 05) y **la ABT acá**, MLflow hoy.
-3. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior — y cómo verlo en la UI.
-4. **🛠️ La ABT, hecha DAG**: antes de pasar a producción, el último andamiaje — `gold_02_abt.py` arma una tabla ancha (1 fila = 1 cliente) con features en SQL. Es la forma que come el modelo.
-5. **🚀 Switch a modo producción**: se despausa la cadena productiva (los cuatro `crypto_*`), se retira el andamiaje (los DAGs de ejemplo de cada clase). El tablero queda limpio: 4 DAGs que significan algo.
-6. **📊 Monitoring**: los tres niveles de observabilidad (infra / datos / negocio) y a quién le habla cada página del dashboard.
+1. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior.
+2. **🚀 Switch a modo producción**: se copia `dag_crypto_ml.py` al stack y se despausan los cuatro `crypto_*`, mirando el resultado de cada uno: un DAG pausado no se dispara por asset, y no da ningún error.
+3. **👀 Quién disparó cada corrida**: una consulta a la metadata de Airflow muestra la cadena en el orden en que arrancó — bronze por el reloj, el resto por el dato.
 
 ### Parte 2 — MLOps: del notebook a producción
 
@@ -88,10 +85,14 @@ El docente recorre el notebook en vivo. Estructura real:
 > modelo deja de ser una celda de notebook y pasa a ser **una pieza del
 > pipeline**: versionada, servida por un DAG, y corregida por un tablero.
 
+**Primero, la forma: 🧱 la ABT.** Un mini-lab pone el star de la clase 05 al lado
+de una ABT sobre las mismas ventas, verifica el grano y lo rompe con un refactor;
+después `gold_02_abt.py` arma esa ABT como DAG, con una task que verifica el grano.
+
 **1. 🧪 El dataset y la medición, lo mínimo honesto.** Las features salen de una
 query SQL sobre `gold.fact_crypto_markets` (solo información ≤ t) y el target de
 un `LEAD`. La validación es temporal, **por fechas únicas**, y se mide contra dos
-varas. No es una clase de modelado: es el piso sin el cual las métricas que
+referencias. No es una clase de modelado: es el piso sin el cual las métricas que
 vienen después mienten.
 
 **2. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
@@ -110,26 +111,23 @@ predicción. La regla se escribe antes de mirar el resultado, y la decisión
 **cambia lo que predice el pipeline sin tocar una línea de código** — ese es el
 punto entero de tener un registry.
 
-**4. ⚙️ Airflow para ML — el modelo como task de un DAG.** Se ve dos veces: en
-chiquito con **`ml_01_prediccion_demo.py`**, que el notebook escribe con
-`%%writefile` y cierra la cadena de demos que venía desde la clase 05
-(`silver.ventas_demo` → ABT → predicciones, la rama hermana del star de la clase 05), y en producción con
-[`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py): arma la **ABT productiva**
-(`gold.gold_abt_crypto`, que vivía en el DAG de Gold y se mudó acá, al pipeline
-que la usa) y hace el scoring batch, disparado **por el asset `gold_star`**, no
-por reloj — o sea cuando Gold publicó su modelo ya verificado. Lee el champion
-del Registry, escribe
-`gold.predicciones` de forma **idempotente** (DELETE del día + INSERT), y
-**saltea con log claro** cuando todavía no hay champion, en vez de ponerse en
-rojo. El mismo encadenado por Assets de las clases 03-05, ahora con un modelo
-adentro.
+**4. ⚙️ Airflow para ML — el modelo como task de un DAG.**
+[`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) predice en batch, disparado
+**por el asset `gold_star`** —cuando Gold publicó su modelo ya verificado—, no
+por reloj. Carga el champion del Registry, escribe `gold.predicciones` de forma
+**idempotente** (DELETE del día + INSERT) y **saltea con log claro** cuando
+todavía no hay champion, en vez de ponerse en rojo. En la misma corrida arma
+`gold.gold_abt_crypto`, la ABT con el último estado de cada cripto (una fila
+por cripto); el modelo no la usa, porque necesita una fila por cripto y por día.
+El notebook cierra mirando qué escribió el DAG: con qué versión del champion, y
+qué criptos ve más probables entre las movidas de mañana.
 
 **5. 🔀 Training-serving skew — el error que no avisa.** La ventana con la que
 armar las features **no está hardcodeada**: el DAG la lee del param
 `ventana_dias` del propio champion. Si el champion fue entrenado con otras
 features, **lo detecta y saltea** en vez de escribir basura. Y el SQL de las
-features es **la misma query** en el notebook y en el DAG — no dos copias que
-divergen. Verlo ocurrir vale más que explicarlo.
+features es **la misma query** en el notebook y en el DAG: está copiada,
+idéntica, en los dos.
 
 **6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
 con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
@@ -207,7 +205,7 @@ FROM gold.predicciones GROUP BY origen;
 -- Esperado: filas > 0. `produccion` es lo que scoreó el champion;
 -- `reconstruido` es la historia que rellenó completar_historico.
 
--- 3 · ¿El tablero puede comparar contra las dos varas?
+-- 3 · ¿El tablero puede comparar contra las dos referencias?
 SELECT ventana, dias, accuracy, base_persistencia, base_mayoritaria
 FROM gold.v_ml_veredicto ORDER BY ventana;
 -- Esperado: 3 filas, una por ventana (1, 3 y 7 días). Si viene vacía, la
@@ -235,8 +233,8 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 | **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
 | **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana; el nuevo entra como `@challenger` y reemplaza al `@champion` solo si le gana |
 | **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
-| **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — una sola query SQL compartida, y el DAG detecta y saltea si no coinciden |
-| **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos varas |
+| **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — la misma query en el notebook y en el DAG, y el DAG saltea si el modelo espera otras features |
+| **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos referencias |
 | **Feature Stores** (Feast, Tecton) | Reuso de features entre equipos y proyectos | ❌ No — con un solo pipeline, una vista de Gold alcanza |
 | **Data Drift detection** | Alertar cuando los datos de inferencia se alejan del training | ❌ No — necesita meses de historia para calibrar |
 | **Observability Gate** | Bloquear un deploy automáticamente si las métricas no dan | 🟡 **A medias** — la regla está escrita (champion contra challenger), pero la corrés vos desde el notebook. Automatizarla es meter esa celda en un DAG |
@@ -288,7 +286,7 @@ El **mensaje final** completo está en la última celda del notebook.
 | El container `mlflow` figura `Exited` | Mirá sus logs: `docker compose logs mlflow`. Si dice `ImportError: cannot import name 'FallbackAsyncAdaptedQueuePool' from 'sqlalchemy.pool'`, la imagen se construyó con una SQLAlchemy que mlflow 3.4.0 no soporta. Bajá lo nuevo de `main` y **reconstruí la imagen**: `docker compose build mlflow && docker compose up -d mlflow`. Con `up` solo no alcanza |
 | `log_model` falla con `404` en `/api/2.0/mlflow/logged-models` | Cliente y server difieren en la versión **mayor** de MLflow. Instalá la pineada: `pip install mlflow==3.4.0` |
 | `load_model(...)` desde el notebook se cuelga y da `Read timed out` | En Windows, el port-forward de Docker Desktop no cierra bien las respuestas *chunked* del proxy de artifacts (**la descarga al host se cuelga; la subida anda salvo con artefactos grandes — ver la fila siguiente**). Por eso la celda 3.4 recarga el champion **adentro de la red** (`docker exec` → `http://mlflow:5000`) — igual que el DAG. Adentro de la red no existe el problema |
-| `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso el zoo del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
+| `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso la grilla del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
 | El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
 | `crypto_ml` no se dispara nunca | Consume el asset `gold_star`, que emite la task `build_views` de `crypto_gold`: hace falta que `crypto_gold` esté **despausado** y haya corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara. Ojo también con `verify_integrity`: si Gold falla ahí, no emite el asset y este DAG no arranca (es lo que se busca) |
 | El modelo queda por debajo de la **persistencia** | Es un resultado posible: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla. Con pocas fechas de test, la diferencia suele ser menor que lo que mueve una sola predicción; la celda imprime ese número |
