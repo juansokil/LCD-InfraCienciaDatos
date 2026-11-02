@@ -77,7 +77,7 @@ El docente recorre el notebook en vivo. Estructura real:
 
 1. **🔗 La cadena completa**: las cuatro capas de crypto encadenadas por Assets — un solo cron en `crypto_bronze` y de ahí `crypto_silver` → `crypto_gold` → `crypto_ml`, cada una disparada por el dato de la anterior.
 2. **🚀 Switch a modo producción**: se copia `dag_crypto_ml.py` al stack y se despausan los cuatro `crypto_*`, mirando el resultado de cada uno: un DAG pausado no se dispara por asset, y no da ningún error.
-3. **👀 Quién disparó cada corrida**: una consulta a la metadata de Airflow muestra la cadena en el orden en que arrancó — bronze por el reloj, el resto por el dato.
+3. **👀 Quién disparó cada corrida**: una consulta a la metadata de Airflow muestra la última cadena en el orden en que arrancó, y qué disparó cada corrida — a bronze, el reloj; a cada una de las otras, el asset que emitió la anterior.
 
 ### Parte 2 — MLOps: del notebook a producción
 
