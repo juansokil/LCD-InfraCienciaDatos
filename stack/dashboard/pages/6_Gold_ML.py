@@ -232,10 +232,15 @@ seccion("¿Qué significa que una cripto sea «volátil»?",
         "Cuánto se sacude el precio, sin importar hacia dónde · y para qué sirve saberlo antes")
 
 vol_ok = q("SELECT to_regclass('gold.v_volatilidad_diaria') IS NOT NULL AS e").iloc[0]["e"]
+# name y categoria viven en la dimension de Gold. La vista de ML lee Silver y
+# no los trae (si colgara de dim_crypto, el DROP ... CASCADE con que Gold
+# reconstruye sus tablas se la llevaria): se cruzan aca, al consultar.
 vdia = q("""
-    SELECT * FROM gold.v_volatilidad_diaria
-    WHERE fecha = (SELECT max(fecha) FROM gold.v_volatilidad_diaria)
-    ORDER BY vol DESC
+    SELECT v.*, d.name, d.categoria
+    FROM gold.v_volatilidad_diaria v
+    LEFT JOIN gold.dim_crypto d USING (crypto_id)
+    WHERE v.fecha = (SELECT max(fecha) FROM gold.v_volatilidad_diaria)
+    ORDER BY v.vol DESC
 """) if vol_ok else pd.DataFrame()
 
 if vdia.empty:
@@ -716,9 +721,9 @@ with st.expander("🔮 Las predicciones · `gold.predicciones`"):
         aviso(
             "<b>La tabla de predicciones todavía no existe.</b> La escribe el DAG "
             "<code>dag_crypto_ml</code>, que no corre por reloj sino <b>por "
-            "dato</b>: <code>schedule=[GOLD_STAR]</code> — se despierta cuando "
-            "Gold publica su capa semántica verificada, y en esa misma corrida "
-            f"arma la ABT y scorea.<br><br>{detalle}",
+            "dato</b>: <code>schedule=[SILVER_CRYPTO]</code> — se despierta "
+            "cuando Silver termina de escribir, en paralelo a Gold, y en esa "
+            f"misma corrida arma la ABT y scorea.<br><br>{detalle}",
             "🔮",
         )
     else:
@@ -735,7 +740,7 @@ with st.expander("🔮 Las predicciones · `gold.predicciones`"):
 
 de_donde_sale("gold.v_volatilidad_diaria",
               "La fuente de las features y del target: la dispersión intradía de "
-              "cada cripto y la mediana con la que se corta. Sale de "
-              "`gold.fact_crypto_markets`, NO del cierre diario — un cierre es "
+              "cada cripto y la mediana con la que se corta. Sale de los "
+              "snapshots de `silver.crypto_markets`, NO del cierre diario — un cierre es "
               "un solo número por día y no tiene dispersión de la que tomar "
               "el desvío.")

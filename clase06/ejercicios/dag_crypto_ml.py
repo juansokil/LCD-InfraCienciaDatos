@@ -4,20 +4,21 @@ Clase 06 - La ABT + scoring (inferencia batch) con el @champion del Registry
 
 Pipeline (dos ramas que no se cruzan):
   silver.crypto_markets + bronze.global_market  ->  gold.gold_abt_crypto  (la ABT)
-  gold.fact_crypto_markets + MLflow Registry    ->  gold.predicciones     (scoring)
+  silver.crypto_markets + MLflow Registry       ->  gold.predicciones     (scoring)
 
-Es la 4ta capa del pipeline productivo (SERVING) y el ultimo eslabon de la
-cadena data-aware: se dispara POR DATO (asset GOLD_STAR), no por reloj.
+Es la rama de ML del pipeline productivo (SERVING): se dispara POR DATO
+(asset SILVER_CRYPTO), no por reloj, en paralelo a crypto_gold.
 
     crypto_bronze  cron 0,15,30,45          --emite--> BRONZE_CRYPTO
     crypto_silver  schedule=[BRONZE_CRYPTO] --emite--> SILVER_CRYPTO
-    crypto_gold    schedule=[SILVER_CRYPTO] --emite--> GOLD_STAR
-    crypto_ml      schedule=[GOLD_STAR]     --emite--> GOLD_ABT   <-- este DAG
+    crypto_gold    schedule=[SILVER_CRYPTO] --emite--> GOLD_STAR   (BI)
+    crypto_ml      schedule=[SILVER_CRYPTO] --emite--> GOLD_ABT    (ML)  <-- este DAG
 
-Espera GOLD_STAR y no otra cosa porque GOLD_STAR significa dos cosas a la vez:
-que el fact y las dimensiones que este DAG lee estan construidos, y que pasaron
-el chequeo de integridad de Gold. Un asset dice "el dato que vas a leer esta
-listo".
+Espera SILVER_CRYPTO porque es el dato que lee: los snapshots limpios de
+Silver. Gold arma con ellos el star para BI; este DAG arma con ellos lo suyo
+para ML. Son dos formas de Gold que salen de la misma fuente, y ninguna
+depende de la otra: si el star de BI falla, el modelo sigue prediciendo.
+Un asset dice "el dato que vas a leer esta listo".
 
 A su vez emite GOLD_ABT en la task que escribe la ABT. Hoy nadie lo consume
 aguas abajo: lo declara igual, porque el asset documenta que ese dato existe y
@@ -36,8 +37,8 @@ nace despausado: is_paused_upon_creation=False, modo produccion):
 ESTE DAG NO ELIGE EL CHAMPION, Y CASI NO ENTRENA
 =============================================================================
 El entrenamiento y la ELECCION del champion se hacen en el notebook de
-clase06 (model zoo -> comparar runs -> alias @champion). Eso involucra
-criterio humano y es la leccion de la clase: no se automatiza.
+clase06 (seccion 3.3): el modelo nuevo entra como @challenger y pasa a
+@champion solo si le gana al vigente, con una regla escrita antes de mirar.
 
 Con UNA excepcion explicita: la task `completar_historico` reconstruye la
 serie hacia atras entrenando un RandomForest walk-forward por fecha (ver su
@@ -46,7 +47,7 @@ desde hoy. Esas filas quedan marcadas con origen='reconstruido'; el scoring
 del dia es el que usa el champion y queda con origen='produccion'.
 
 Este DAG toma el champion VIGENTE por alias
-(`models:/crypto_volatilidad_{W}d@champion`, uno por ventana): cuando promuevas otra version
+(`models:/crypto_volatilidad_7d@champion`): cuando se promueve otra version
 a @champion, la corrida siguiente la usa sola, sin tocar codigo.
 
 =============================================================================
@@ -87,7 +88,7 @@ import sys
 # en silencio):
 # productor y consumidor tienen que referirse al MISMO Asset, definido UNA vez.
 sys.path.append("/opt/airflow/dags")
-from common.assets import GOLD_ABT, GOLD_STAR  # noqa: E402
+from common.assets import GOLD_ABT, SILVER_CRYPTO  # noqa: E402
 
 # --- Conexion a Postgres (mismo patron que bronze/silver/gold) ---
 DB_URI = (
@@ -108,8 +109,8 @@ MLFLOW_TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://mlflow:5000")
 #
 # No es un olvido: servir los tres significaria escribir tres predicciones
 # por cripto y por dia, y la tabla ya tiene la ventana en la PK para
-# soportarlo -- pero la decision de que modelo va a produccion es humana y
-# se toma promoviendo el alias, no multiplicando el scoring.
+# soportarlo -- pero que modelo va a produccion se decide moviendo el alias
+# (seccion 3.3 del notebook), no multiplicando el scoring.
 #
 # Si manana se quiere servir otra ventana, se cambia esta constante (o se
 # parametriza con una Variable de Airflow). La ventana con la que entrenar
@@ -150,10 +151,10 @@ def features_sql(W: int) -> str:
     nada para la direccion.
 
     DE DONDE SALE EL DATO
-    De los snapshots por cripto por dia que `fact_crypto_markets` acumula (uno cada
-15 minutos, hasta 96 si el stack queda prendido todo el dia) y
-    que el cierre diario tira. La volatilidad intradiaria los usa: el pipeline ya
-    los venia juntando, faltaba la pregunta que los aprovechara.
+    De los snapshots por cripto que `silver.crypto_markets` acumula (uno cada 15
+    minutos, hasta 96 por dia si el stack queda prendido todo el dia) y que el
+    cierre diario tira. Se lee Silver y no el hecho de Gold: el star es la forma
+    que Gold les da a esos snapshots para BI, y el modelo arma la suya.
 
     EL TARGET ES CROSS-SECTIONAL
     `vol_manana > mediana de la volatilidad de manana`. La mitad le gana por
@@ -180,16 +181,18 @@ WITH intra AS (
     -- Una fila por cripto y por dia, calculada con TODOS los snapshots del dia.
     -- El HAVING descarta dias con pocas mediciones: una volatilidad calculada
     -- con 3 puntos no es una volatilidad, es ruido.
-    SELECT crypto_id,
-           snapshot_ts::date                                          AS fecha,
+    -- snapshot_ts llega como texto desde Bronze: se tipa aca para sacar el dia.
+    SELECT id                                                         AS crypto_id,
+           max(symbol)                                                AS symbol,
+           snapshot_ts::timestamp::date                               AS fecha,
            stddev_samp(current_price) / NULLIF(avg(current_price), 0) * 100 AS vol,
            (max(current_price) - min(current_price))
                / NULLIF(avg(current_price), 0) * 100                  AS rango,
            avg(total_volume)                                          AS volumen,
            count(*)                                                   AS n_snaps,
            max(market_cap_rank)                                       AS market_cap_rank
-    FROM gold.fact_crypto_markets
-    GROUP BY 1, 2
+    FROM silver.crypto_markets
+    GROUP BY id, snapshot_ts::timestamp::date
     HAVING count(*) > 10
 ),
 mediana AS (
@@ -198,12 +201,9 @@ mediana AS (
     FROM intra GROUP BY fecha
 ),
 serie AS (
-    -- El symbol vive en la DIMENSION, no en la tabla de hechos: ese es el punto
-    -- del star schema. Se trae con un join, no se duplica en el fact.
-    SELECT i.*, m.med AS mediana_vol_del_dia, d.symbol
+    SELECT i.*, m.med AS mediana_vol_del_dia
     FROM intra i
     JOIN mediana m ON m.fecha = i.fecha
-    LEFT JOIN gold.dim_crypto d ON d.crypto_id = i.crypto_id
 ),
 features AS (
     SELECT
@@ -275,12 +275,12 @@ def _tabla_existe(nombre_calificado: str) -> bool:
 @dag(
     dag_id="crypto_ml",
     start_date=datetime(2024, 1, 1),
-    # DATA-AWARE: corre cuando `crypto_gold` termina de publicar la capa
-    # semantica y emite GOLD_STAR -- o sea cuando el fact y las dimensiones que
-    # este DAG lee estan construidos Y verificados (verify_integrity paso).
+    # DATA-AWARE: corre cuando `crypto_silver` termina de escribir y emite
+    # SILVER_CRYPTO -- el dato que este DAG lee. Arranca junto con crypto_gold:
+    # los dos consumen Silver y ninguno espera al otro.
     # Sin cron: el scoring no tiene sentido "a las y cinco", tiene sentido
     # cuando hay datos nuevos para scorear.
-    schedule=[GOLD_STAR],
+    schedule=[SILVER_CRYPTO],
     catchup=False,
     is_paused_upon_creation=False,  # modo produccion: nace prendido
     default_args={"retries": 2, "retry_delay": timedelta(minutes=1)},
@@ -288,12 +288,12 @@ def _tabla_existe(nombre_calificado: str) -> bool:
     doc_md="""
     ## crypto_ml - Scoring con el @champion (serving)
 
-    Consume el asset **`gold_star`**: cuando `crypto_gold` publica la capa
-    semantica (con el modelo ya verificado), este DAG arma la **ABT** y, en
+    Consume el asset **`silver_crypto_markets`**, en paralelo a `crypto_gold`:
+    cuando Silver termina de escribir, este DAG arma la **ABT** y, en
     paralelo, carga `models:/crypto_volatilidad_7d@champion` del MLflow del stack
     (`http://mlflow:5000`), reconstruye las features del ultimo dia con la
-    MISMA query SQL del notebook y escribe **`gold.predicciones`**
-    (idempotente por dia).
+    MISMA query SQL del notebook (sobre `silver.crypto_markets`) y escribe
+    **`gold.predicciones`** (idempotente por dia).
 
     **No entrena.** Si no hay champion o falta historia, saltea con un log
     claro (no falla). Ver el header del archivo.
@@ -311,7 +311,7 @@ def crypto_ml():
     # No lee nada de Gold: se arma desde silver.crypto_markets y
     # bronze.global_market. Corre en paralelo al scoring porque no hay
     # dependencia de datos entre las dos ramas (el modelo necesita los
-    # snapshots del fact, que la ABT ya colapso).
+    # snapshots de Silver, que la ABT ya colapso).
     # ABT (Analytical Base Table) - wide table para ML
     # ============================================================
     # 1 fila por cripta. Construida con CTEs en SQL:
@@ -480,8 +480,8 @@ def crypto_ml():
         engine = sqlalchemy.create_engine(DB_URI)
         df = pd.read_sql(features_sql(ventana), engine, parse_dates=["fecha"])
         if df.empty:
-            print("[SKIP] gold.fact_crypto_markets sin filas: el pipeline todavia "
-                  "no poblo Gold. Nada que scorear.")
+            print("[SKIP] silver.crypto_markets sin dias completos: el pipeline "
+                  "todavia no poblo Silver. Nada que scorear.")
             return {"status": "sin_datos", "fecha": None, "rows": []}
 
         ultima_fecha = df["fecha"].max()
@@ -774,25 +774,32 @@ def crypto_ml():
             #  adivinar siempre la misma clase acierta la mitad sin mirar
             #  un solo dato. La vara honesta es la persistencia.)
             #
-            # Este dato SOLO existe porque la fact guarda un snapshot cada
+            # Este dato SOLO existe porque Silver guarda un snapshot cada
             # 15 minutos. El cierre diario -- un numero por dia -- no tiene
             # dispersion: no hay nada de que tomarle el desvio.
+            #
+            # Lee Silver y NINGUNA tabla de Gold BI, a proposito: crypto_gold
+            # corre en paralelo y reconstruye su hecho y sus dimensiones con
+            # DROP TABLE ... CASCADE. Una vista de ML colgada de esas tablas se
+            # caeria con cada corrida de Gold. (La categoria de cada cripto
+            # vive en gold.dim_crypto: quien la necesite la cruza al consultar.)
             # ------------------------------------------------------------
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_volatilidad_diaria CASCADE")
             conn.exec_driver_sql("""
                 CREATE VIEW gold.v_volatilidad_diaria AS
                 WITH intra AS (
-                    SELECT f.crypto_id,
-                           f.snapshot_ts::date            AS fecha,
+                    SELECT s.id                           AS crypto_id,
+                           max(s.symbol)                  AS symbol,
+                           s.snapshot_ts::timestamp::date AS fecha,
                            count(*)                       AS snapshots,
-                           avg(f.current_price)           AS precio_medio,
-                           stddev_samp(f.current_price)   AS desvio,
-                           min(f.current_price)           AS precio_min,
-                           max(f.current_price)           AS precio_max,
-                           stddev_samp(f.current_price)
-                               / NULLIF(avg(f.current_price), 0) * 100 AS vol
-                    FROM gold.fact_crypto_markets f
-                    GROUP BY 1, 2
+                           avg(s.current_price)           AS precio_medio,
+                           stddev_samp(s.current_price)   AS desvio,
+                           min(s.current_price)           AS precio_min,
+                           max(s.current_price)           AS precio_max,
+                           stddev_samp(s.current_price)
+                               / NULLIF(avg(s.current_price), 0) * 100 AS vol
+                    FROM silver.crypto_markets s
+                    GROUP BY s.id, s.snapshot_ts::timestamp::date
                     -- Menos de 10 mediciones no describen un dia: un desvio
                     -- sobre 3 puntos es ruido, no volatilidad.
                     HAVING count(*) > 10
@@ -802,7 +809,7 @@ def crypto_ml():
                            percentile_cont(0.5) WITHIN GROUP (ORDER BY vol) AS mediana
                     FROM intra GROUP BY fecha
                 )
-                SELECT i.crypto_id, d.symbol, d.name, d.categoria,
+                SELECT i.crypto_id, i.symbol,
                        i.fecha, i.snapshots,
                        round(i.precio_medio::numeric, 6)  AS precio_medio,
                        round(i.desvio::numeric, 6)        AS desvio,
@@ -812,8 +819,7 @@ def crypto_ml():
                        round(v.mediana::numeric, 3)       AS mediana_del_dia,
                        (i.vol > v.mediana)::int           AS alta_vol
                 FROM intra i
-                JOIN vara v          ON v.fecha = i.fecha
-                LEFT JOIN gold.dim_crypto d USING (crypto_id)
+                JOIN vara v ON v.fecha = i.fecha
             """)
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_aciertos")
             conn.exec_driver_sql("""
@@ -932,8 +938,8 @@ def crypto_ml():
 
 
     # Dos ramas independientes, a proposito: la ABT no alimenta al scoring
-    # (el modelo lee el fact), asi que encadenarlas inventaria una dependencia
-    # que no existe y haria esperar a una por la otra sin motivo.
+    # (el modelo lee los snapshots de Silver), asi que encadenarlas inventaria
+    # una dependencia que no existe y haria esperar a una por la otra sin motivo.
     build_abt()
     write_predicciones(score_con_champion()) >> completar_historico() >> build_vista_aciertos()
 
