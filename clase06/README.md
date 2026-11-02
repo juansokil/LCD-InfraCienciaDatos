@@ -142,10 +142,10 @@ con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
 Son dos mediciones distintas y conviene no mezclarlas. El **walk-forward del
 notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide las
 predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
-después pasó: con la historia acumulada al 2 de noviembre de 2026 (48 días con
+después pasó: con la historia acumulada al 2 de noviembre de 2026 (47 días con
 veredicto), `gold.v_ml_veredicto` devolvía 81,2 % en la ventana de 1 día,
-81,9 % en la de 3 y 80,5 % en la de 7, con la persistencia en 82,2 % y la
-mayoritaria entre 50,7 % y 51,4 %. Los valores cambian una vez por día, cuando
+81,7 % en la de 3 y 80,5 % en la de 7, con la persistencia en 82,6 % y la
+mayoritaria entre 50,6 % y 51,5 %. Los valores cambian una vez por día, cuando
 entra el día que cerró: el tablero muestra los tres números día a día.
 
 ---
@@ -167,8 +167,9 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   por día** con el reloj solo; en el warehouse del curso, medido el 2026-11-02
   sobre 53 días, la mediana es 67 y hay días de 10 (y 4 que pasan de 96, por
   corridas extra). Y
-  `features_sql` descarta el día entero si tiene 10 snapshots o menos
-  (`HAVING count(*) > 10`): con menos no hay volatilidad representativa.
+  `features_sql` descarta el día entero si tiene 20 snapshots o menos
+  (`HAVING count(*) > 20`, unas 5 horas de stack prendido): con menos no hay
+  volatilidad representativa.
 - **Cuándo cuenta un día**: el día del pipeline es UTC (en Argentina, de 21 a
   21) y entra cuando ya está su último snapshot, el de las 23:45 UTC (20:45 en
   Argentina). Antes, su volatilidad todavía cambia; por eso el modelo predice una

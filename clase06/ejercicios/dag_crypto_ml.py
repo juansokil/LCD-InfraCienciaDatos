@@ -201,7 +201,7 @@ WITH intra AS (
        OR EXISTS (SELECT 1 FROM silver.crypto_markets
                   WHERE snapshot_ts::timestamp = current_date + time '23:45')
     GROUP BY id, snapshot_ts::timestamp::date
-    HAVING count(*) > 10
+    HAVING count(*) > 20
 ),
 mediana AS (
     -- La vara del dia: la volatilidad tipica del mercado.
@@ -837,9 +837,9 @@ def crypto_ml():
                        OR EXISTS (SELECT 1 FROM silver.crypto_markets
                                   WHERE snapshot_ts::timestamp = current_date + time '23:45')
                     GROUP BY s.id, s.snapshot_ts::timestamp::date
-                    -- Menos de 10 mediciones no describen un dia: un desvio
+                    -- 20 mediciones o menos no describen un dia: un desvio
                     -- sobre 3 puntos es ruido, no volatilidad.
-                    HAVING count(*) > 10
+                    HAVING count(*) > 20
                 ),
                 vara AS (
                     SELECT fecha,
@@ -900,8 +900,8 @@ def crypto_ml():
             # SIN separar `origen`, asi que si una ventana tiene filas de
             # produccion (champion) y de completar_historico (reconstruido),
             # el accuracy publicado es el promedio de LOS DOS modelos. En la
-            # ventana 7 eso daba 81.3 (produccion, n=1531) y 79.0
-            # (reconstruido, n=768), y la vista publicaba 80.5. Separarlo cambia lo
+            # ventana 7 eso daba 81.5 (produccion, n=1481) y 78.7
+            # (reconstruido, n=766), y la vista publicaba 80.5. Separarlo cambia lo
             # que muestra la pagina 6_Gold_ML (hoy espera una fila por
             # ventana), asi que es una decision de diseno, no un typo.
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_veredicto")
