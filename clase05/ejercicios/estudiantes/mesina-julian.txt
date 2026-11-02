@@ -1,0 +1,9 @@
+Apellido: mesina
+Nombre: julian
+Rama: estudiante/mesina-julian
+Caso: gimnasio
+Hecho: una visita de un socio a una sede del gimnasio, la duración desde su ingreso hasta su salida. y cuánto dinero gastó en la barra
+Dimensiones: según el mes, la sucursal a la que asistió el socio, el horario de la visita y el tipo de plan que tiene contratado (full, local o flex)
+Metricas: los minutos que entrenó cada socio, el dinero que gastó en la barra y la cantidad de visitas realizadas. El gasto promedio por visita se calcula dividiendo el importe total consumido por la cantidad de visitas
+Codigo: D4462F94644E
+Fecha: 2026-11-01

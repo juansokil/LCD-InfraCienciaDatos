@@ -1,0 +1,19 @@
+Apellido: Mesina
+Nombre: Julian
+Rama: estudiante/mesina-julian
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82088
+Doble ingesta: SI
+Ultima carga: 2026-10-15 23:24:18.803511
+Pregunta (a) - La zona raw y la tabla:
+  Dejaría el raw porque la tabla bronze se puede reconstruir a partir de los archivos crudos. Si borrara el raw, perdería los datos originales de esa ingesta y tendría que volver a consultar la API para recuperarlos, pero los datos podrían haber cambiado.
+Pregunta (b) - replace y append:
+  Con replace se reemplaza el contenido de la tabla por la carga actual. Con append se agregan las nuevas filas sin borrar las anteriores. El DAG productivo usa append para conservar el historial de las cargas
+Pregunta (c) - Dos cargas identicas:
+  Las dos respuestas pueden ser iguales porque pasó poco tiempo entre las consultas y los datos no cambiaron. Se guardan las dos para tener un registro de cada ejecución del proceso.
+Codigo: 0A27F5DA5ECD
+Fecha: 2026-10-15
