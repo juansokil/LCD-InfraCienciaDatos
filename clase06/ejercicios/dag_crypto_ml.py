@@ -770,9 +770,8 @@ def crypto_ml():
             #      mitad arriba y una abajo.
             #
             # Y por eso el target queda balanceado 50/50 POR CONSTRUCCION.
-            # (Que es justo lo que vuelve inutil al baseline mayoritario:
-            #  adivinar siempre la misma clase acierta la mitad sin mirar
-            #  un solo dato. La vara honesta es la persistencia.)
+            # (Por eso la clase mayoritaria acierta la mitad sin mirar un
+            #  solo dato.)
             #
             # Este dato SOLO existe porque Silver guarda un snapshot cada
             # 15 minutos. El cierre diario -- un numero por dia -- no tiene
@@ -848,26 +847,23 @@ def crypto_ml():
                  AND v.fecha     = p.fecha_features + 1
             """)
             # ------------------------------------------------------------
-            # EL VEREDICTO: el modelo contra las DOS varas.
+            # EL VEREDICTO: el modelo al lado de las DOS referencias.
             #
-            # 1) MAYORITARIA: predecir siempre la clase que venia dominando.
-            #    Con el target balanceado por construccion ronda 0.50: es la
-            #    vara FACIL, y contra ella casi cualquier cosa "gana".
+            # 1) CLASE MAYORITARIA: predecir siempre la clase que venia
+            #    dominando. Con el target balanceado por construccion,
+            #    ronda 0.50.
             # 2) PERSISTENCIA: "manana se repite lo de hoy". Es volatility
             #    clustering hecho regla -- sin features, sin entrenar, sin
-            #    MLflow. Es la vara que de verdad hay que superar: si el
-            #    modelo no le gana, entrenar no compro nada.
+            #    MLflow.
             #
-            # Que la vista devuelva las DOS es deliberado. Elegir la vara
-            # facil y declarar victoria es el error mas comun del oficio, y se
-            # comete sin mala fe. Aca queda a la vista.
+            # La vista devuelve las dos al lado del accuracy del modelo.
             # ------------------------------------------------------------
-            # OJO (medido el 2026-10-10): esta vista agrupa por ventana y dia
+            # OJO (medido el 2026-11-02): esta vista agrupa por ventana y dia
             # SIN separar `origen`, asi que si una ventana tiene filas de
             # produccion (champion) y de completar_historico (reconstruido),
             # el accuracy publicado es el promedio de LOS DOS modelos. En la
-            # ventana 7 eso daba 80.6 (produccion, n=1193) y 68.3
-            # (reconstruido, n=142) promediados en 79.3. Separarlo cambia lo
+            # ventana 7 eso daba 81.3 (produccion, n=1531) y 79.0
+            # (reconstruido, n=816), y la vista publicaba 80.5. Separarlo cambia lo
             # que muestra la pagina 6_Gold_ML (hoy espera una fila por
             # ventana), asi que es una decision de diseno, no un typo.
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_veredicto")
