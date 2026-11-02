@@ -1,0 +1,16 @@
+Apellido: Lopez
+Nombre: Ivan
+Rama: estudiante/lopez-ivan
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Guarda los metadatos de Airflow como información sobre DAGs, ejecuciones, tareas, estados, usuarios y otros elementos de su funcionamiento. El data_warehouse almacena los datos que procesa el pipelineSe encuentran separadas porque cumplen funciones diferentes, airflow_db administra la información operativa de la orquestación, mientras que data_warehouse contiene los datos destinados al procesamiento y análisis.
+Pregunta (b) - Datos despues del down:
+  Porque los datos del data_warehouse se almacenan en un volumen persistente de Docker, que es independiente del ciclo de vida del contenedor.
+Pregunta (c) - DAGs en el contenedor:
+  Airflow puede ver los DAGs porque Docker Compose configura un volumen montado que conecta la carpeta stack/dags de la máquina con una carpeta dentro del contenedor de Airflow.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria el puerto de acceso para airflow en el docker-compose.yml de "8080:8080" a "8081:8080", luego haria docker compose up -d para aplicar la nueva configuracion
+Pregunta (e) - Credenciales del warehouse:
+  Compose accede a la contraseña especificada en el archivo .env
+Codigo: 3A64B1DE453A
+Fecha: 2026-10-15
