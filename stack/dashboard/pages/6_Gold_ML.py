@@ -245,7 +245,7 @@ vdia = q("""
 
 if vdia.empty:
     st.caption("Todavía no hay suficientes snapshots por día para medir "
-               "dispersión intradía. Hacen falta más de 10 por cripto.")
+               "dispersión intradía. Hacen falta más de 20 por cripto.")
 else:
     fecha_v = vdia["fecha"].iloc[0]
     mediana_v = float(vdia["mediana_del_dia"].iloc[0])
