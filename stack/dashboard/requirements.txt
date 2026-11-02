@@ -1,0 +1,8 @@
+streamlit==1.45.1
+psycopg2-binary==2.9.11
+pandas==2.2.3
+SQLAlchemy==1.4.54
+plotly==6.1.2
+numpy==1.26.4                       # calculos de la pagina de Analisis
+requests==2.32.5                    # API REST de MLflow (pagina Gold - ML)
+PyYAML==6.0.2          # leer el contrato de datos (pagina Silver)

@@ -1,0 +1,50 @@
+name: Check File Sizes
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+jobs:
+  check-file-sizes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for large files
+        run: |
+          MAX_MB=10
+          MAX_BYTES=$((MAX_MB * 1024 * 1024))
+          FAILED=0
+
+          # Revisar archivos modificados vs main (en PRs) o en el commit
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FILES=$(git diff --name-only origin/main...HEAD)
+          else
+            FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-files)
+          fi
+
+          for file in $FILES; do
+            if [ -f "$file" ]; then
+              SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+              SIZE_MB=$(echo "scale=2; $SIZE/1048576" | bc)
+              if [ "$SIZE" -gt "$MAX_BYTES" ]; then
+                echo "❌ ARCHIVO DEMASIADO GRANDE: $file (${SIZE_MB} MB) — máximo permitido: ${MAX_MB} MB"
+                FAILED=1
+              else
+                echo "✅ OK: $file (${SIZE_MB} MB)"
+              fi
+            fi
+          done
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo ""
+            echo "💡 Si necesitás subir archivos grandes, usá Git LFS o Kaggle/Drive y referenciá el link en el notebook."
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ Todos los archivos están dentro del límite de ${MAX_MB} MB."
