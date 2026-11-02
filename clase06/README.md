@@ -102,8 +102,9 @@ artifacts registrados. Cada run lleva la **ventana como tag**, para poder
 aislarlos en la UI. Sin esto, "el modelo que anduvo bien la semana pasada" es
 una carpeta con un `.pkl` y la memoria de alguien.
 
-**3. 🏆 Model Registry y aliases — qué modelo va a producción.** Un modelo
-registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`). El modelo nuevo
+**3. 🏆 Model Registry y aliases — qué modelo va a producción.** Un solo
+modelo registrado, `crypto_volatilidad_7d`: el que usa el DAG (la grilla compara
+las tres ventanas como runs, en Experiments). El modelo nuevo
 **no entra directo**: entra como `@challenger` y reemplaza al `@champion` **solo
 si le gana**, sobre días que ninguno de los dos vio y por más que el ruido de una
 predicción. La regla se escribe antes de mirar el resultado, y la decisión
@@ -130,9 +131,12 @@ features, **lo detecta y saltea** en vez de escribir basura. Y el SQL de las
 features es **la misma query** en el notebook y en el DAG: está copiada,
 idéntica, en los dos.
 
-**6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML` abre
-con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
-**dos referencias** sin entrenamiento, y recién después muestra la maquinaria:
+**6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML`
+cuenta el ciclo del modelo en cuatro bloques: qué versión está en producción
+(`@champion`) y cuál espera (`@challenger`), qué predice, **cómo le va** contra
+lo que efectivamente pasó y cómo llegó ahí (las decisiones champion contra
+challenger). El "cómo le va" se mide al lado de **dos referencias** sin
+entrenamiento:
 
 - **La clase mayoritaria**. Ronda 50% porque el target está balanceado por
   construcción.
@@ -222,7 +226,7 @@ SELECT count(*) AS filas, max(_processed_at) AS armada FROM gold.gold_abt_crypto
 -- Esperado: filas > 0, armada en la última corrida de crypto_ml.
 ```
 
-Y en MLflow (`localhost:5000` → **Models**): cada `crypto_volatilidad_{1,3,7}d` tiene que tener una versión con el alias `@champion`. **Sin ese alias el DAG no falla**: loguea `[SKIP]` y sale limpio, así que las predicciones pueden faltar sin que nada se ponga en rojo. Es el diseño anti-rojo de la clase, y es la primera cosa a mirar si la query 2 devuelve vacío.
+Y en MLflow (`localhost:5000` → **Models**): `crypto_volatilidad_7d` tiene que tener una versión con el alias `@champion`. **Sin ese alias el DAG no falla**: loguea `[SKIP]` y sale limpio, así que las predicciones pueden faltar sin que nada se ponga en rojo. Es el diseño anti-rojo de la clase, y es la primera cosa a mirar si la query 2 devuelve vacío.
 
 Y la versión que entró como challenger en la última corrida tiene los **tags de la decisión** (`decision`, `acc_champion`, `acc_challenger`, `holdout_desde`, `holdout_hasta`): si promovió, ahora lleva el alias `@champion`; si no, sigue como `@challenger`.
 
@@ -237,7 +241,7 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 | Concepto | Para qué sirve | ¿En esta clase? |
 |----------|----------------|-----------------|
 | **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
-| **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana; el nuevo entra como `@challenger` y reemplaza al `@champion` solo si le gana |
+| **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo, el que sirve el DAG; el nuevo entra como `@challenger` y reemplaza al `@champion` solo si le gana |
 | **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
 | **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — la misma query en el notebook y en el DAG, y el DAG saltea si el modelo espera otras features |
 | **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos referencias |
