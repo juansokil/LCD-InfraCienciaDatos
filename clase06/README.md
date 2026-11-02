@@ -113,7 +113,9 @@ punto entero de tener un registry.
 
 **4. ⚙️ Airflow para ML — el modelo como task de un DAG.**
 [`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) predice en batch, disparado
-**por el asset de Silver**, en paralelo a Gold, no por reloj. Carga el champion del Registry, escribe `gold.predicciones` de forma
+**por el asset de Silver**, en paralelo a Gold, no por reloj. Predice **una vez
+por día**: con la corrida que trae el último snapshot del día (23:45 UTC, 20:45
+en Argentina); las demás corridas del día la saltean. Carga el champion del Registry, escribe `gold.predicciones` de forma
 **idempotente** (DELETE del día + INSERT) y **saltea con log claro** cuando
 todavía no hay champion, en vez de ponerse en rojo. En la misma corrida arma
 `gold.gold_abt_crypto`, la ABT con el último estado de cada cripto (una fila
@@ -140,11 +142,11 @@ con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
 Son dos mediciones distintas y conviene no mezclarlas. El **walk-forward del
 notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide las
 predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
-después pasó: con la historia acumulada al 2 de noviembre de 2026 (49 días con
-veredicto), `gold.v_ml_veredicto` devolvía 81,0 % en la ventana de 1 día,
-81,7 % en la de 3 y 80,5 % en la de 7, con la persistencia en 82,0 % y la
-mayoritaria entre 50,7 % y 51,4 %. Los valores se mueven con la historia acumulada: el
-tablero muestra los tres números día a día.
+después pasó: con la historia acumulada al 2 de noviembre de 2026 (48 días con
+veredicto), `gold.v_ml_veredicto` devolvía 81,2 % en la ventana de 1 día,
+81,9 % en la de 3 y 80,5 % en la de 7, con la persistencia en 82,2 % y la
+mayoritaria entre 50,7 % y 51,4 %. Los valores cambian una vez por día, cuando
+entra el día que cerró: el tablero muestra los tres números día a día.
 
 ---
 
@@ -167,6 +169,10 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   corridas extra). Y
   `features_sql` descarta el día entero si tiene 10 snapshots o menos
   (`HAVING count(*) > 10`): con menos no hay volatilidad representativa.
+- **Cuándo cuenta un día**: el día del pipeline es UTC (en Argentina, de 21 a
+  21) y entra cuando ya está su último snapshot, el de las 23:45 UTC (20:45 en
+  Argentina). Antes, su volatilidad todavía cambia; por eso el modelo predice una
+  vez por día, con el día cerrado.
 - **Cómo se mide**: split temporal por **fechas únicas** (walk-forward), jamás
   por posición de fila. Los 6 runs se evalúan sobre **las mismas fechas**: si
   cada uno usara las que le alcanzan, no se sabría si la diferencia viene de las

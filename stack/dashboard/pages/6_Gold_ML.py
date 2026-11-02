@@ -406,8 +406,8 @@ else:
             f"todas volátiles — siempre hay una mitad arriba y una abajo."
         )
         st.caption(
-            f"Hoy {int(vdia['alta_vol'].sum())} de {len(vdia)} quedaron del "
-            f"lado alto. Que sea **siempre la mitad** es lo que deja a la "
+            f"El {fecha_larga(fecha_v)}, {int(vdia['alta_vol'].sum())} de {len(vdia)} "
+            f"quedaron del lado alto. Que sea **siempre la mitad** es lo que deja a la "
             "clase mayoritaria en el 50%."
         )
 
@@ -743,4 +743,5 @@ de_donde_sale("gold.v_volatilidad_diaria",
               "cada cripto y la mediana con la que se corta. Sale de los "
               "snapshots de `silver.crypto_markets`, NO del cierre diario — un cierre es "
               "un solo número por día y no tiene dispersión de la que tomar "
-              "el desvío.")
+              "el desvío. Toma solo días cerrados: un día entra cuando ya está "
+              "su último snapshot (23:45 UTC, 20:45 en Argentina).")

@@ -70,6 +70,8 @@ DISENO ANTI-ROJO (serving que arranca antes que el modelo)
   notebook) -> el DAG SALTEA con un log claro, NO falla.
 - Features incompletas (las ventanas de 7 dias siguen "calentando" porque
   el pipeline tiene pocos dias de historia) -> tambien saltea con log claro.
+- Ya esta la prediccion del ultimo dia cerrado con este champion -> saltea:
+  el modelo predice una vez por dia, no en cada corrida.
 - MLflow server caido o Postgres caido -> eso SI es falla real: el task
   falla y se ve en rojo (con retries por si fue un parpadeo).
 
@@ -192,6 +194,12 @@ WITH intra AS (
            count(*)                                                   AS n_snaps,
            max(market_cap_rank)                                       AS market_cap_rank
     FROM silver.crypto_markets
+    -- Un dia cuenta cuando ya esta su ultimo snapshot (el de las 23:45 UTC,
+    -- 20:45 en Argentina, por el cron de Bronze) o cuando ya termino. Antes,
+    -- su volatilidad todavia cambia con cada snapshot nuevo.
+    WHERE snapshot_ts::timestamp::date < current_date
+       OR EXISTS (SELECT 1 FROM silver.crypto_markets
+                  WHERE snapshot_ts::timestamp = current_date + time '23:45')
     GROUP BY id, snapshot_ts::timestamp::date
     HAVING count(*) > 10
 ),
@@ -291,9 +299,10 @@ def _tabla_existe(nombre_calificado: str) -> bool:
     Consume el asset **`silver_crypto_markets`**, en paralelo a `crypto_gold`:
     cuando Silver termina de escribir, este DAG arma la **ABT** y, en
     paralelo, carga `models:/crypto_volatilidad_7d@champion` del MLflow del stack
-    (`http://mlflow:5000`), reconstruye las features del ultimo dia con la
-    MISMA query SQL del notebook (sobre `silver.crypto_markets`) y escribe
-    **`gold.predicciones`** (idempotente por dia).
+    (`http://mlflow:5000`), reconstruye las features del ultimo dia cerrado con
+    la MISMA query SQL del notebook (sobre `silver.crypto_markets`) y escribe
+    **`gold.predicciones`** (idempotente por dia). Predice una vez por dia: con
+    la corrida que trae el ultimo snapshot del dia (23:45 UTC); las demas saltean.
 
     **No entrena.** Si no hay champion o falta historia, saltea con un log
     claro (no falla). Ver el header del archivo.
@@ -462,7 +471,6 @@ def crypto_ml():
             return {"status": "sin_champion", "fecha": None, "rows": []}
 
         champion_version = str(mv.version)
-        model = mlflow.sklearn.load_model(f"models:/{MODEL_NAME}@{MODEL_ALIAS}")
 
         # Con QUE ventana se entreno este champion. Se pregunta, no se asume:
         # el run guarda `ventana_dias` y es la unica fuente de verdad sobre
@@ -476,30 +484,50 @@ def crypto_ml():
         print(f"Champion v{champion_version} entrenado con ventana de "
               f"{ventana} dia(s) -> {len(features)} features")
 
-        # --- 2) Reconstruir las features del ULTIMO dia disponible ---
+        # --- 2) Las features del ULTIMO DIA CERRADO ---
         engine = sqlalchemy.create_engine(DB_URI)
         df = pd.read_sql(features_sql(ventana), engine, parse_dates=["fecha"])
         if df.empty:
-            print("[SKIP] silver.crypto_markets sin dias completos: el pipeline "
+            print("[SKIP] silver.crypto_markets sin dias cerrados: el pipeline "
                   "todavia no poblo Silver. Nada que scorear.")
             return {"status": "sin_datos", "fecha": None, "rows": []}
-
         ultima_fecha = df["fecha"].max()
-        hoy = df[df["fecha"] == ultima_fecha].dropna(subset=features)
-        if hoy.empty:
+
+        # --- 3) Una vez por dia --------------------------------------------
+        # La prediccion sale con la corrida que trae el ultimo snapshot del dia
+        # (23:45 UTC, las 20:45 en Argentina). Las demas corridas la encuentran
+        # y no la repiten. Si se promovio otro champion, la
+        # version cambia y se vuelve a predecir con el nuevo.
+        with engine.connect() as conn:
+            hay_tabla = conn.execute(sqlalchemy.text(
+                "SELECT to_regclass('gold.predicciones') IS NOT NULL")).scalar()
+            ya_esta = hay_tabla and conn.execute(sqlalchemy.text(
+                "SELECT count(*) FROM gold.predicciones "
+                "WHERE fecha_features = :f AND ventana = :v "
+                "AND origen = 'produccion' AND champion_version = :c"),
+                {"f": ultima_fecha.date(), "v": ventana, "c": champion_version}).scalar() > 0
+        if ya_esta:
+            print(f"[SKIP] Ya esta la prediccion con el dia {ultima_fecha:%Y-%m-%d} "
+                  f"(champion v{champion_version}): sale una vez por dia, cuando "
+                  "el dia cierra.")
+            return {"status": "ya_predicho", "fecha": None, "rows": []}
+
+        model = mlflow.sklearn.load_model(f"models:/{MODEL_NAME}@{MODEL_ALIAS}")
+        dia = df[df["fecha"] == ultima_fecha].dropna(subset=features)
+        if dia.empty:
             print(f"[SKIP] Features incompletas para {ultima_fecha:%Y-%m-%d}: "
                   f"la ventana de {ventana} dia(s) sigue 'calentando'. "
                   "Nada que scorear todavia.")
             return {"status": "features_incompletas", "fecha": None, "rows": []}
 
-        # --- 3) Scorear ---------------------------------------------------
+        # --- 4) Scorear ---------------------------------------------------
         # Si el champion fue entrenado con OTRAS features que las que produce el
         # SQL de hoy, sklearn lo detecta y avisa. Es training-serving skew real:
         # el modelo espera una cosa y produccion le manda otra. Se saltea con log
         # claro en vez de romper el DAG -- un modelo viejo no es una falla de
         # infraestructura, es un modelo que hay que volver a entrenar.
         try:
-            pred = model.predict(hoy[features])
+            pred = model.predict(dia[features])
         except Exception as e:
             if "feature names" not in str(e).lower():
                 raise
@@ -510,7 +538,7 @@ def crypto_ml():
                   "3.3 del notebook de clase06.")
             print(f"       (sklearn: {str(e)[:120]})")
             return {"status": "features_desactualizadas", "fecha": None, "rows": []}
-        proba = (model.predict_proba(hoy[features])[:, 1]
+        proba = (model.predict_proba(dia[features])[:, 1]
                  if hasattr(model, "predict_proba") else [None] * len(pred))
 
         scored_at = datetime.now(timezone.utc).isoformat()
@@ -529,7 +557,7 @@ def crypto_ml():
                 "origen": "produccion",
                 "ventana": ventana,
             }
-            for cid, sym, p, pr in zip(hoy["crypto_id"], hoy["symbol"], pred, proba)
+            for cid, sym, p, pr in zip(dia["crypto_id"], dia["symbol"], pred, proba)
         ]
         print(f"Scoreadas {len(rows)} criptos (features del {ultima_fecha:%Y-%m-%d}) "
               f"con {MODEL_NAME} v{champion_version}")
@@ -610,14 +638,16 @@ def crypto_ml():
             return
 
         with engine.begin() as conn:
-            # Idempotencia: si el DAG corre dos veces el mismo dia,
-            # borra ese dia y lo reescribe (mismo principio que Bronze).
+            # Idempotencia: borra lo que haya de ese dia y esa ventana y lo
+            # reescribe (mismo principio que Bronze). Incluida una prediccion
+            # reconstruida del mismo dia: la de produccion la reemplaza (la PK es
+            # dia + cripto + ventana, las dos no pueden convivir).
             conn.execute(
                 sqlalchemy.text(
                     "DELETE FROM gold.predicciones "
-                    "WHERE fecha_features = :f AND origen = 'produccion'"
+                    "WHERE fecha_features = :f AND ventana = :v"
                 ),
-                {"f": payload["fecha"]},
+                {"f": payload["fecha"], "v": payload["ventana"]},
             )
             conn.execute(
                 sqlalchemy.text("""
@@ -798,6 +828,11 @@ def crypto_ml():
                            stddev_samp(s.current_price)
                                / NULLIF(avg(s.current_price), 0) * 100 AS vol
                     FROM silver.crypto_markets s
+                    -- Solo dias cerrados (la misma regla que las features):
+                    -- una prediccion se corrige cuando su dia termino.
+                    WHERE s.snapshot_ts::timestamp::date < current_date
+                       OR EXISTS (SELECT 1 FROM silver.crypto_markets
+                                  WHERE snapshot_ts::timestamp = current_date + time '23:45')
                     GROUP BY s.id, s.snapshot_ts::timestamp::date
                     -- Menos de 10 mediciones no describen un dia: un desvio
                     -- sobre 3 puntos es ruido, no volatilidad.
@@ -863,7 +898,7 @@ def crypto_ml():
             # produccion (champion) y de completar_historico (reconstruido),
             # el accuracy publicado es el promedio de LOS DOS modelos. En la
             # ventana 7 eso daba 81.3 (produccion, n=1531) y 79.0
-            # (reconstruido, n=816), y la vista publicaba 80.5. Separarlo cambia lo
+            # (reconstruido, n=768), y la vista publicaba 80.5. Separarlo cambia lo
             # que muestra la pagina 6_Gold_ML (hoy espera una fila por
             # ventana), asi que es una decision de diseno, no un typo.
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_veredicto")
