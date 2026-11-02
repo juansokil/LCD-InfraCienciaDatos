@@ -12,6 +12,16 @@
 
 ---
 
+## 🎯 Objetivos
+
+- Distinguir las dos formas de Gold —el **star schema** para BI y la **ABT** para ML— y construir una ABT verificando su grano.
+- Dejar el pipeline en **modo producción**: las capas encadenadas por datos y sin DAGs de práctica.
+- Medir un modelo **sin engañarse**: features sin futuro, validación por fechas y dos referencias (la clase mayoritaria y la persistencia).
+- Registrar experimentos en **MLflow** y reemplazar el modelo en producción **solo si el nuevo le gana** (champion contra challenger).
+- Servir el modelo con un **DAG disparado por el dato** y corregirlo con un tablero contra lo que efectivamente pasó.
+
+---
+
 ## 📚 Material
 
 - [`clase06.ipynb`](clase06.ipynb) — el workshop (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
@@ -44,6 +54,18 @@ git merge main --no-edit
 > ⚠️ **clase06 requiere el stack Docker levantado y el pipeline productivo ya corrido.** Si en los ejercicios 03/04/05 hiciste la variante con **DuckDB** (sin Docker), eso **no alcanza acá**: clase06 no usa las tablas `*_demo` del ejercicio personal, sino el **pipeline productivo** completo. DuckDB sirvió para practicar cada capa; el cierre necesita el stack real.
 
 > 📌 **Versiones**: el `requirements.txt` pinea **`mlflow==3.4.0`** — la misma versión que corre el server del stack. Cliente y server tienen que coincidir en la versión **mayor**: si difieren, `log_model` llama endpoints que el otro lado no tiene y falla. Si tu entorno tiene otra versión: `pip install mlflow==3.4.0`.
+
+---
+
+## 📋 Cómo trabajar la clase
+
+### Paso 1 — Recorrer el notebook
+
+Abrí [`clase06.ipynb`](clase06.ipynb) y corrélo de arriba abajo, con el stack levantado. La **Parte 1** deja el pipeline en producción y la **Parte 2** le mete un modelo adentro; el detalle de cada sección está en *Lo que vas a ver en clase*, acá abajo. El switch a producción copia `dag_crypto_ml.py` al stack por vos: no hay ningún DAG que copiar a mano.
+
+### Paso 2 — El ejercicio y la entrega
+
+Abrí [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb): **El veredicto**. Se entrega un `.txt`; cómo generarlo y subirlo está en *La entrega de esta clase*, más abajo.
 
 ---
 
@@ -80,9 +102,11 @@ aislarlos en la UI. Sin esto, "el modelo que anduvo bien la semana pasada" es
 una carpeta con un `.pkl` y la memoria de alguien.
 
 **3. 🏆 Model Registry y aliases — qué modelo va a producción.** Un modelo
-registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`), cada uno con su
-alias `@champion`. La promoción es una **decisión humana explícita**, no un
-efecto secundario de correr una celda. Cambiar el champion en el Registry
+registrado **por ventana** (`crypto_volatilidad_1d/3d/7d`). El modelo nuevo
+**no entra directo**: entra como `@challenger` y reemplaza al `@champion` **solo
+si le gana**, sobre días que ninguno de los dos vio y por más que el ruido de una
+predicción. La regla se escribe antes de mirar el resultado, y la decisión
+—promover o no— queda en el Registry con sus números. Cambiar el champion
 **cambia lo que predice el pipeline sin tocar una línea de código** — ese es el
 punto entero de tener un registry.
 
@@ -119,10 +143,10 @@ con los **resultados**: accuracy contra lo que efectivamente pasó, junto a
 Son dos mediciones distintas y conviene no mezclarlas. El **walk-forward del
 notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide las
 predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
-después pasó: con la historia acumulada al 13 de octubre de 2026 (31 días con
-veredicto), `gold.v_ml_veredicto` devolvía 80,6 % en la ventana de 1 día,
-81,7 % en la de 3 y 79,6 % en la de 7, con la persistencia en 82,0 % y la
-mayoritaria entre 50,8 % y 51,3 %. Los valores se mueven con la historia acumulada: el
+después pasó: con la historia acumulada al 2 de noviembre de 2026 (49 días con
+veredicto), `gold.v_ml_veredicto` devolvía 81,0 % en la ventana de 1 día,
+81,8 % en la de 3 y 80,6 % en la de 7, con la persistencia en 82,0 % y la
+mayoritaria entre 50,7 % y 51,4 %. Los valores se mueven con la historia acumulada: el
 tablero muestra los tres números día a día.
 
 ---
@@ -141,7 +165,9 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   y por día que `gold.fact_crypto_markets` acumula y que el cierre diario descarta
   — exactamente lo que se decidió guardar en la clase 05. Cuántos son depende de
   las horas que tengas el stack prendido: uno cada 15 minutos, o sea **hasta 96
-  por día**; en el warehouse del curso la mediana es 86 y hay días de 14. Y
+  por día** con el reloj solo; en el warehouse del curso, medido el 2026-11-02
+  sobre 53 días, la mediana es 67 y hay días de 10 (y 4 que pasan de 96, por
+  corridas extra). Y
   `features_sql` descarta el día entero si tiene 10 snapshots o menos
   (`HAVING count(*) > 10`): con menos no hay volatilidad representativa.
 - **Cómo se mide**: split temporal por **fechas únicas** (walk-forward), jamás
@@ -150,15 +176,15 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   features o del test set.
 - **Qué es la volatilidad y para qué sirve predecirla**: cuánto se sacude el
   precio en el día (desvío ÷ promedio, en %), sin importar hacia dónde. Viene en
-  rachas, por eso se puede predecir; la dirección no deja rastro en precio y
-  volumen públicos (medido sobre estos datos: ~50 %). Un pronóstico de
+  rachas, por eso se puede predecir; la dirección, no: un modelo que la predice
+  con estos datos queda en el 50 % (49,6 %, medido el 2026-11-02). Un pronóstico de
   volatilidad no dice *comprá* ni *vendé*: dice cuánto riesgo hay mañana — para
   ampliar un stop, elegir cuándo ejecutar o subir garantías en un exchange. El
   notebook lo explica y lo dibuja con datos reales antes del Paso 1.
 
 ### Cierre
 
-- **🎁 Bonus Track**: el mapa completo de MLOps, con **cinco piezas marcadas como ya hechas** en esta clase y tres que quedan para después (Feature Stores, Drift, Observability Gate).
+- **🎁 Bonus Track**: el mapa completo de MLOps, con **cinco piezas marcadas como ya hechas** en esta clase, una **a medias** (Observability Gate) y dos que quedan para después (Feature Stores, Drift).
 - **🎓 Mensaje final**: qué construiste este cuatrimestre y qué hacer con eso (última celda del notebook).
 
 ---
@@ -194,6 +220,8 @@ SELECT count(*) AS filas, max(_processed_at) AS armada FROM gold.gold_abt_crypto
 
 Y en MLflow (`localhost:5000` → **Models**): cada `crypto_volatilidad_{1,3,7}d` tiene que tener una versión con el alias `@champion`. **Sin ese alias el DAG no falla**: loguea `[SKIP]` y sale limpio, así que las predicciones pueden faltar sin que nada se ponga en rojo. Es el diseño anti-rojo de la clase, y es la primera cosa a mirar si la query 2 devuelve vacío.
 
+Y la versión que entró como challenger en la última corrida tiene los **tags de la decisión** (`decision`, `acc_champion`, `acc_challenger`, `holdout_desde`, `holdout_hasta`): si promovió, ahora lleva el alias `@champion`; si no, sigue como `@challenger`.
+
 Si las cuatro dan, la rama ML está **servida, corregida y mirable**: el DAG scorea solo cuando Gold publica su asset, el tablero compara contra la persistencia y la decisión de promover queda registrada en el Registry.
 
 ---
@@ -205,13 +233,13 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 | Concepto | Para qué sirve | ¿En esta clase? |
 |----------|----------------|-----------------|
 | **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
-| **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana, cada uno con su `@champion` |
+| **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo por ventana; el nuevo entra como `@challenger` y reemplaza al `@champion` solo si le gana |
 | **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
 | **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — una sola query SQL compartida, y el DAG detecta y saltea si no coinciden |
 | **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos varas |
 | **Feature Stores** (Feast, Tecton) | Reuso de features entre equipos y proyectos | ❌ No — con un solo pipeline, una vista de Gold alcanza |
 | **Data Drift detection** | Alertar cuando los datos de inferencia se alejan del training | ❌ No — necesita meses de historia para calibrar |
-| **Observability Gate** | Bloquear un deploy automáticamente si las métricas no dan | ❌ No — acá la promoción del champion es manual, a propósito |
+| **Observability Gate** | Bloquear un deploy automáticamente si las métricas no dan | 🟡 **A medias** — la regla está escrita (champion contra challenger), pero la corrés vos desde el notebook. Automatizarla es meter esa celda en un DAG |
 
 Lo que falta es **carrera completa**. Si te interesa profundizar:
 - Material MLOps avanzado (Feature Stores, Drift, Model Serving): en preparación para próximas ediciones.
