@@ -103,7 +103,7 @@ end-to-end propio. Son cosas distintas y no se reemplazan.
 
 | Archivo | Qué es |
 | :--- | :--- |
-| [`dag_crypto_ml.py`](dag_crypto_ml.py) | El DAG de scoring del pipeline productivo: se dispara **por el asset** de Silver (`silver_crypto_markets`), en paralelo a Gold; arma la ABT y emite `gold_abt`, lee `crypto_volatilidad_7d@champion` del Registry de MLflow — y del propio modelo saca con qué ventana fue entrenado, así la ventana no queda hardcodeada — y escribe `gold.predicciones`. |
+| [`dag_crypto_ml.py`](dag_crypto_ml.py) | El DAG de scoring del pipeline productivo: se dispara **por el asset** de Silver (`silver_crypto_markets`), en paralelo a Gold. Una vez por día, cuando cierra el día, rearma la ABT (`gold.gold_abt_crypto`, una fila por cripto y por día) y emite `gold_abt`; después lee `crypto_volatilidad_7d@champion` del Registry de MLflow —y del propio modelo saca con qué ventana fue entrenado, así la ventana no queda hardcodeada—, predice con el último día de la ABT y escribe `gold.predicciones`. |
 
 Es **material de referencia**, no un ejercicio. Se copia al stack como los DAGs de las clases
 anteriores:

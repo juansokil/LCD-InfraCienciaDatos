@@ -34,7 +34,7 @@
 ## 🚀 Setup mínimo
 
 - Stack de la **Clase 02** corriendo (`docker compose up -d` desde `stack/`) — incluye Postgres, Airflow, el dashboard **y el MLflow Tracking Server** (`localhost:5000`).
-- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que consume el dashboard (`gold.v_ultimo_snapshot`, `gold.v_series_diaria`, `gold.v_kpis_mercado`). El modelo de esta clase, en cambio, se entrena desde **Silver** (`silver.crypto_markets`): necesita el grano de los snapshots para calcular la volatilidad de cada día, que la serie diaria ya colapsó.
+- El **pipeline productivo corriendo** en Airflow: `crypto_bronze` → `crypto_silver` → `crypto_gold`, encadenados por **Assets**: solo bronze tiene cron (`0,15,30,45`), y silver y gold se despiertan cuando la capa de arriba emite su asset — sin reloj propio. Gold deja, además de las tablas, las **vistas semánticas** que consume el dashboard (`gold.v_ultimo_snapshot`, `gold.v_series_diaria`, `gold.v_kpis_mercado`). La ABT del modelo, en cambio, se arma desde **Silver** (`silver.crypto_markets`): necesita el grano de los snapshots para calcular la volatilidad de cada día, que la serie diaria ya colapsó.
 - Entorno Python local con `scikit-learn`, `mlflow`, `pandas` (`pip install -r requirements.txt`, raíz del repo).
 
 **Sincronizá tu rama con el material nuevo.** Cada clase trae material nuevo en `main`. Antes de empezar a trabajar, traete los cambios:
@@ -89,11 +89,12 @@ El docente recorre el notebook en vivo. Estructura real:
 de una ABT sobre las mismas ventas, verifica el grano y lo rompe con un refactor;
 después `gold_02_abt.py` arma esa ABT como DAG, con una task que verifica el grano.
 
-**1. 🧪 El dataset y la medición, lo mínimo honesto.** Las features salen de una
-query SQL sobre `silver.crypto_markets` (solo información ≤ t) y el target de
-un `LEAD`. La validación es temporal, **por fechas únicas**, y se mide contra dos
-referencias. No es una clase de modelado: es el piso sin el cual las métricas que
-vienen después mienten.
+**1. 🧪 La ABT y la medición, lo mínimo honesto.** El modelo sale de la ABT,
+`gold.gold_abt_crypto`: una fila por cripto y por día, con las features (solo
+información ≤ t) y el target de un `LEAD`. La arma `crypto_ml` en SQL sobre
+`silver.crypto_markets`, y el notebook entrena leyéndola. La validación es
+temporal, **por fechas únicas**, y se mide contra dos referencias. No es una
+clase de modelado: es el piso sin el cual las métricas que vienen después mienten.
 
 **2. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
 (`localhost:5000`, backend Postgres, artifacts persistentes). La grilla cruza
@@ -114,25 +115,24 @@ punto entero de tener un registry.
 
 **4. ⚙️ Airflow para ML — el modelo como task de un DAG.**
 [`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) predice en batch, disparado
-**por el asset de Silver**, en paralelo a Gold, no por reloj. Predice **una vez
-por día**: con la corrida que trae el último snapshot del día (23:45 UTC, 20:45
-en Argentina); las demás corridas del día la saltean. En la grilla de Airflow se
-ve por el color: `score_con_champion` queda en **verde** en la corrida que
-predice y en **rosa** (*skipped*) en las demás. Carga el champion del Registry,
-escribe `gold.predicciones` de forma
-**idempotente** (DELETE del día + INSERT) y **saltea con log claro** cuando
-todavía no hay champion, en vez de ponerse en rojo. En la misma corrida arma
-`gold.gold_abt_crypto`, la ABT con el último estado de cada cripto (una fila
-por cripto); el modelo no la usa, porque necesita una fila por cripto y por día.
-El notebook cierra mirando qué escribió el DAG: con qué versión del champion, y
-qué criptos ve más probables entre las movidas de mañana.
+**por el asset de Silver**, en paralelo a Gold, no por reloj. **Una vez por
+día** —con la corrida que trae el último snapshot del día (23:45 UTC, 20:45 en
+Argentina)— rearma la ABT con el día que cerró, verifica su grano y predice con
+ese último día; las demás corridas del día ven que ya está y no hacen nada. En
+la grilla de Airflow se ve por el color: **verde** la corrida que arma y
+predice, **rosa** (*skipped*) las demás. Carga el champion del Registry,
+escribe `gold.predicciones` de forma **idempotente** (DELETE del día + INSERT)
+y **saltea con log claro** cuando todavía no hay champion, en vez de ponerse en
+rojo. El notebook cierra mirando qué escribió el DAG: con qué versión del
+champion, y qué criptos ve más probables entre las movidas de mañana.
 
 **5. 🔀 Training-serving skew — el error que no avisa.** La ventana con la que
 armar las features **no está hardcodeada**: el DAG la lee del param
 `ventana_dias` del propio champion. Si el champion fue entrenado con otras
-features, **lo detecta y saltea** en vez de escribir basura. Y el SQL de las
-features es **la misma query** en el notebook y en el DAG: está copiada,
-idéntica, en los dos.
+features, **lo detecta y saltea** en vez de escribir basura. Y las features se
+calculan **una sola vez**, en la ABT: el notebook entrena leyéndola y el DAG
+predice leyéndola. No hay dos versiones de la misma cuenta que se puedan
+separar.
 
 **6. 📊 Monitoring — el tablero corrige al modelo.** La página `6_Gold_ML`
 cuenta el ciclo del modelo en cuatro bloques: qué versión está en producción
@@ -170,7 +170,7 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   — exactamente lo que se decidió guardar en la clase 05. Cuántos son depende de
   las horas que tengas el stack prendido: uno cada 15 minutos, o sea **hasta 96
   por día** con el reloj solo, y menos si el stack estuvo apagado un rato. Y
-  `features_sql` descarta el día entero si tiene 20 snapshots o menos
+  la ABT deja afuera el día entero si tiene 20 snapshots o menos
   (`HAVING count(*) > 20`, unas 5 horas de stack prendido): con menos no hay
   volatilidad representativa.
 - **Cuándo cuenta un día**: el día del pipeline es UTC (en Argentina, de 21 a
@@ -219,8 +219,10 @@ FROM gold.v_ml_veredicto ORDER BY ventana;
 -- Esperado: 1 fila, la ventana de 7 días. Si viene vacía, la predicción
 -- de hoy todavía no se puede corregir: apunta a mañana.
 
--- 4 · ¿La ABT quedó escrita? Es la FOTO: una fila por cripto, sin historia.
-SELECT count(*) AS filas, max(_processed_at) AS armada FROM gold.gold_abt_crypto;
+-- 4 · ¿La ABT quedó escrita, y con su grano? Una fila por cripto y por día.
+SELECT count(*) AS filas, count(DISTINCT (crypto_id, fecha)) AS casos,
+       max(fecha) AS ultimo_dia, max(_processed_at) AS armada
+FROM gold.gold_abt_crypto;
 -- Esperado: filas > 0, armada en la última corrida de crypto_ml.
 ```
 
@@ -241,9 +243,9 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 | **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
 | **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo, el que sirve el DAG; el nuevo entra como `@challenger` y reemplaza al `@champion` solo si le gana |
 | **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
-| **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — la misma query en el notebook y en el DAG, y el DAG saltea si el modelo espera otras features |
+| **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — el notebook entrena y el DAG predice leyendo la misma ABT, y el DAG saltea si el modelo espera otras features |
 | **Monitoring del modelo** | Saber si sigue sirviendo después del deploy | ✅ **Sí** — la página `6_Gold_ML`, contra dos referencias |
-| **Feature Stores** (Feast, Tecton) | Reuso de features entre equipos y proyectos | ❌ No — con un solo pipeline, una vista de Gold alcanza |
+| **Feature Stores** (Feast, Tecton) | Reuso de features entre equipos y proyectos | ❌ No — con un solo pipeline, una tabla de Gold (la ABT) alcanza |
 | **Data Drift detection** | Alertar cuando los datos de inferencia se alejan del training | ❌ No — necesita meses de historia para calibrar |
 | **Observability Gate** | Bloquear un deploy automáticamente si las métricas no dan | 🟡 **A medias** — la regla está escrita (champion contra challenger), pero la corrés vos desde el notebook. Automatizarla es meter esa celda en un DAG |
 
@@ -296,6 +298,7 @@ El **mensaje final** completo está en la última celda del notebook.
 | `load_model(...)` desde el notebook se cuelga y da `Read timed out` | En Windows, el port-forward de Docker Desktop no cierra bien las respuestas *chunked* del proxy de artifacts (**la descarga al host se cuelga; la subida anda salvo con artefactos grandes — ver la fila siguiente**). Por eso la celda 3.4 recarga el champion **adentro de la red** (`docker exec` → `http://mlflow:5000`) — igual que el DAG. Adentro de la red no existe el problema |
 | `log_model` corta con `Read timed out` al **subir** | Mismo origen que la fila anterior: el proxy de artifacts sobre el port-forward de Docker Desktop. **No depende del tamaño** — falla hasta con un YAML de 2 kB. Por eso la grilla del paso 3.1 loguea **desde adentro de la red** (`docker exec` → `http://mlflow:5000`). Si escribís tu propio código de tracking, seguí ese patrón |
 | El `docker exec` del notebook falla con `connection refused` en `127.0.0.1:2375` | Tenés una variable de entorno `DOCKER_HOST` apuntando a un daemon viejo. Borrala de las variables de usuario y reabrí la terminal / VS Code |
+| El Paso 1 dice que la ABT no aparece (`gold.gold_abt_crypto` no existe) | La arma `crypto_ml`, en la task `build_abt`, en su primera corrida. Mirá en Airflow que `crypto_ml` esté despausado y que `build_abt` haya terminado en verde; si todavía no corrió, dispará `crypto_ml` desde la UI y volvé a correr la celda |
 | `crypto_ml` no se dispara nunca | Consume el asset `silver_crypto_markets`, que emite `crypto_silver`: hace falta que `crypto_silver` esté **despausado** y corriendo (el switch de la Parte 1), y que `crypto_ml` mismo no esté pausado — un consumidor pausado no se auto-dispara |
 | `airflow dags test crypto_ml` falla con `Task Instance not found` al terminar una task | El DAG está despausado, y el scheduler también agarra la corrida que creó `dags test`: los dos ejecutan la misma task, el scheduler le cambia el id y `dags test` termina con uno que ya no existe. No es el código del DAG. Para probarlo en el momento: `airflow dags pause crypto_ml`, `airflow dags test crypto_ml` y `airflow dags unpause crypto_ml`; o dispará una corrida real con `airflow dags trigger crypto_ml` |
 | El modelo queda por debajo de la **persistencia** | Es un resultado posible: la persistencia (*"mañana igual que hoy"*) **es** la hipótesis de volatility clustering hecha regla. Con pocas fechas de test, la diferencia suele ser menor que lo que mueve una sola predicción; la celda imprime ese número |
