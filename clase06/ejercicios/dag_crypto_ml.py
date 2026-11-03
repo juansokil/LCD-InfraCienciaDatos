@@ -71,7 +71,13 @@ DISENO ANTI-ROJO (serving que arranca antes que el modelo)
 - Features incompletas (las ventanas de 7 dias siguen "calentando" porque
   el pipeline tiene pocos dias de historia) -> tambien saltea con log claro.
 - Ya esta la prediccion del ultimo dia cerrado con este champion -> saltea:
-  el modelo predice una vez por dia, no en cada corrida.
+  el modelo predice una vez por dia, no en cada corrida. Esta es la UNICA
+  salteada que se pinta distinto: la task queda en ROSA (skipped) en Airflow,
+  y las tres de abajo tambien. Asi la grilla muestra de un vistazo que corrida
+  predijo (verde) y cuales se despertaron, vieron que ya estaba y no hicieron
+  nada (rosa). Las otras salteadas quedan en verde a proposito: en un stack
+  nuevo, las tasks de abajo tienen que correr igual para crear la tabla y las
+  vistas.
 - MLflow server caido o Postgres caido -> eso SI es falla real: el task
   falla y se ve en rojo (con retries por si fue un parpadeo).
 
@@ -81,6 +87,7 @@ el mismo dia reescribe ese dia, nunca duplica.
 """
 
 from airflow.decorators import dag, task
+from airflow.exceptions import AirflowSkipException
 from datetime import datetime, timedelta, timezone
 import os
 import sys
@@ -495,6 +502,13 @@ def crypto_ml():
         # (23:45 UTC, las 20:45 en Argentina). Las demas corridas la encuentran
         # y no la repiten. Si se promovio otro champion, la
         # version cambia y se vuelve a predecir con el nuevo.
+        #
+        # Cuando ya esta, la task se marca SKIPPED (rosa en Airflow) en vez de
+        # terminar en verde. Las tres tasks de abajo tambien quedan en rosa:
+        # no hay nada que escribir, ni dias nuevos que completar, y las vistas
+        # leen Silver, asi que no se pierden entre corridas. En la grilla del
+        # DAG se ve una columna verde por dia -- la que predijo -- y el resto
+        # en rosa.
         with engine.connect() as conn:
             hay_tabla = conn.execute(sqlalchemy.text(
                 "SELECT to_regclass('gold.predicciones') IS NOT NULL")).scalar()
@@ -504,10 +518,11 @@ def crypto_ml():
                 "AND origen = 'produccion' AND champion_version = :c"),
                 {"f": ultima_fecha.date(), "v": ventana, "c": champion_version}).scalar() > 0
         if ya_esta:
-            print(f"[SKIP] Ya esta la prediccion con el dia {ultima_fecha:%Y-%m-%d} "
-                  f"(champion v{champion_version}): sale una vez por dia, cuando "
-                  "el dia cierra.")
-            return {"status": "ya_predicho", "fecha": None, "rows": []}
+            msg = (f"[SKIP] Ya esta la prediccion con el dia {ultima_fecha:%Y-%m-%d} "
+                   f"(champion v{champion_version}): sale una vez por dia, cuando "
+                   "el dia cierra.")
+            print(msg)
+            raise AirflowSkipException(msg)
 
         model = mlflow.sklearn.load_model(f"models:/{MODEL_NAME}@{MODEL_ALIAS}")
         dia = df[df["fecha"] == ultima_fecha].dropna(subset=features)
