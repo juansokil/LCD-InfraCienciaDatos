@@ -1,0 +1,19 @@
+Apellido: Ibar Jalil
+Nombre: Maria Sol
+Rama: estudiante/ibarjalil-mariasol
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81920
+Doble ingesta: SI
+Ultima carga: 2026-10-19 16:30:10.519569
+Pregunta (a) - La zona raw y la tabla:
+  Yo borraría la tabla. Si borro el archivo crudo de la zona raw, pierdo el dato original para siempre. La tabla la puedo volver a armar desde cero leyendo el archivo, pero si borro el crudo y mañana el negocio me pide mapear una columna nueva que antes ignoraba, no tengo cómo volver en el tiempo a pedírsela a la API.
+Pregunta (b) - replace y append:
+  Con replace borramos la tabla y arranca de cero, quedando solo esa última consulta. Con append, los datos se suman abajo de los que ya estaban, conservando el historial. El DAG productivo usa append, porque la idea es que cada 15 minutos vaya acumulando las "fotos" nuevas del mercado sin borrar las anteriores
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque seguro la API todavía no actualizó los precios en los pocos segundos que tardé en correr la otra celda. El pipeline los guarda igual porque la regla principal de la capa Bronze es guardar la data "as-is", cruda y sin tocar. No rechaza ni deduplica; de limpiar esos duplicados se va a encargar la capa Silver después
+Codigo: B87761AC463F
+Fecha: 2026-10-19
