@@ -208,17 +208,16 @@ docker exec airflow_standalone airflow dags list-import-errors
 
 ```sql
 -- 2 · ¿crypto_ml escribió predicciones, y con qué modelo?
-SELECT origen, count(*) AS filas, count(DISTINCT fecha_features) AS dias,
-       max(champion_version) AS version
-FROM gold.predicciones GROUP BY origen;
--- Esperado: filas > 0. `produccion` es lo que scoreó el champion;
--- `reconstruido` es la historia que rellenó completar_historico.
+SELECT champion_version AS version, count(*) AS filas,
+       count(DISTINCT fecha_features) AS dias, max(fecha_features) AS ultimo_dia
+FROM gold.predicciones GROUP BY champion_version ORDER BY ultimo_dia;
+-- Esperado: filas > 0, una fila por cada versión que fue champion.
 
 -- 3 · ¿El tablero puede comparar contra las dos referencias?
 SELECT ventana, dias, accuracy, base_persistencia, base_mayoritaria
 FROM gold.v_ml_veredicto ORDER BY ventana;
--- Esperado: 3 filas, una por ventana (1, 3 y 7 días). Si viene vacía, la
--- predicción de hoy todavía no se puede corregir: apunta a mañana.
+-- Esperado: 1 fila, la ventana de 7 días. Si viene vacía, la predicción
+-- de hoy todavía no se puede corregir: apunta a mañana.
 
 -- 4 · ¿La ABT quedó escrita? Es la FOTO: una fila por cripto, sin historia.
 SELECT count(*) AS filas, max(_processed_at) AS armada FROM gold.gold_abt_crypto;

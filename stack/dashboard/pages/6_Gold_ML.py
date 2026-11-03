@@ -217,23 +217,17 @@ if ver.empty:
           "siguiente, y se corrige cuando ese día cierra.", "🔮")
 else:
     v = ver.iloc[0]
-    # Cada día tiene UN origen: o lo predijo el champion en vivo (produccion),
-    # o lo completó después el DAG (reconstruido, con un modelo entrenado solo
-    # con los días anteriores). La predicción en vivo reemplaza a la
-    # reconstruida del mismo día: nunca conviven.
+    # Una fila por día predicho, con la versión del champion que lo predijo.
     ev = q(f"""
         SELECT dia_predicho,
-               round(avg(acerto::int) * 100, 1)                           AS accuracy,
-               bool_or(origen = 'produccion')                             AS en_vivo,
-               max(champion_version) FILTER (WHERE origen = 'produccion') AS version
+               round(avg(acerto::int) * 100, 1) AS accuracy,
+               max(champion_version)            AS version
         FROM gold.v_ml_aciertos WHERE ventana = {VENTANA}
         GROUP BY dia_predicho ORDER BY dia_predicho
     """)
-    n_vivo = int(ev["en_vivo"].sum())
     k1, k2, k3 = st.columns(3)
     k1.markdown(kpi("El modelo", f"{v['accuracy']:.1f} %",
-                    foot=f"{int(v['predicciones'])} predicciones en {int(v['dias'])} días: "
-                         f"{n_vivo} en vivo y {len(ev) - n_vivo} reconstruidos."),
+                    foot=f"{int(v['predicciones'])} predicciones en {int(v['dias'])} días."),
                 unsafe_allow_html=True)
     k2.markdown(kpi("Persistencia", "—" if pd.isna(v["base_persistencia"])
                     else f"{v['base_persistencia']:.1f} %",
@@ -243,40 +237,34 @@ else:
                     foot="Ronda el 50 %: la mitad siempre queda arriba."), unsafe_allow_html=True)
 
     if len(ev) >= 2:
+        ev["dia_predicho"] = pd.to_datetime(ev["dia_predicho"])
+        # Los días en que cambió el champion: desde ahí predice otra versión.
+        cambios = ev[ev["version"] != ev["version"].shift()].iloc[1:]
         # Un día sin dato (stack apagado, o 20 snapshots o menos) queda como
         # HUECO en la línea: unir con una recta dos días que no son seguidos
         # hace parecer que hubo datos en el medio.
-        ev["dia_predicho"] = pd.to_datetime(ev["dia_predicho"])
         ev = ev.set_index("dia_predicho").asfreq("D").reset_index()
-        en_vivo = ev[ev["en_vivo"] == True]       # noqa: E712 -- tras asfreq hay NaN
-        reconstruido = ev[ev["en_vivo"] == False]  # noqa: E712
         fige = go.Figure(go.Scatter(
-            x=ev["dia_predicho"], y=ev["accuracy"], mode="lines", showlegend=False,
-            line=dict(color=SUBE, width=2), hoverinfo="skip"))
-        fige.add_trace(go.Scatter(
-            x=en_vivo["dia_predicho"], y=en_vivo["accuracy"], mode="markers",
-            name="en vivo: lo predijo el champion", marker=dict(size=7, color=SUBE),
-            customdata=en_vivo["version"],
-            hovertemplate="%{x|%d-%m}: %{y:.1f} % · en vivo, v%{customdata}<extra></extra>"))
-        fige.add_trace(go.Scatter(
-            x=reconstruido["dia_predicho"], y=reconstruido["accuracy"], mode="markers",
-            name="reconstruido después",
-            marker=dict(size=8, color=SUBE, symbol="circle-open", line=dict(width=2)),
-            hovertemplate="%{x|%d-%m}: %{y:.1f} % · reconstruido<extra></extra>"))
+            x=ev["dia_predicho"], y=ev["accuracy"], mode="lines+markers", name="el modelo",
+            line=dict(color=SUBE, width=2), marker=dict(size=6), customdata=ev["version"],
+            hovertemplate="%{x|%d-%m}: %{y:.1f} % · v%{customdata}<extra></extra>"))
+        for c in cambios.itertuples():
+            fige.add_vline(x=c.dia_predicho, line_dash="dot", line_color=GRIS)
+            fige.add_annotation(x=c.dia_predicho, y=100, yanchor="top", xanchor="left",
+                                xshift=4, showarrow=False, text=f"desde acá, v{c.version}",
+                                font=dict(color=GRIS))
         if pd.notna(v["base_persistencia"]):
             fige.add_hline(y=float(v["base_persistencia"]), line_dash="dash", line_color=BAJA,
                            annotation_text="persistencia", annotation_font=dict(color=BAJA))
         fige.add_hline(y=50, line_dash="dot", line_color=GRIS,
                        annotation_text="clase mayoritaria", annotation_position="bottom left",
                        annotation_font=dict(color=GRIS))
-        fige.update_layout(**layout(
-            height=340, yaxis=dict(title="% de aciertos", range=[0, 100]), showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)))
+        fige.update_layout(**layout(height=320, yaxis=dict(title="% de aciertos", range=[0, 100]),
+                                    showlegend=False))
         st.plotly_chart(fige, use_container_width=True)
-        st.caption("Cada punto es un día que ya cerró: qué parte de las criptos acertó el modelo. "
-                   "Lleno: lo predijo el champion en vivo. Hueco: ese día no hubo predicción en "
-                   "vivo y el DAG la completó después, con un modelo entrenado solo con los "
-                   "días anteriores. Los cortes de la línea son días sin datos suficientes.")
+        st.caption("Cada punto es un día que ya cerró: qué parte de las criptos acertó el "
+                   "champion de ese momento. La línea punteada vertical marca el día en que "
+                   "cambió el champion. Los cortes de la línea son días sin datos suficientes.")
 
 # =========================================================================
 # 4) CÓMO LLEGÓ AHÍ — champion contra challenger
