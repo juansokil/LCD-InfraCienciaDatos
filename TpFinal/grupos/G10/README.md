@@ -1,34 +1,59 @@
-# TP Final - G00 (Template del README)
+# TP Final - G10 - LogiWeather
 
-> **Template del README del grupo.** Copienlo a `TpFinal/grupos/G<NN>/README.md` y
-> completen cada seccion. `G00` no es una entrega real.
-
----
+Sistema de alertas climáticas e incentivos para repartidores de una empresa de logística en Estados Unidos.
 
 ## Integrantes
 
-- Nombre Apellido (@usuario-github)
-- Nombre Apellido (@usuario-github)
-- ...
+- Enzo Herbas (@enzoherbas-cyber)
+- Clara Wallach (@ClaraWallach)
+- Martina Sposato (@martusposato)
+- Matías Bermejo Fernández (@MatttiB)
+- Claudia López de Santa Cirila (@)
 
 ## API elegida
 
-- **Nombre**: `<nombre de la API>`
-- **URL**: `<link a la doc oficial>`
-- **Descripcion**: `<breve explicación de que devuelve la API>`
-- **Auth**: `<sin auth / API key gratis / OAuth>`
-- **API key**: `<no necesita / si — ver "Como levantar el stack">`
-- **Refresh**: `<cada cuanto se actualizan los datos>`
+- **Nombre**: Open-Meteo (Weather Forecast API)
+- **URL**: https://open-meteo.com/en/docs
+- **Descripcion**:
+API meteorológica que permite consultar pronósticos climáticos mediante coordenadas geográficas. Proporciona información sobre temperaturas, probabilidad de precipitaciones, cantidad de lluvia prevista y condiciones meteorológicas, entre otras variables.
+Para este proyecto se consultarán pronósticos de los próximos 7 días correspondientes a cinco ciudades de Estados Unidos:
+    - Nueva York
+    - Miami
+    - Chicago
+    - Houston
+    - Los Ángeles
+El objetivo es identificar condiciones climáticas que puedan afectar las operaciones de una empresa de logística, generando alertas por lluvia y temperaturas máximas elevadas y recomendaciones de incentivos para los repartidores.
+
+- **Auth**: Sin autenticación para el uso académico/no comercial.
+- **API key**: No necesita.
+- **Refresh**: Se propone ejecutar la ingesta automáticamente de manera diaria mediante Apache Airflow. La frecuencia definitiva quedará documentada al implementar los DAGs.
 
 ## Modelo de datos
 
+El proyecto utilizará una arquitectura Medallion, organizada en tres capas dentro de PostgreSQL: Bronze, Silver y Gold.
+
 ### Bronze
 
-`<que tablas crudas guardan + columnas + metadatos de auditoria (ingested_at, source, etc.)>`
+La capa Bronze almacenará las respuestas originales de Open-Meteo, conservando los datos crudos sin aplicar transformaciones de negocio.
+
+Tabla propuesta: bronze.pronosticos_raw
+
+Columnas principales:
+- id: identificador único de la ingesta.
+- ciudad: nombre de la ciudad consultada.
+- latitude: latitud de la ciudad.
+- longitude: longitud de la ciudad.
+- payload: respuesta JSON original de la API.
+- ingested_at: fecha y hora de ingesta.
+- source: API de origen.
+- run_id: identificador de la ejecución del pipeline.
+Se conservarán los distintos pronósticos obtenidos en cada ejecución para permitir trazabilidad y análisis de sus cambios.
 
 ### Silver
 
-`<que transformaciones aplican: limpieza, validacion de tipos, deduplicacion, enriquecimiento>`
+La capa Silver transformará los datos crudos en información estructurada y validada, lista para su análisis.
+
+Tabla propuesta: silver.pronosticos_diarios
 
 ### Gold
 
