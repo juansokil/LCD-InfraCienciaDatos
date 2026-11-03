@@ -681,9 +681,9 @@ def crypto_ml():
     def completar_historico():
         """Predicciones historicas para CADA ventana, no solo una.
 
-        Rellena los dias que no tienen prediccion: los anteriores al primer
-        champion y los que el stack estaba apagado a la hora de predecir. Esas
-        filas quedan con origen='reconstruido'. El tablero muestra la ventana de
+        Rellena los dias que no tienen prediccion en vivo (por ejemplo, los
+        anteriores al primer champion, o los que el DAG no llego a predecir).
+        Esas filas quedan con origen='reconstruido'. El tablero muestra la ventana de
         7 dias, la del modelo en produccion; las de 1 y 3 quedan en
         gold.v_ml_veredicto para quien quiera compararlas.
 
