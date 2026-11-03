@@ -31,7 +31,7 @@ Este archivo vive en clase06/ejercicios/ como material de la clase. Para
 activarlo se copia a los DAGs del stack (el scheduler lo descubre solo, y
 nace despausado: is_paused_upon_creation=False, modo produccion):
 
-    cp clase06/ejercicios/dag_crypto_ml.py stack/dags/
+    cp clase06/ejercicios/dag_crypto_ml.py stack/dags/04-ml/
 
 =============================================================================
 ESTE DAG NO ELIGE EL CHAMPION, NI ENTRENA
