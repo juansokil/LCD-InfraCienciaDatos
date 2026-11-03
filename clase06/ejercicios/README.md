@@ -109,5 +109,5 @@ Es **material de referencia**, no un ejercicio. Se copia al stack como los DAGs 
 anteriores:
 
 ```bash
-cp clase06/ejercicios/dag_crypto_ml.py stack/dags/
+cp clase06/ejercicios/dag_crypto_ml.py stack/dags/04-ml/
 ```
