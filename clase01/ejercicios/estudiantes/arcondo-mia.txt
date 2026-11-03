@@ -1,0 +1,6 @@
+Apellido: arcondo
+Nombre: mia
+Usuario GitHub: michuarcondo
+Rama: estudiante/arcondo-mia
+Codigo: F645635FCB4C
+Fecha: 2026-10-14
