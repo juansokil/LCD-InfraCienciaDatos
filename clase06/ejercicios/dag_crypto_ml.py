@@ -34,17 +34,14 @@ nace despausado: is_paused_upon_creation=False, modo produccion):
     cp clase06/ejercicios/dag_crypto_ml.py stack/dags/
 
 =============================================================================
-ESTE DAG NO ELIGE EL CHAMPION, Y CASI NO ENTRENA
+ESTE DAG NO ELIGE EL CHAMPION, NI ENTRENA
 =============================================================================
 El entrenamiento y la ELECCION del champion se hacen en el notebook de
 clase06 (seccion 3.3): el modelo nuevo entra como @challenger y pasa a
 @champion solo si le gana al vigente, con una regla escrita antes de mirar.
 
-Con UNA excepcion explicita: la task `completar_historico` reconstruye la
-serie hacia atras entrenando un RandomForest walk-forward por fecha (ver su
-docstring), para que el tablero tenga historia desde el primer dia y no
-desde hoy. Esas filas quedan marcadas con origen='reconstruido'; el scoring
-del dia es el que usa el champion y queda con origen='produccion'.
+Este DAG solo carga el champion y predice. Todo lo que muestra el tablero
+lo predijo un champion: no hay historia armada despues con otro modelo.
 
 Este DAG toma el champion VIGENTE por alias
 (`models:/crypto_volatilidad_7d@champion`): cuando se promueve otra version
@@ -73,7 +70,7 @@ DISENO ANTI-ROJO (serving que arranca antes que el modelo)
 - Ya esta la prediccion del ultimo dia cerrado con este champion -> saltea:
   el modelo predice una vez por dia, no en cada corrida. Esta es la UNICA
   salteada que se pinta distinto: la task queda en ROSA (skipped) en Airflow,
-  y las tres de abajo tambien. Asi la grilla muestra de un vistazo que corrida
+  y las dos de abajo tambien. Asi la grilla muestra de un vistazo que corrida
   predijo (verde) y cuales se despertaron, vieron que ya estaba y no hicieron
   nada (rosa). Las otras salteadas quedan en verde a proposito: en un stack
   nuevo, las tasks de abajo tienen que correr igual para crear la tabla y las
@@ -132,12 +129,6 @@ MODEL_ALIAS = "champion"
 # forma mas comun de training-serving skew: el modelo espera unas features y
 # produccion le manda otras.
 VENTANA_DEFAULT = 7
-
-# Las tres ventanas que compara la grilla del notebook. El historico se
-# reconstruye para las tres; el tablero muestra la de 7 dias, la del modelo en
-# produccion.
-VENTANAS = [1, 3, 7]
-
 
 def features_sql(W: int) -> str:
     """Dataset diario para predecir QUE CRIPTOS VAN A SER LAS MOVIDAS MANANA.
@@ -505,9 +496,9 @@ def crypto_ml():
         # version cambia y se vuelve a predecir con el nuevo.
         #
         # Cuando ya esta, la task se marca SKIPPED (rosa en Airflow) en vez de
-        # terminar en verde. Las tres tasks de abajo tambien quedan en rosa:
-        # no hay nada que escribir, ni dias nuevos que completar, y las vistas
-        # leen Silver, asi que no se pierden entre corridas. En la grilla del
+        # terminar en verde. Las dos tasks de abajo tambien quedan en rosa:
+        # no hay nada que escribir, y las vistas no se pierden entre corridas
+        # (son consultas guardadas: muestran los datos nuevos solas). En la grilla del
         # DAG se ve una columna verde por dia -- la que predijo -- y el resto
         # en rosa.
         with engine.connect() as conn:
@@ -580,17 +571,12 @@ def crypto_ml():
     def _asegurar_tabla(conn):
         """Crea gold.predicciones si no existe. Idempotente, llamable N veces.
 
-        Vive aca afuera y no adentro de write_predicciones porque
-        `completar_historico` TAMBIEN la necesita: esa task empieza con
-        cuatro ALTER TABLE, y `ADD COLUMN IF NOT EXISTS` protege la columna
-        pero NO la tabla -- un ALTER sobre una relacion inexistente es error
-        42P01, no un no-op.
-
-        El caso se da solo en un stack nuevo: sin champion (o con las
-        ventanas todavia "calentando") write_predicciones saltea con un
-        return temprano, la tabla nunca se creaba, y la task siguiente
-        moria. Es exactamente el escenario que el header de este archivo
-        promete que NO tiene que fallar.
+        Se llama ANTES del return temprano de write_predicciones: en un stack
+        nuevo (sin champion, o con la ventana todavia "calentando") no hay
+        nada que escribir, pero la tabla tiene que existir igual, porque
+        las vistas de build_vista_aciertos la leen. Es exactamente el
+        escenario que el header de este archivo promete que NO tiene que
+        fallar.
         """
         import sqlalchemy  # noqa: F401  (el caller ya lo importo)
 
@@ -606,8 +592,8 @@ def crypto_ml():
                 scored_at        timestamptz,
                 origen           text             DEFAULT 'produccion',
                 ventana          integer          NOT NULL,
-                -- La ventana entra en la PK: las tres (1/3/7) predicen la
-                -- misma cripto el mismo dia, y son filas distintas.
+                -- La ventana entra en la PK: un champion entrenado con otra
+                -- ventana escribe filas distintas, no pisa las del anterior.
                 PRIMARY KEY (fecha_features, crypto_id, ventana)
             )
         """)
@@ -652,9 +638,8 @@ def crypto_ml():
 
         with engine.begin() as conn:
             # Idempotencia: borra lo que haya de ese dia y esa ventana y lo
-            # reescribe (mismo principio que Bronze). Incluida una prediccion
-            # reconstruida del mismo dia: la de produccion la reemplaza (la PK es
-            # dia + cripto + ventana, las dos no pueden convivir).
+            # reescribe (mismo principio que Bronze). Si se promovio otro
+            # champion, su prediccion reemplaza a la del anterior.
             conn.execute(
                 sqlalchemy.text(
                     "DELETE FROM gold.predicciones "
@@ -676,103 +661,6 @@ def crypto_ml():
             )
         print(f"gold.predicciones: {len(payload['rows'])} filas escritas "
               f"para {payload['fecha']} (champion v{payload['rows'][0]['champion_version']})")
-
-    @task
-    def completar_historico():
-        """Predicciones historicas para CADA ventana, no solo una.
-
-        Rellena los dias que no tienen prediccion en vivo (por ejemplo, los
-        anteriores al primer champion, o los que el DAG no llego a predecir).
-        Esas filas quedan con origen='reconstruido'. El tablero muestra la ventana de
-        7 dias, la del modelo en produccion; las de 1 y 3 quedan en
-        gold.v_ml_veredicto para quien quiera compararlas.
-
-        Cada prediccion se entrena SOLO con fechas anteriores a la que predice
-        (walk-forward). Un modelo entrenado con todo el historico y aplicado
-        hacia atras daria un accuracy inflado: habria visto en entrenamiento los
-        dias que despues "predice". Es la trampa que la clase enseña a detectar.
-        """
-        import pandas as pd
-        import sqlalchemy
-        from sklearn.ensemble import RandomForestClassifier
-
-        engine = sqlalchemy.create_engine(DB_URI)
-        with engine.begin() as conn:
-            # Antes que los ALTER: si la tabla no existe, `ADD COLUMN IF NOT
-            # EXISTS` NO la crea -- falla con 42P01. write_predicciones ya la
-            # asegura, pero repetirlo aca cuesta nada y vuelve a esta task
-            # independiente del camino que haya tomado la anterior.
-            _asegurar_tabla(conn)
-            conn.exec_driver_sql(
-                "ALTER TABLE gold.predicciones "
-                "ADD COLUMN IF NOT EXISTS origen text DEFAULT 'produccion'")
-            conn.exec_driver_sql(
-                "ALTER TABLE gold.predicciones "
-                "ADD COLUMN IF NOT EXISTS ventana integer DEFAULT 0")
-            # La PK pasa a incluir la ventana: el mismo dia y la misma cripto
-            # tienen ahora una prediccion POR MODELO.
-            conn.exec_driver_sql(
-                "ALTER TABLE gold.predicciones DROP CONSTRAINT IF EXISTS predicciones_pkey")
-            conn.exec_driver_sql(
-                "ALTER TABLE gold.predicciones "
-                "ADD PRIMARY KEY (fecha_features, crypto_id, ventana)")
-
-        ya = pd.read_sql("SELECT DISTINCT fecha_features, ventana FROM gold.predicciones",
-                         engine, parse_dates=["fecha_features"])
-        hechas = {(r.fecha_features.date(), int(r.ventana)) for r in ya.itertuples()}
-
-        filas, resumen = [], {}
-        for W in VENTANAS:
-            df = pd.read_sql(features_sql(W), engine, parse_dates=["fecha"])
-            cols = columnas_features(W)
-            df = df.dropna(subset=cols + ["target_alta_vol"]).copy()
-            if df.empty:
-                resumen[W] = 0
-                continue
-            df["target_alta_vol"] = df["target_alta_vol"].astype(int)
-            n_w = 0
-            for f in sorted(df["fecha"].unique()):
-                d = pd.Timestamp(f).date()
-                if (d, W) in hechas:
-                    continue
-                train = df[df["fecha"] < f]       # SOLO el pasado
-                test = df[df["fecha"] == f]
-                if len(train) < 10 or test.empty:
-                    continue
-                m = RandomForestClassifier(n_estimators=50, max_depth=5, random_state=42)
-                m.fit(train[cols], train["target_alta_vol"])
-                proba = m.predict_proba(test[cols])[:, 1]
-                for (_, r), pr in zip(test.iterrows(), proba):
-                    filas.append({
-                        "fecha_features": str(d), "crypto_id": r["crypto_id"],
-                        "symbol": r["symbol"], "predijo_alta_vol": int(pr > 0.5),
-                        "proba_alta_vol": float(pr), "champion_version": f"wf_v{W}",
-                        "scored_at": datetime.now(timezone.utc).isoformat(),
-                        "origen": "reconstruido", "ventana": int(W),
-                    })
-                    n_w += 1
-            resumen[W] = n_w
-
-        print(f"Predicciones nuevas por ventana: {resumen}")
-        if not filas:
-            print("Sin huecos: cada ventana ya tiene sus fechas.")
-            return
-
-        with engine.begin() as conn:
-            conn.execute(
-                sqlalchemy.text("""
-                    INSERT INTO gold.predicciones
-                        (fecha_features, crypto_id, symbol, predijo_alta_vol,
-                         proba_alta_vol, champion_version, scored_at, origen, ventana)
-                    VALUES (:fecha_features, :crypto_id, :symbol, :predijo_alta_vol,
-                            :proba_alta_vol, :champion_version, :scored_at,
-                            :origen, :ventana)
-                    ON CONFLICT (fecha_features, crypto_id, ventana) DO NOTHING
-                """),
-                filas,
-            )
-        print(f"Insertadas {len(filas)} predicciones reconstruidas.")
-
 
     @task
     def build_vista_aciertos():
@@ -908,36 +796,22 @@ def crypto_ml():
             #
             # La vista devuelve las dos al lado del accuracy del modelo.
             # ------------------------------------------------------------
-            # OJO (medido el 2026-11-02): esta vista agrupa por ventana y dia
-            # SIN separar `origen`, asi que si una ventana tiene filas de
-            # produccion (champion) y de completar_historico (reconstruido),
-            # el accuracy publicado es el promedio de LOS DOS modelos. En la
-            # ventana 7 eso daba 81.5 (produccion, n=1481) y 78.7
-            # (reconstruido, n=766), y la vista publicaba 80.5. Separarlo cambia lo
-            # que muestra la pagina 6_Gold_ML (hoy espera una fila por
-            # ventana), asi que es una decision de diseno, no un typo.
             conn.exec_driver_sql("DROP VIEW IF EXISTS gold.v_ml_veredicto")
             conn.exec_driver_sql("""
                 CREATE VIEW gold.v_ml_veredicto AS
-                WITH real AS (
-                    -- La verdad observada: una fila por cripta y dia.
-                    -- DISTINCT porque v_ml_aciertos repite el dia por ventana.
-                    SELECT DISTINCT crypto_id, dia_predicho AS fecha,
-                           realmente_alta_vol AS alta
-                    FROM gold.v_ml_aciertos
-                ),
-                persistencia AS (
-                    SELECT crypto_id, fecha, alta,
-                           LAG(alta) OVER (PARTITION BY crypto_id
-                                           ORDER BY fecha) AS alta_ayer
-                    FROM real
-                ),
-                base_pers AS (
-                    -- Acierto de la regla trivial: lo de ayer, aplicado a hoy.
-                    SELECT fecha, avg((alta = alta_ayer)::int) AS acc
-                    FROM persistencia
-                    WHERE alta_ayer IS NOT NULL
-                    GROUP BY fecha
+                WITH base_pers AS (
+                    -- La persistencia, sobre las MISMAS criptos y los MISMOS
+                    -- dias que el modelo: para cada prediccion, repetir lo que
+                    -- paso el dia de sus features (el anterior al predicho).
+                    -- Se cruza por fecha exacta y no con LAG: con un dia sin
+                    -- datos en el medio, LAG compararia contra un dia de antes.
+                    SELECT a.dia_predicho AS fecha,
+                           avg((h.alta_vol = a.realmente_alta_vol)::int) AS acc
+                    FROM gold.v_ml_aciertos a
+                    JOIN gold.v_volatilidad_diaria h
+                      ON h.crypto_id = a.crypto_id
+                     AND h.fecha = a.predijo_con_datos_del
+                    GROUP BY a.dia_predicho
                 ),
                 dia AS (
                     SELECT ventana, dia_predicho,
@@ -987,7 +861,7 @@ def crypto_ml():
     # (el modelo lee los snapshots de Silver), asi que encadenarlas inventaria
     # una dependencia que no existe y haria esperar a una por la otra sin motivo.
     build_abt()
-    write_predicciones(score_con_champion()) >> completar_historico() >> build_vista_aciertos()
+    write_predicciones(score_con_champion()) >> build_vista_aciertos()
 
 
 crypto_ml()
