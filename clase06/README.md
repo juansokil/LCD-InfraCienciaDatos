@@ -116,7 +116,10 @@ punto entero de tener un registry.
 [`dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) predice en batch, disparado
 **por el asset de Silver**, en paralelo a Gold, no por reloj. Predice **una vez
 por día**: con la corrida que trae el último snapshot del día (23:45 UTC, 20:45
-en Argentina); las demás corridas del día la saltean. Carga el champion del Registry, escribe `gold.predicciones` de forma
+en Argentina); las demás corridas del día la saltean. En la grilla de Airflow se
+ve por el color: `score_con_champion` queda en **verde** en la corrida que
+predice y en **rosa** (*skipped*) en las demás. Carga el champion del Registry,
+escribe `gold.predicciones` de forma
 **idempotente** (DELETE del día + INSERT) y **saltea con log claro** cuando
 todavía no hay champion, en vez de ponerse en rojo. En la misma corrida arma
 `gold.gold_abt_crypto`, la ABT con el último estado de cada cripto (una fila
@@ -146,11 +149,9 @@ entrenamiento:
 Son dos mediciones distintas y conviene no mezclarlas. El **walk-forward del
 notebook** evalúa sobre las fechas que hay en ese momento. El **tablero** mide las
 predicciones que el DAG fue escribiendo en `gold.predicciones` contra lo que
-después pasó: con la historia acumulada al 2 de noviembre de 2026 (47 días con
-veredicto), `gold.v_ml_veredicto` devolvía 81,2 % en la ventana de 1 día,
-81,7 % en la de 3 y 80,5 % en la de 7, con la persistencia en 82,6 % y la
-mayoritaria entre 50,6 % y 51,5 %. Los valores cambian una vez por día, cuando
-entra el día que cerró: el tablero muestra los tres números día a día.
+después pasó, al lado de las dos referencias. Por eso los dos números no tienen
+por qué coincidir, y los del tablero cambian una vez por día, cuando entra el
+día que cerró.
 
 ---
 
@@ -168,9 +169,7 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
   y por día que `silver.crypto_markets` acumula y que el cierre diario descarta
   — exactamente lo que se decidió guardar en la clase 05. Cuántos son depende de
   las horas que tengas el stack prendido: uno cada 15 minutos, o sea **hasta 96
-  por día** con el reloj solo; en el warehouse del curso, medido el 2026-11-02
-  sobre 53 días, la mediana es 67 y hay días de 10 (y 4 que pasan de 96, por
-  corridas extra). Y
+  por día** con el reloj solo, y menos si el stack estuvo apagado un rato. Y
   `features_sql` descarta el día entero si tiene 20 snapshots o menos
   (`HAVING count(*) > 20`, unas 5 horas de stack prendido): con menos no hay
   volatilidad representativa.
@@ -185,7 +184,7 @@ herramientas. Lo que hay que saber para seguir los seis puntos:
 - **Qué es la volatilidad y para qué sirve predecirla**: cuánto se sacude el
   precio en el día (desvío ÷ promedio, en %), sin importar hacia dónde. Viene en
   rachas, por eso se puede predecir; la dirección, no: un modelo que la predice
-  con estos datos queda en el 50 % (49,6 %, medido el 2026-11-02). Un pronóstico de
+  con estos datos acierta lo mismo que tirar una moneda. Un pronóstico de
   volatilidad no dice *comprá* ni *vendé*: dice cuánto riesgo hay mañana — para
   ampliar un stop, elegir cuándo ejecutar o subir garantías en un exchange. El
   notebook lo explica y lo dibuja con datos reales antes del Paso 1.
@@ -230,7 +229,7 @@ Y en MLflow (`localhost:5000` → **Models**): `crypto_volatilidad_7d` tiene que
 
 Y la versión que entró como challenger en la última corrida tiene los **tags de la decisión** (`decision`, `acc_champion`, `acc_challenger`, `holdout_desde`, `holdout_hasta`): si promovió, ahora lleva el alias `@champion`; si no, sigue como `@challenger`.
 
-Si las cuatro dan, la rama ML está **servida, corregida y mirable**: el DAG scorea solo cuando Gold publica su asset, el tablero compara contra la persistencia y la decisión de promover queda registrada en el Registry.
+Si las cuatro dan, la rama ML está **servida, corregida y mirable**: el DAG se dispara solo cuando Silver publica su asset y predice una vez por día, el tablero compara contra la persistencia y la decisión de promover queda registrada en el Registry.
 
 ---
 
