@@ -133,8 +133,9 @@ MODEL_ALIAS = "champion"
 # produccion le manda otras.
 VENTANA_DEFAULT = 7
 
-# Las tres ventanas que la clase compara. El historico se reconstruye para
-# TODAS: la gracia es ver los tres modelos prediciendo el mismo dia distinto.
+# Las tres ventanas que compara la grilla del notebook. El historico se
+# reconstruye para las tres; el tablero muestra la de 7 dias, la del modelo en
+# produccion.
 VENTANAS = [1, 3, 7]
 
 
@@ -680,9 +681,11 @@ def crypto_ml():
     def completar_historico():
         """Predicciones historicas para CADA ventana, no solo una.
 
-        La gracia didactica es ver los tres modelos prediciendo el mismo dia y
-        diferir entre si: uno mira el retorno de ayer, otro resume 3 dias, otro
-        7. Guardar solo el "mejor" escondería justamente lo que hay que mostrar.
+        Rellena los dias que no tienen prediccion: los anteriores al primer
+        champion y los que el stack estaba apagado a la hora de predecir. Esas
+        filas quedan con origen='reconstruido'. El tablero muestra la ventana de
+        7 dias, la del modelo en produccion; las de 1 y 3 quedan en
+        gold.v_ml_veredicto para quien quiera compararlas.
 
         Cada prediccion se entrena SOLO con fechas anteriores a la que predice
         (walk-forward). Un modelo entrenado con todo el historico y aplicado

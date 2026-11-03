@@ -21,7 +21,7 @@ import requests
 import streamlit as st
 import plotly.graph_objects as go
 from db import run_query as q
-from theme import (aplicar_tema, encabezado, pill, kpi, seccion, aviso, layout,
+from theme import (aplicar_tema, encabezado, pill, kpi, seccion, aviso, layout, tabla,
                    fecha_larga, SUBE, BAJA, GRIS)
 
 aplicar_tema("Gold · ML", "🤖")
@@ -60,18 +60,32 @@ def version(v: str) -> dict:
     }
 
 
-def que_decidio(tags: dict) -> str:
-    """La decisión de la sección 3.3, en una frase."""
+def resultado(tags: dict) -> tuple:
+    """La decisión de la sección 3.3, corta: (texto, variable de color del tema)."""
     d = tags.get("decision")
     if not d:
-        return "—"
+        return "—", "--ink-3"
     if d.startswith("promovido: no habia"):
-        return "Promovido: no había champion"
+        return "Primero: no había champion", "--up"
     if d.startswith("sin comparar"):
-        return "Sin comparar: el champion ya había visto esos días"
-    dif = tags.get("dif_predicciones")
-    por = f": ganó por {dif}" if dif else ""
-    return ("Promovido" if d == "promovido" else "No promovido") + por
+        return "Sin comparar", "--ink-2"
+    if d == "promovido":
+        return "Ganó: promovido", "--up"
+    if "dif_predicciones" not in tags:
+        return "No promovido", "--ink-2"
+    dif = int(tags["dif_predicciones"])
+    if dif < 0:
+        return "Perdió", "--down"
+    if dif == 0:
+        return "Empató", "--ink-2"
+    return "Ganó por poco: no alcanza", "--ink-2"
+
+
+def etiqueta(tags: dict) -> str:
+    """El resultado con su color; sin punto cuando no hay decisión registrada."""
+    texto, color = resultado(tags)
+    punto = "" if texto == "—" else "● "
+    return f"<b style='color:var({color})'>{punto}{texto}</b>"
 
 
 vivo = bool(mlflow_get("experiments/search", {"max_results": 1}))
@@ -148,8 +162,7 @@ else:
         chall = version(aliases["challenger"])
         c2.markdown(kpi(
             "@challenger · el que quiere reemplazarlo", f"v{chall['version']}",
-            foot=f"{que_decidio(chall['tags'])}. La regla pide ganarle por más de una predicción."),
-            unsafe_allow_html=True)
+            foot=etiqueta(chall["tags"])), unsafe_allow_html=True)
     else:
         c2.markdown(kpi("@challenger", "—", foot="No hay ninguno esperando."),
                     unsafe_allow_html=True)
@@ -221,6 +234,11 @@ else:
         GROUP BY dia_predicho ORDER BY dia_predicho
     """)
     if len(ev) >= 2:
+        # Un día sin dato (stack apagado, o 20 snapshots o menos) queda como
+        # HUECO en la línea: unir con una recta dos días que no son seguidos
+        # hace parecer que hubo datos en el medio.
+        ev["dia_predicho"] = pd.to_datetime(ev["dia_predicho"])
+        ev = ev.set_index("dia_predicho").asfreq("D").reset_index()
         fige = go.Figure(go.Scatter(
             x=ev["dia_predicho"], y=ev["accuracy"], mode="lines+markers", name="el modelo",
             line=dict(color=SUBE, width=2), marker=dict(size=6),
@@ -234,7 +252,8 @@ else:
         fige.update_layout(**layout(height=320, yaxis=dict(title="% de aciertos", range=[0, 100]),
                                     showlegend=False))
         st.plotly_chart(fige, use_container_width=True)
-        st.caption("Cada punto es un día que ya cerró: qué parte de las criptos acertó el modelo.")
+        st.caption("Cada punto es un día que ya cerró: qué parte de las criptos acertó el modelo. "
+                   "Los huecos son días sin datos suficientes.")
 
 # =========================================================================
 # 4) CÓMO LLEGÓ AHÍ — champion contra challenger
@@ -249,27 +268,32 @@ st.markdown(
 if vivo:
     vs = mlflow_get("model-versions/search", {"filter": f"name='{MODELO}'"}).get("model_versions", [])
     alias_de = {ver_: al for al, ver_ in aliases.items()}
-    filas = []
+    filas = ""
+    # Una fila por versión registrada, de la más nueva a la más vieja: la
+    # historia de los challengers, con la decisión que quedó en sus tags.
     for n in sorted((m["version"] for m in vs), key=int, reverse=True):
         x = version(n)
         t = x["tags"]
-        filas.append({
-            "versión": f"v{n}",
-            "registrada": x["creada"].strftime("%d/%m %H:%M"),
-            "alias": "@" + alias_de[n] if n in alias_de else "",
-            "decisión": que_decidio(t),
-            "acierto del champion": f"{float(t['acc_champion']) * 100:.1f} %" if "acc_champion" in t else "",
-            "acierto del challenger": f"{float(t['acc_challenger']) * 100:.1f} %" if "acc_challenger" in t else "",
-            "días comparados": (f"{t['holdout_desde'][8:10]}/{t['holdout_desde'][5:7]} al "
-                                f"{t['holdout_hasta'][8:10]}/{t['holdout_hasta'][5:7]}"
-                                if "holdout_desde" in t else ""),
-        })
+        _, color = resultado(t)
+        dif = int(t["dif_predicciones"]) if "dif_predicciones" in t else None
+        dif_txt = "" if dif is None else ("0" if dif == 0 else f"{dif:+d}".replace("-", "−"))
+        # Los tags guardan los días de las FEATURES (holdout_desde/hasta); cada
+        # uno predice el día siguiente. Se muestran los días PREDICHOS, que son
+        # los que aparecen en el gráfico de "Cómo le va".
+        un_dia = pd.Timedelta(days=1)
+        dias = (f"{pd.Timestamp(t['holdout_desde']) + un_dia:%d/%m} al "
+                f"{pd.Timestamp(t['holdout_hasta']) + un_dia:%d/%m}"
+                if "holdout_desde" in t and "holdout_hasta" in t else "")
+        al = f"<span class='sym'>@{alias_de[n]}</span>" if n in alias_de else ""
+        registrada = x["creada"] - dt.timedelta(hours=3)      # hora de Argentina
+        filas += (f"<tr><td>v{n}{al}</td>"
+                  f"<td>{etiqueta(t)}</td>"
+                  f"<td style='color:var({color})'>{dif_txt}</td>"
+                  f"<td>{t.get('vs_champion', '')}</td>"
+                  f"<td>{dias}</td>"
+                  f"<td>{registrada:%d/%m}</td></tr>")
     if filas:
-        st.dataframe(
-            pd.DataFrame(filas), hide_index=True, use_container_width=True,
-            column_config={
-                "versión": st.column_config.TextColumn(width="small"),
-                "registrada": st.column_config.TextColumn(width="small"),
-                "alias": st.column_config.TextColumn(width="small"),
-                "decisión": st.column_config.TextColumn(width="medium"),
-            })
+        tabla(filas, ["Versión", "Resultado", "Diferencia", "Contra", "Días predichos",
+                      "Registrada"])
+        st.caption("Diferencia: cuántas predicciones más (o menos) acertó el challenger que "
+                   "el champion, sobre los mismos días.")

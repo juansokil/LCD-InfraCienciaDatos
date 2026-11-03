@@ -8,7 +8,7 @@
 
 > **La misma capa Gold de la clase 05, servida al otro consumidor.** Ahí el dato se modeló para que lo mire una persona: un hecho, sus dimensiones, un tablero. Acá se modela para que lo coma un modelo: una **ABT**, una fila por caso — y después hay que **servirla** (un DAG que scorea solo), **versionar** lo que se entrenó (MLflow) y **corregirlo** contra lo que efectivamente pasó. El objetivo es ver cómo se **opera** un modelo, no cómo se entrena uno.
 
-> El modelo se mide contra dos referencias sin entrenamiento, la clase mayoritaria y la persistencia, y la página 6 del tablero muestra los tres números día a día. Lo que se enseña es la maquinaria que permite *medirlo* — que es exactamente lo que un pipeline de MLOps tiene que hacer.
+> El modelo se mide contra dos referencias sin entrenamiento, la clase mayoritaria y la persistencia, y la página 6 del tablero muestra los tres números lado a lado. Lo que se enseña es la maquinaria que permite *medirlo* — que es exactamente lo que un pipeline de MLOps tiene que hacer.
 
 ---
 
