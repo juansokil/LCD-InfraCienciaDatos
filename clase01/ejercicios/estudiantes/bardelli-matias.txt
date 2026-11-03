@@ -1,0 +1,6 @@
+Apellido: Bardelli
+Nombre: Matias
+Usuario GitHub: matibarde
+Rama: estudiante/bardelli-matias
+Codigo: B39664331355
+Fecha: 2026-11-03
