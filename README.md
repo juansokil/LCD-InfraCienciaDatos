@@ -82,7 +82,7 @@ Las cuatro clases que arman el pipeline (**Bronze → Silver → Gold**, y Gold 
 | **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → el JSON crudo al lake (`stack/data/raw/`) → `bronze.crypto_markets_demo` | `dag_crypto_bronze.py` |
 | **04 — Silver** | 2 DAGs sobre datos sintéticos en `bronze`, uno por tabla (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind: los fundamentos de Silver (anti-join, deduplicación con `ROW_NUMBER`) y los dos que cruzan a Gold (`GROUP BY` y `HAVING`) | `dag_crypto_silver.py` |
 | **05 — Gold** | 1 DAG sobre `silver.ventas_demo` sintético (Star Schema) + el chequeo de integridad referencial en vivo y el consumo del star, en el notebook | Un caso de negocio sin SQL —una cadena de gimnasios—: leer qué registra el sistema y qué pregunta el tablero, y decidir **qué es el hecho, cuáles las dimensiones y qué se mide** | `dag_crypto_gold.py` |
-| **06 — ML sobre Gold** | 1 DAG sobre datos sintéticos (la **ABT**) + el workshop de MLOps sobre los datos del pipeline | *El veredicto*: siete candidatos en MLflow, una decisión y su porqué | `dag_crypto_ml.py` |
+| **06 — ML sobre Gold** | 1 DAG sobre datos sintéticos (la **ABT**) + el workshop de MLOps sobre los datos del pipeline | *El veredicto*: siete candidatos en MLflow y cinco preguntas sobre ellos, una de ellas cuál pondrías en producción | `dag_crypto_ml.py` |
 
 **Por qué este diseño:**
 
