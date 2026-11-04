@@ -64,6 +64,9 @@ def citybikes_bronze():
 
         for station in stations:
 
+            extra = station.get("extra") or {}
+
+
             rows.append({
                 "network_id": network["id"],
                 "network_name": network["name"],
@@ -74,6 +77,12 @@ def citybikes_bronze():
                 "station_timestamp": station.get("timestamp"),
                 "free_bikes": station.get("free_bikes"),
                 "empty_slots": station.get("empty_slots"),
+
+                "renting": extra.get("renting"),
+                "returning_allowed": extra.get("returning"),
+                "slots": extra.get("slots"),
+
+
                 "ingested_at": now,
             })
 
@@ -91,8 +100,25 @@ def citybikes_bronze():
         )
 
         # -------------------------------------------------
-        # 5. Guardar snapshot en Bronze
+        # 5.Asegurar estructura de la tabla Bronze
         # -------------------------------------------------
+        inspector = sqlalchemy.inspect(engine)
+        if inspector.has_table("citybikes_stations", schema="bronze"):
+            with engine.begin() as conn:
+                conn.execute(
+                  sqlalchemy.text("""
+                    ALTER TABLE bronze.citybikes_stations
+                    ADD COLUMN IF NOT EXISTS renting BIGINT,
+                    ADD COLUMN IF NOT EXISTS returning_allowed BIGINT,
+                    ADD COLUMN IF NOT EXISTS slots BIGINT;
+                  """)
+                )
+
+
+        # -------------------------------------------------
+        #  6. Guardar snapshot en Bronze
+        # -------------------------------------------------      
+        
         df.to_sql(
             "citybikes_stations",
             engine,
