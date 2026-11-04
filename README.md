@@ -72,7 +72,7 @@ Las cuatro clases que arman el pipeline (**Bronze → Silver → Gold**, y Gold 
 | Capa | Archivo | Datos | Para qué |
 |---|---|---|---|
 | **1. Teórica** | `claseNN.ipynb` | sintéticos hardcoded | Conceptos + DAGs demo (vía celdas `%%writefile` que generan archivos en `stack/dags/`) |
-| **2. Práctica** | `ejercicios/ejercicio.ipynb` | CoinGecko en clase 03; SQL sobre Northwind en 04–05; runs de MLflow en 06 | Aplicar los conceptos: ingesta real (03), el SQL que Silver y Gold usan (04–05) y leer el tracking para decidir (06) |
+| **2. Práctica** | `ejercicios/ejercicio.ipynb` | CoinGecko en clase 03; SQL sobre Northwind en 04; un caso de modelado en 05; runs de MLflow en 06 | Aplicar los conceptos: ingesta real (03), el SQL que Silver y Gold usan (04), decidir hecho y dimensiones a partir de un caso (05) y leer el tracking para decidir (06) |
 | **3. Productiva** | `ejercicios/dag_crypto_*.py` | CoinGecko API real | DAG listo para copy-paste a Airflow (`cp` al stack) |
 
 **Detalle por clase:**
@@ -80,20 +80,21 @@ Las cuatro clases que arman el pipeline (**Bronze → Silver → Gold**, y Gold 
 | Clase | Notebook teórico genera | Ejercicio práctico (entrega) | DAG productivo |
 |---|---|---|---|
 | **03 — Bronze** | 4 DAGs progresivos sobre CSV/JSON locales (simple con idempotencia SHA256 → multi-formato + cuarentena → **Dynamic Task Mapping** → contrato YAML) | Top 50 cryptos (CoinGecko) → el JSON crudo al lake (`stack/data/raw/`) → `bronze.crypto_markets_demo` | `dag_crypto_bronze.py` |
-| **04 — Silver** | 2 DAGs sobre `bronze.ventas_demo` sintético (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind (fundamentos de Silver + anti-join y deduplicación con `ROW_NUMBER`) | `dag_crypto_silver.py` |
-| **05 — Gold** | 1 DAG sobre `silver.ventas_demo` sintético (Star Schema) + el chequeo de integridad referencial en vivo y el consumo del star, en el notebook | 6 queries SQL sobre Northwind (G1–G6) que arman, paso a paso, **una misma tabla Gold**: el grano, el JOIN con la dimensión, `HAVING`, `CASE`, participación y ranking con *window functions*, y `LAG` | `dag_crypto_gold.py` |
+| **04 — Silver** | 2 DAGs sobre datos sintéticos en `bronze`, uno por tabla (limpieza básica → Pydantic + Quarantine) | 10 ejercicios SQL sobre Northwind: los fundamentos de Silver (anti-join, deduplicación con `ROW_NUMBER`) y los dos que cruzan a Gold (`GROUP BY` y `HAVING`) | `dag_crypto_silver.py` |
+| **05 — Gold** | 1 DAG sobre `silver.ventas_demo` sintético (Star Schema) + el chequeo de integridad referencial en vivo y el consumo del star, en el notebook | Un caso de negocio sin SQL —una cadena de gimnasios—: leer qué registra el sistema y qué pregunta el tablero, y decidir **qué es el hecho, cuáles las dimensiones y qué se mide** | `dag_crypto_gold.py` |
 | **06 — ML sobre Gold** | 2 DAGs sobre datos sintéticos (la **ABT** y un **modelo adentro de un DAG**) + el workshop de MLOps sobre el hecho productivo | *El veredicto*: siete candidatos en MLflow, una decisión y su porqué | `dag_crypto_ml.py` |
 
 **Por qué este diseño:**
 
-- La **notebook teórica** usa datos sintéticos hardcoded → cero dependencias entre clases. Cualquiera puede correr el cell `%%writefile` y disparar el DAG demo sin necesidad de haber corrido la clase anterior.
-- El **ejercicio** aplica lo aprendido: en clase 03 sobre datos reales "vivos" (CoinGecko); en clase 04–05 sobre **SQL en Northwind** (los fundamentos SQL que Silver y Gold usan a nivel de registro y de agregación); en clase 06 sobre el **tracking de MLflow**, que es donde se decide qué modelo se promueve.
+- La **notebook teórica** usa datos sintéticos hardcoded → cero dependencias entre clases. Cualquiera puede correr el cell `%%writefile` y disparar el DAG demo sin necesidad de haber corrido la clase anterior. La **única excepción** es la segunda mitad de la clase 06 (el workshop de MLOps), que entrena sobre `gold.fact_crypto_markets`: ahí sí hace falta haber corrido el pipeline de las clases 03-05, y la notebook lo verifica antes de seguir.
+- El **ejercicio** aplica lo aprendido: en clase 03 sobre datos reales "vivos" (CoinGecko); en clase 04 sobre **SQL en Northwind** (los fundamentos que Silver usa a nivel de registro, más el `GROUP BY` y el `HAVING` con los que empieza Gold); en clase 05 sobre **un caso de modelado**, que es la decisión que viene antes de escribir el SQL; en clase 06 sobre el **tracking de MLflow**, que es donde se decide qué modelo se promueve.
 - El **DAG productivo** es el "código listo" (crypto, las cuatro clases): un `cp` al stack y queda corriendo en Airflow. Juntos forman la cadena completa — `crypto_bronze` → `crypto_silver` → `crypto_gold` → `crypto_ml`.
 
 > **Clase 06 cierra el patrón con otra materia prima.** Las tres capas están: el
 > notebook teórico genera su DAG demo (`gold_02_abt.py`, la ABT sobre datos
 > sintéticos), hay ejercicio con entrega (*El veredicto*) y hay DAG productivo
-> (`ejercicios/dag_crypto_ml.py`), que cierra la cadena consumiendo la ABT de Gold.
+> (`ejercicios/dag_crypto_ml.py`), que cierra la cadena: lo despierta el asset de la
+> ABT y scorea sobre el hecho productivo.
 > Lo que cambia es **sobre qué se practica**: no SQL, sino leer el tracking y
 > decidir con lo que dice. Y la entrega es corta a propósito — el trabajo grande de
 > esa semana es el **TP Final**.
