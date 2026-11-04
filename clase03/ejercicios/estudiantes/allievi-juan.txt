@@ -1,0 +1,19 @@
+Apellido: Allievi
+Nombre: Juan
+Rama: estudiante/allievi-juanmanuel
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 77374
+Doble ingesta: SI
+Ultima carga: 2026-10-30 15:17:18.634734
+Pregunta (a) - La zona raw y la tabla:
+  Yo borraria la tabla, ya que con el raw puedo volver a generar la tabla, en cambio si borro el raw ya no tendria con que volver a generar la tabla si necesito modificar algo
+Pregunta (b) - replace y append:
+  Con replace la tabla se sobrescribe y solo queda el último estado; con append se acumulan los registros formando un historial de snapshots. El DAG usa append para registrar la evolución de precios cada 15 min.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque la API responde con los mismos valores al no haber cambios de precios en ese lapso. El pipeline los guarda igual porque la zona raw es inmutable y registra cada ejecución como un snapshot independiente
+Codigo: B5A72936E947
+Fecha: 2026-10-30
