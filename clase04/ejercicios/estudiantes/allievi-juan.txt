@@ -1,0 +1,30 @@
+Apellido: allievi
+Nombre: juan
+Rama: estudiante/allievi-juanmanuel
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (24x3) h=F9977B80
+  E2: OK (1x4) h=3F35B2C8
+  E3: OK (24x1) h=993DC2D7
+  E4: SIN_QUERY (0x0) h=-
+  E5: SIN_QUERY (0x0) h=-
+  E6: SIN_QUERY (0x0) h=-
+  E7: SIN_QUERY (0x0) h=-
+  E8: SIN_QUERY (0x0) h=-
+  E9: SIN_QUERY (0x0) h=-
+  E10: SIN_QUERY (0x0) h=-
+Ejercicios con resultado: 3 / 10
+Productos (E2): 77
+Precio min (E2): -10.0
+Precio max (E2): 263.5
+Precio promedio (E2): 28.61
+Huerfanos encontrados (E7): -
+Clientes deduplicados (E8): - de 96
+Unidades totales (E9): -
+Pedidos distintos (E9): -
+Combinaciones sobre 200 unidades (E10): -
+Codigo: 7122FAEFD0B8
+Fecha: 2026-11-04
