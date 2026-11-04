@@ -50,7 +50,9 @@ def citybikes_silver():
                 slots,
                 ingested_at
             FROM bronze.citybikes_stations
-            WHERE ingested_at >= '2026-11-04 00:08:34+00'
+            WHERE renting IS NOT NULL
+              AND returning_allowed IS NOT NULL
+
             """,
             engine,
         )
