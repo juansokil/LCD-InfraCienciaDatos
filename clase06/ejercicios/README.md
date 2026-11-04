@@ -2,8 +2,7 @@
 
 > La entrega de esta clase es **El veredicto**, que vive en
 > [`ejercicio.ipynb`](ejercicio.ipynb): en el tracking quedan **siete candidatos** con sus
-> métricas y vos decidís **cuál promoverías a producción**, o si ninguno está listo. El segundo
-> ítem es mirar el modelo **del pipeline** en el tablero, al lado de la persistencia. No se
+> métricas y respondés **cinco preguntas** sobre ellos; una es cuál pondrías en producción. No se
 > entrena nada: lo que se practica es **consultar MLflow y leer lo que devuelve**, que es lo que
 > hace alguien de MLOps cuando le toca promover.
 
@@ -24,7 +23,7 @@ Ejemplo: `estudiantes/sokil-juan.txt`.
 ## ¿Qué pongo adentro?
 
 **Nada manual.** El script escribe la tabla de los siete candidatos **leída de MLflow** —no
-autoreportada— más tu decisión y lo que leíste en el tablero. Vas a ver algo así:
+autoreportada— más tus cinco respuestas. Vas a ver algo así:
 
 ```
 Apellido: Sokil
@@ -33,26 +32,33 @@ Rama: estudiante/sokil-juan
 Tracking: server (http://localhost:5000)
 Experimento: clase06_veredicto
 Candidatos (leidos de MLflow, no autoreportados):
-  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83 ...
-  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68 ...
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
   ...
-Elegido: random_forest_7d [OK]
-Motivo: ...
-Que miraria despues: ...
-Contra la persistencia: ...
+Elegido: <tu candidato de la (d)> [OK]
+Pregunta (a) - El acc_test mas alto:
+  ...
+Pregunta (b) - El acc_train mas alto:
+  ...
+Pregunta (c) - El acc_test mas bajo:
+  ...
+Pregunta (d) - Cual pondrias en produccion:
+  ...
+Pregunta (e) - Como te darias cuenta de que empeora:
+  ...
 Codigo: A1B2C3D4E5F6
 Fecha: 2026-11-20
 ```
 
-> **La Parte 1 funciona con el stack o sin él**: usa el MLflow del stack (`localhost:5000`) y, si
-> no responde, cae a una carpeta local. El `.txt` registra cuál se usó. **V2 sí necesita el
-> tablero levantado** (`localhost:8501`): es lo único de esta entrega sin camino alternativo,
-> porque los números son los de tu propio pipeline.
+> **Funciona con el stack o sin él**: usa el MLflow del stack (`localhost:5000`); si no
+> responde, cae a una carpeta local, y si MLflow no está instalado, la tabla sale igual, directo
+> de los candidatos. Los números son los mismos en los tres casos, y el `.txt` registra cuál se
+> usó.
 >
-> **No se corrige cuál elegiste, se lee por qué.** Lo único que el script verifica es que el
-> candidato exista entre los siete: si escribís uno que no está, queda marcado
-> `CANDIDATO_INEXISTENTE`. Y si dejaste algún texto vacío, podés entregar igual, con estado
-> parcial.
+> **Las respuestas no se autocorrigen**: las lee el docente en tu PR. Las cinco son
+> obligatorias: si falta alguna, la Entrega no genera el archivo. Lo único que el script verifica
+> es que el candidato de la (d) exista entre los siete: si escribís uno que no está, queda
+> marcado `CANDIDATO_INEXISTENTE`.
 
 ## ⚠️ Importante: NO commitees el `.ipynb`
 
