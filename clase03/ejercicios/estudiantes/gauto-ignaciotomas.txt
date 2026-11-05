@@ -1,0 +1,19 @@
+Apellido: Gauto
+Nombre: IgnacioTomas
+Rama: estudiante/gauto-ignaciotomas
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 76292
+Doble ingesta: SI
+Ultima carga: 2026-11-05 17:14:22.322977
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla bronze.crypto_markets_demo y mantendria el archivo raw. Si borrara los archivos raw, perderia el la respuesta original de la ap.
+Pregunta (b) - replace y append:
+  En el paso 3, replace arranca la tabla de 0. Mientras que append agrega uan carga nueva sin elimnar los anteriores. El dag productivo usa append.
+Pregunta (c) - Dos cargas identicas:
+  Ambos consultan la respuesta de la api y, si se ejecutan uno despues del otro, quizá los datos aun no hayan cambiado. El pipeline los guarda porque usa la hora actual, con milisegundos, para generar el nombre, esto los diferencia aunque sean los mismos datos.
+Codigo: 7E03C3A5E25D
+Fecha: 2026-11-05
