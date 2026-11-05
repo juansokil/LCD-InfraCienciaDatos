@@ -1,0 +1,19 @@
+Apellido: Mariani
+Nombre: Gino
+Rama: estudiante/mariani-gino
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80509
+Doble ingesta: SI
+Ultima carga: 2026-11-05 02:14:10.107770
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla bronze.crypto_markets_demo ya que con el archivo crudo en raw/ puedo volver a armarla. Dejaría de poder consultar con SQL.
+Pregunta (b) - replace y append:
+  Con replace la tabla queda solo con la última carga. Con append se agregan las filas nuevas y se conservan las anteriores, diferenciadas por su ingested_at. El DAG productivo usa append, porque cada 15 minutos suma un snapshot nuevo y Bronze no borra nada.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque se correrian con pocos segundos de diferencia y CoinGecko todavía no actualizó los datos, así que devuelve la misma foto del mercado. El pipeline los guarda igual porque Bronze no es la etapa donde se interpretan los datos y no deduplica: cada corrida deja su propio archivo como evidencia de que se consultó en ese momento.
+Codigo: 53D26C069AA2
+Fecha: 2026-11-05
