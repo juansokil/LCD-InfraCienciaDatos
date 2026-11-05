@@ -20,37 +20,37 @@
 
 ### Bronze
 
-`Tabla "bronze.open_meteo_raw": una fila por ciudad y por ejecución, con la respuesta original de Open-Meteo sin modificar:`
+Tabla `bronze.open_meteo_raw`: una fila por ciudad y por ejecución, con la respuesta original de Open-Meteo sin modificar.
 
-id | city_code | http_status | error_message |          ingested_at          | temp_actual 
-----+-----------+-------------+---------------+-------------------------------+-------------
-  1 | BUE       |         200 |               | 2026-11-05 13:15:07.62374+00  | 22.3
-  2 | COR       |         200 |               | 2026-11-05 13:15:08.324421+00 | 21.8
-  3 | MDZ       |         200 |               | 2026-11-05 13:15:09.084656+00 | 21.1
-  4 | SLA       |         200 |               | 2026-11-05 13:15:09.834026+00 | 17.6
-  5 | BRC       |         200 |               | 2026-11-05 13:15:10.561981+00 | 6.3
-  6 | BUE       |         200 |               | 2026-11-05 14:15:09.627604+00 | 23.6
-  7 | COR       |         200 |               | 2026-11-05 14:15:10.338846+00 | 23.4
-  8 | MDZ       |         200 |               | 2026-11-05 14:15:11.091161+00 | 22.6
-  9 | SLA       |         200 |               | 2026-11-05 14:15:11.817808+00 | 17.5
- 10 | BRC       |         200 |               | 2026-11-05 14:15:12.52598+00  | 7.8
- 11 | BUE       |         200 |               | 2026-11-05 15:15:07.309275+00 | 24.5
- 12 | COR       |         200 |               | 2026-11-05 15:15:08.328562+00 | 24.7
- 13 | MDZ       |         200 |               | 2026-11-05 15:15:09.351989+00 | 24.2
- 14 | SLA       |         200 |               | 2026-11-05 15:15:10.369221+00 | 18.0
- 15 | BRC       |         200 |               | 2026-11-05 15:15:11.366895+00 | 9.5
- 16 | BUE       |         200 |               | 2026-11-05 16:15:06.937959+00 | 25.4
- 17 | COR       |         200 |               | 2026-11-05 16:15:07.693142+00 | 25.7
- 18 | MDZ       |         200 |               | 2026-11-05 16:15:08.416127+00 | 25.9
- 19 | SLA       |         200 |               | 2026-11-05 16:15:09.12062+00  | 18.4
- 20 | BRC       |         200 |               | 2026-11-05 16:15:09.820003+00 | 10.6
- 21 | BUE       |         200 |               | 2026-11-05 17:15:07.880008+00 | 25.9
+| id | city_code | http_status | error_message | ingested_at | temp_actual |
+|---:|-----------|------------:|---------------|-------------------------------|------------:|
+| 1  | BUE | 200 |  | 2026-11-05 13:15:07.62374+00  | 22.3 |
+| 2  | COR | 200 |  | 2026-11-05 13:15:08.324421+00 | 21.8 |
+| 3  | MDZ | 200 |  | 2026-11-05 13:15:09.084656+00 | 21.1 |
+| 4  | SLA | 200 |  | 2026-11-05 13:15:09.834026+00 | 17.6 |
+| 5  | BRC | 200 |  | 2026-11-05 13:15:10.561981+00 | 6.3  |
+| 6  | BUE | 200 |  | 2026-11-05 14:15:09.627604+00 | 23.6 |
+| 7  | COR | 200 |  | 2026-11-05 14:15:10.338846+00 | 23.4 |
+| 8  | MDZ | 200 |  | 2026-11-05 14:15:11.091161+00 | 22.6 |
+| 9  | SLA | 200 |  | 2026-11-05 14:15:11.817808+00 | 17.5 |
+| 10 | BRC | 200 |  | 2026-11-05 14:15:12.52598+00  | 7.8  |
+| 11 | BUE | 200 |  | 2026-11-05 15:15:07.309275+00 | 24.5 |
+| 12 | COR | 200 |  | 2026-11-05 15:15:08.328562+00 | 24.7 |
+| 13 | MDZ | 200 |  | 2026-11-05 15:15:09.351989+00 | 24.2 |
+| 14 | SLA | 200 |  | 2026-11-05 15:15:10.369221+00 | 18.0 |
+| 15 | BRC | 200 |  | 2026-11-05 15:15:11.366895+00 | 9.5  |
+| 16 | BUE | 200 |  | 2026-11-05 16:15:06.937959+00 | 25.4 |
+| 17 | COR | 200 |  | 2026-11-05 16:15:07.693142+00 | 25.7 |
+| 18 | MDZ | 200 |  | 2026-11-05 16:15:08.416127+00 | 25.9 |
+| 19 | SLA | 200 |  | 2026-11-05 16:15:09.12062+00  | 18.4 |
+| 20 | BRC | 200 |  | 2026-11-05 16:15:09.820003+00 | 10.6 |
+| 21 | BUE | 200 |  | 2026-11-05 17:15:07.880008+00 | 25.9 |
 
-`Ciudades: Buenos Aires, Córdoba, Mendoza, Bariloche.`
-`Variables: clima actual + pronóstico diario de 7 días.`
-
-`Validaciones: HTTP 200, JSON válido, presencia de current" y "daily", campos esperados y 7 posiciones en los arreglos diarios. Las respuestas inválidas` `se guardan con su error y Silver las ignora. Bronze no borra ni deduplica, conserva el historial de ingestas.`
-`El DAG open_meteo_bronze corre cada hora, arranca despausado y, cuando existe el DAG de Silver, lo dispara al terminar.`
+- **Ciudades:** Buenos Aires (BUE), Córdoba (COR), Mendoza (MDZ), Salta (SLA) y Bariloche (BRC).
+- **Variables:** clima actual + pronóstico diario de 7 días.
+- **Validaciones:** HTTP 200, JSON válido, presencia de `current` y `daily`, campos esperados y 7 posiciones en los arreglos diarios. Las respuestas inválidas se guardan con su error y Silver las ignora.
+- **Historial:** Bronze no borra ni deduplica, conserva todas las ingestas.
+- **Orquestación:** el DAG `open_meteo_bronze` corre cada hora, arranca despausado y, cuando existe el DAG de Silver, lo dispara al terminar.
 
 ### Silver
 
