@@ -1,0 +1,16 @@
+Apellido: Baudracco
+Nombre: Francisco
+Rama: estudiante/baudracco-francisco
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la información que necesita Airflow para funcionar, mientras que data_warehouse guarda los datos que se van procesando en Bronze, Silver y Gold. Están separados para que Airflow tenga su propia base de datos y no se mezcle con los datos del proyecto
+Pregunta (b) - Datos despues del down:
+  Porque los datos se guardan en un volumen de Docker, que sigue existiendo aunque se apaguen y eliminen los contenedores. Entonces, cuando volvés a levantar el stack, PostgreSQL puede recuperar los datos que ya estaban guardados
+Pregunta (c) - DAGs en el contenedor:
+  Airflow puede ver los DAGs porque la carpeta dags de mi computadora está vinculada con una carpeta dentro del contenedor. Así, cuando creo o modifico un archivo en stack/dags, Airflow puede verlo sin tener que reconstruir el contenedor
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el puerto de mi máquina de 8080 a 8081, dejando el 8080 del contenedor igual. Así, Docker puede usar el puerto 8081 de mi computadora para acceder a Airflow, sin entrar en conflicto con el programa que ya está usando el 8080
+Pregunta (e) - Credenciales del warehouse:
+  La contraseña la obtiene de las variables de entorno definidas en el archivo .env, que Docker Compose lee al levantar el stack. Así, no hace falta escribir la contraseña directamente en el compose
+Codigo: BBE8DE01C270
+Fecha: 2026-10-09
