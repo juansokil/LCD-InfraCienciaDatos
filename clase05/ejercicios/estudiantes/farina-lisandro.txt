@@ -1,0 +1,9 @@
+Apellido: Farina
+Nombre: Lisandro
+Rama: estudiante/farina-lisandro
+Caso: gimnasio
+Hecho: Una fila por visita: un socio que pasa el molinete al entrar a una sede y vuelve a pasarlo al salir. El grano es la visita.
+Dimensiones: dim_socio (nombre, fecha de alta, sede de alta y plan: full, local o flex; sale del registro del socio). dim_sede (barrio, cantidad de maquinas, horario; es la sede donde se hizo la visita, sale del molinete). dim_tiempo (fecha, mes y franja horaria; sale de la hora de entrada del molinete).
+Metricas: En cada fila: minutos de la visita (salida menos entrada) y monto consumido en la barra durante la visita (0 si no compro nada). Despues se calcula: minutos entrenados = SUM(minutos) por mes y sede; facturacion de barra = SUM(consumo) por sede y franja; visitas = COUNT(*) por plan; gasto promedio por visita = SUM(consumo) / COUNT(*) por plan.
+Codigo: F7A3F5FE1AA3
+Fecha: 2026-11-05

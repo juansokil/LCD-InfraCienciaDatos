@@ -1,0 +1,6 @@
+Apellido: Farina
+Nombre: Lisandro
+Usuario GitHub: lisandrofarina06
+Rama: estudiante/farina-lisandro
+Codigo: 75EE4303FF94
+Fecha: 2026-10-29
