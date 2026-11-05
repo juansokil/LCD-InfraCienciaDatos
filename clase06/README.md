@@ -26,6 +26,7 @@
 
 - [`clase06.ipynb`](clase06.ipynb) — el workshop (Parte 1: pipeline en producción · Parte 2: ML honesto · bonus track · mensaje final).
 - El notebook genera además un **DAG pedagógico** (vía `%%writefile`): `gold_02_abt.py`, que arma una **ABT** sobre los datos sintéticos de la clase 05 —una fila por cliente, con las features en SQL— y verifica su grano.
+- [`modeladoABT.xlsx`](modeladoABT.xlsx) — una ABT de ejemplo para un modelo de abandono (cursos online): una fila por estudiante, curso y fecha de corte, con features que usan solo lo que se sabe hasta esa fecha y un target que mira los 14 días siguientes. La solapa **02_ABT_Diccionario** da el tipo y el rol en el modelo de cada campo.
 - [`ejercicios/ejercicio.ipynb`](ejercicios/ejercicio.ipynb) — **El veredicto**, la entrega de la clase: siete candidatos en MLflow y cinco preguntas sobre ellos. Tu `.txt` cae en [`ejercicios/estudiantes/`](ejercicios/estudiantes/) (reglas en [`ejercicios/README.md`](ejercicios/README.md)).
 - [`ejercicios/dag_crypto_ml.py`](ejercicios/dag_crypto_ml.py) — el DAG de scoring que cierra el fan-out (se ve en clase; se activa copiándolo a `stack/dags/04-ml/`).
 
