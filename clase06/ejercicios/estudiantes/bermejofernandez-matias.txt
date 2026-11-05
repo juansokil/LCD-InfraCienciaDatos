@@ -1,0 +1,27 @@
+Apellido: Bermejo Fernandez
+Nombre: Matias
+Rama: estudiante/bermejofernandez-matias
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El decision_tree_1d tiene el accuracy de prueba mas alto, con 0.83. Sin embargo, se evaluo solamente con 3 fechas, por lo que el resultado no es demasiado confiable para asegurar que sea el mejor modelo.
+Pregunta (b) - El acc_train mas alto:
+  El random_forest_3d_deep tiene el accuracy de entrenamiento mas alto, con 0.98, pero en prueba baja a 0.54. Esto indica un posible sobreajuste: aprendio muy bien los datos de entrenamiento, pero no logra generalizar correctamente.
+Pregunta (c) - El acc_test mas bajo:
+  El svm_3d tiene el accuracy de prueba mas bajo, con 0.51. Su resultado es practicamente equivalente al azar en un problema balanceado, por lo que no parece una buena alternativa para produccion.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Elegiria random_forest_7d_v2 porque tiene el mejor accuracy de prueba entre los modelos evaluados con 60 fechas (0.69). Ademas, su accuracy de entrenamiento es 0.74, por lo que no presenta una diferencia tan grande entre entrenamiento y prueba.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Guardaria las predicciones del modelo y las compararia con los resultados reales cuando esten disponibles. Monitorearia el accuracy a lo largo del tiempo y revisaria si cambia la distribucion de los datos. Si el rendimiento cae de manera sostenida, investigaria las causas antes de decidir si conviene reentrenarlo.
+Codigo: 195D8EA834FE
+Fecha: 2026-11-05
