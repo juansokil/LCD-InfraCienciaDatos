@@ -15,7 +15,7 @@
 
 - **Nombre**: `USGS Earthquakes`
 - **URL**: `https://earthquake.usgs.gov/fdsnws/event/1/query`
-- **Descripcion**: `<breve explicación de que devuelve la API>`
+- **Descripcion**: `Devuelve información de sismos en tiempo real y datos históricos en formato GeoJSON, incluyendo magnitud, profundidad, coordenadas y alertas de tsunami.`
 - **Auth**: `sin auth`
 - **API key**: `no necesita`
 - **Refresh**: `Tiempo real cada vez que ocurre un sismo`
