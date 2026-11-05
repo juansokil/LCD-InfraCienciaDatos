@@ -1,0 +1,9 @@
+Apellido: Bermejo Fernandez
+Nombre: Matias
+Rama: estudiante/bermejofernandez-matias
+Caso: gimnasio
+Hecho: Una fila representa una visita de un socio a una sede del gimnasio, desde su ingreso hasta su salida, incluyendo el tiempo de entrenamiento y el consumo en la barra.
+Dimensiones: Socio (identificador, nombre, fecha de alta y plan contratado), Sede (identificador, barrio, cantidad de maquinas y horario de apertura) y Tiempo (fecha, mes, año y franja horaria de la visita).
+Metricas: Minutos entrenados por visita (hora de salida menos hora de entrada), importe total consumido en la barra durante la visita, cantidad de visitas (conteo de registros) y gasto promedio por visita (suma de importes consumidos dividida por la cantidad de visitas).
+Codigo: 46F0FB27BDF1
+Fecha: 2026-11-05
