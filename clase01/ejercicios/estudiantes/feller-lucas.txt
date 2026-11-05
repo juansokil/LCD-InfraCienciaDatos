@@ -1,0 +1,6 @@
+Apellido: feller
+Nombre: lucas
+Usuario GitHub: lucasfeller
+Rama: estudiante/feller-lucas
+Codigo: E918AD2E66DC
+Fecha: 2026-10-08
