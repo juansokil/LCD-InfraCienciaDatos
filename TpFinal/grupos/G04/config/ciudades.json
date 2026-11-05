@@ -1,0 +1,36 @@
+{
+   "_descripcion": "Definicion de ciudades y sus coordenadas para consultar Open-Meteo.",
+
+  "ciudades": [
+    {
+      "id": "buenos_aires",
+      "nombre": "Buenos Aires",
+      "latitud": -34.61,
+      "longitud": -58.38
+    },
+    {
+      "id": "cordoba",
+      "nombre": "Córdoba",
+      "latitud": -31.42,
+      "longitud": -64.18
+    },
+    {
+      "id": "mendoza",
+      "nombre": "Mendoza",
+      "latitud": -32.89,
+      "longitud": -68.84
+    },
+    {
+      "id": "bariloche",
+      "nombre": "Bariloche",
+      "latitud": -41.13,
+      "longitud": -71.31
+    },
+    {
+      "id": "salta",
+      "nombre": "Salta",
+      "latitud": -24.79,
+      "longitud": -65.41
+    }
+  ]
+}
