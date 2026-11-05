@@ -1,0 +1,9 @@
+Apellido: GonzalesChurque
+Nombre: Karen
+Rama: estudiante/gonzaleschurque-karen
+Caso: gimnasio
+Hecho: Una fila representa una visita de un socio a una sede del gimnasio,desde su ingreso hasta su salida.
+Dimensiones: Socio (identidad y plan), sede (nombre y barrio) y tiempo(fecha, mes y franja horaria de ingreso).
+Metricas: Se registra la duracion en minutos y el consumo en barra de cada visita. La cantidad de visitas se obtiene contando registros y el gasto promedio dividiendo el consumo total por la cantidad de visitas.
+Codigo: A932F1F92477
+Fecha: 2026-11-04
