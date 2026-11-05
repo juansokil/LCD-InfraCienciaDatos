@@ -1,0 +1,19 @@
+Apellido: Oyola
+Nombre: Ezequiel
+Rama: estudiante/oyola-ezequiel
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81572
+Doble ingesta: SI
+Ultima carga: 2026-10-16 23:49:20.077107
+Pregunta (a) - La zona raw y la tabla:
+  borraria bronze.crypto_markets_demo, esa tabla la puedo reconstruir usando el archivo raw. dejaria de poder hacer consultas a la tabla en bronze hasta que la vuelva a generar.
+Pregunta (b) - replace y append:
+  con "replace" se vuelve a hacer la tabla de cero con la carga actual, con "append" se agregan cargas a la tabla sin eliminar los otros registros. el "append" usa el DAG productivo.
+Pregunta (c) - Dos cargas identicas:
+  los dos archivos son identicos porque paso muy poco tiempo entre las llamadas a la API. el pipeline los guarda igual porque los archivos representan cargas distintas. Ademas el nombre de las cargas tiene los microsegundos haciendo que tengan nombres distintos y nunca se pisen.
+Codigo: BDEA63CDB042
+Fecha: 2026-10-16
