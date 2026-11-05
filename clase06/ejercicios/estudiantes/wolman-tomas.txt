@@ -1,0 +1,27 @@
+Apellido: Wolman
+Nombre: Tomas
+Rama: estudiante/wolman-tomas
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  que es un modelo que no se lo sobre entreno y que tiene un gran resultado en cuanto a los datros que no vio
+Pregunta (b) - El acc_train mas alto:
+  que al haber entrenado tanto tuvo un sobreajuste y memorizo los datos del entrenamiento por eso su acc_train es muy alto pero su acc_test es muy bajo
+Pregunta (c) - El acc_test mas bajo:
+  es un modelo que no sirve de nada ua que no tiene una buena prediccion
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  porque de los modelos con 240 fechas de entrenamiento es el que tiene el acc_test mas alto y no esta sobreajustado
+Pregunta (e) - Como te darias cuenta de que empeora:
+  viendo que el acc_test baja mucho porque empeoraria o mismo el acc_train sube mucho ya que en ese caso podria tener sobreajuste
+Codigo: 0FE2DA84D142
+Fecha: 2026-11-05
