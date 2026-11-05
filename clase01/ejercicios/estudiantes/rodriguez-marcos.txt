@@ -1,0 +1,6 @@
+Apellido: Rodriguez
+Nombre: Marcos
+Usuario GitHub: perdilacuentapormiotrohermano-cell
+Rama: estudiante/rodriguez-marcos
+Codigo: 56F7A3C0E1D5
+Fecha: 2026-10-07
