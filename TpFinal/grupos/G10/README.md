@@ -8,7 +8,7 @@ Sistema de alertas climáticas e incentivos para repartidores de una empresa de 
 - Clara Wallach (@ClaraWallach)
 - Martina Sposato (@martusposato)
 - Matías Bermejo Fernández (@MatttiB)
-- Claudia López de Santa Cirila (@)
+- Claudia López de Santa Cirila (@claudiadesanta)
 
 ## API elegida
 
@@ -22,6 +22,7 @@ Para este proyecto se consultarán pronósticos de los próximos 7 días corresp
     - Chicago
     - Houston
     - Los Ángeles
+      
 El objetivo es identificar condiciones climáticas que puedan afectar las operaciones de una empresa de logística, generando alertas por lluvia y temperaturas máximas elevadas y recomendaciones de incentivos para los repartidores.
 
 - **Auth**: Sin autenticación para el uso académico/no comercial.
@@ -53,37 +54,118 @@ Se conservarán los distintos pronósticos obtenidos en cada ejecución para per
 
 La capa Silver transformará los datos crudos en información estructurada y validada, lista para su análisis.
 
-Tabla propuesta: silver.pronosticos_diarios
+**Tabla propuesta: `silver.pronosticos_diarios`**
+
+Columnas principales:
+
+- `ciudad`: ciudad a la que corresponde el pronóstico.
+- `fecha_pronostico`: fecha del día pronosticado.
+- `fecha_consulta`: fecha y hora en que se obtuvo el pronóstico.
+- `temperatura_max`: temperatura máxima prevista en °C.
+- `temperatura_min`: temperatura mínima prevista en °C.
+- `probabilidad_precipitacion`: probabilidad máxima diaria de precipitación en %.
+- `precipitacion_mm`: precipitación total prevista en milímetros.
+- `weather_code`: código de la condición meteorológica.
+
+**Transformaciones previstas:**
+
+- Extracción y normalización de los campos del JSON.
+- Conversión y validación de tipos de datos.
+- Normalización de fechas y zonas horarias.
+- Control de valores nulos, rangos válidos y registros duplicados.
+- Conservación de la fecha de consulta para distinguir versiones del pronóstico.
+- Preparación de los datos para las reglas de negocio.
 
 ### Gold
 
-`<modelo dimensional: fact_X + dim_Y, y que pregunta de negocio responde el dashboard>`
+La capa Gold contendrá la información analítica destinada al dashboard de logística.
+
+**Modelo dimensional propuesto:**
+
+- `gold.dim_ciudad`: información de las ciudades analizadas.
+- `gold.dim_fecha`: calendario de fechas pronosticadas.
+- `gold.fact_alertas_incentivos`: indicadores climáticos y recomendaciones de incentivos por ciudad y fecha.
+
+**Indicadores previstos:**
+
+- Probabilidad máxima diaria de precipitación.
+- Cantidad de lluvia pronosticada.
+- Temperatura máxima prevista.
+- Nivel de alerta por lluvia.
+- Nivel de alerta por temperatura.
+- Bono adicional recomendado para los repartidores.
+- Fecha y hora de actualización del pronóstico.
+
+Las reglas para establecer los niveles de alerta y los porcentajes de los bonos serán definidas antes de implementar la lógica de negocio.
+
+**Pregunta de negocio que responde el dashboard:**
+
+¿En qué ciudades y fechas conviene ofrecer incentivos adicionales a los repartidores según el pronóstico de lluvia, y qué alertas por temperaturas elevadas deben considerarse para planificar las operaciones logísticas?
+
+El dashboard se desarrollará en Streamlit y consumirá exclusivamente información de la capa Gold.
 
 ## Como levantar el stack
 
-> ⚠️ **Esta API necesita una key.** Antes de levantar, completa `MI_API_KEY` en el
-> `.env` con tu propia key — se saca gratis en `<link para pedirla>`. La que viene
-> en el repo es un placeholder: no sirve.
->
-> *(Si su API no necesita key, borren esta nota.)*
+El proyecto utilizará Docker Compose para iniciar automáticamente los servicios necesarios: PostgreSQL, Apache Airflow y Streamlit.
+
+Una vez implementada la infraestructura, el procedimiento previsto será:
 
 ```bash
-cd TpFinal/grupos/G<NN>/      # ej: cd TpFinal/grupos/G01/
-docker compose up -d --build   # el .env ya viene en el repo
-# Esperar ~30s a que Airflow termine de inicializar
+cd TpFinal/grupos/G<NN>/
+docker compose up -d --build
 ```
 
-**Accesos**:
-- Airflow UI: http://localhost:8080 (`admin` / `admin`)
+El stack deberá inicializar los esquemas de PostgreSQL y ejecutar automáticamente el pipeline Bronze → Silver → Gold, sin intervención manual.
+
+**Accesos previstos:**
+
+- Airflow UI: http://localhost:8080
 - Dashboard (Gold): http://localhost:8501
-- Postgres: `localhost:5432` (user/pass en `.env`)
+- PostgreSQL: `localhost:5432` (credenciales configuradas mediante variables de entorno).
 
-**Apagar**:
+**Apagar:**
+
 ```bash
-docker compose down            # apaga, conserva datos
-docker compose down -v         # apaga y BORRA volumenes (cuidado)
+docker compose down
 ```
+
+**Apagar y eliminar los volúmenes:**
+
+```bash
+docker compose down -v
+```
+
+**Nota:** La configuración Docker, las credenciales locales y el arranque automático se completarán y verificarán durante el desarrollo. Las contraseñas reales no se almacenarán en GitHub.
 
 ## Estructura del proyecto
 
-Ver la seccion **"Esqueleto de entrega"** en [`TpFinal/README.md`](../../README.md) — es una estructura sugerida, no obligatoria.
+La estructura inicial prevista es:
+
+```text
+G<NN>/
+├── README.md
+├── docker-compose.yml
+├── Dockerfile
+├── init.sql
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── config/
+│   ├── ciudades.json
+│   └── reglas_negocio.json
+├── dags/
+│   ├── 01-bronze/
+│   │   └── openmeteo_bronze.py
+│   ├── 02-silver/
+│   │   └── openmeteo_silver.py
+│   └── 03-gold/
+│       └── openmeteo_gold.py
+└── dashboard/
+    ├── Dockerfile
+    ├── requirements.txt
+    ├── app.py
+    ├── db.py
+    └── pages/
+        └── 1_Gold.py
+```
+
