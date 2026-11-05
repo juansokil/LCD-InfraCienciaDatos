@@ -17,14 +17,11 @@ horario (cron):
         @dag(schedule=[SILVER_CRYPTO], ...)
     -> arranca solo cuando el productor actualiza el asset.
 
-  - UN ASSET PUEDE TENER VARIOS CONSUMIDORES. `crypto_gold` emite GOLD_STAR
-    cuando la capa semantica quedo armada y verificada, y ahi arrancan DOS
-    cosas: el dashboard lo mira, y `crypto_ml` se despierta. Un productor, N
-    consumidores -- lo que el offset de cron no sabe expresar.
-
-  - Y al reves: si N DAGs declaran el mismo `schedule=[X]`, TODOS se disparan
-    cuando X se actualiza. Un upstream, N downstream -- lo que el offset de
-    cron no sabe expresar (tendrias que elegirle un minuto a cada uno).
+  - UN ASSET PUEDE TENER VARIOS CONSUMIDORES. `crypto_silver` emite
+    SILVER_CRYPTO, y ahi arrancan DOS DAGs en paralelo: `crypto_gold`, que
+    arma el star para BI, y `crypto_ml`, que arma lo suyo para ML. Un
+    productor, N consumidores -- lo que el offset de cron no sabe expresar
+    (tendrias que elegirle un minuto a cada uno).
 
 =============================================================================
 POR QUE DEFINIRLOS UNA SOLA VEZ ACA
@@ -48,8 +45,8 @@ from airflow.sdk import Asset
 #
 #   crypto_bronze   cron 0,15,30,45   --emite-->  BRONZE_CRYPTO
 #   crypto_silver   schedule=[BRONZE_CRYPTO]   --emite-->  SILVER_CRYPTO
-#   crypto_gold     schedule=[SILVER_CRYPTO]   --emite-->  GOLD_STAR
-#   crypto_ml       schedule=[GOLD_STAR]       --emite-->  GOLD_ABT
+#   crypto_gold     schedule=[SILVER_CRYPTO]   --emite-->  GOLD_STAR   (BI)
+#   crypto_ml       schedule=[SILVER_CRYPTO]   --emite-->  GOLD_ABT    (ML)
 #
 # Bronze conserva cron porque es el BORDE: consulta una API externa y no tiene
 # nada aguas arriba que esperar. Ningun otro DAG adivina tiempos.
@@ -66,8 +63,9 @@ SILVER_CRYPTO = Asset(name="silver_crypto_markets")
 # Cada tabla tiene UN dueno, y el asset lo declara el DAG que la escribe:
 #   GOLD_STAR -> lo emite crypto_gold: star schema BI (dim_* + fact_*) + las
 #                vistas semanticas gold.v_*, ya verificadas (sin huerfanos).
-#                Consumidores: el dashboard Streamlit (localhost:8501) y
-#                crypto_ml, que lee el fact para scorear.
+#                Las lee el dashboard Streamlit (localhost:8501), que no es un
+#                DAG: consulta cuando alguien abre la pagina. Ningun DAG lo
+#                consume hoy; se declara por lo mismo que GOLD_ABT, abajo.
 #   GOLD_ABT  -> lo emite crypto_ml: la ABT para ML (gold.gold_abt_crypto), que
 #                es la forma que el pipeline de ML le da a los datos. Hoy no
 #                tiene consumidor aguas abajo; se declara porque documenta que
