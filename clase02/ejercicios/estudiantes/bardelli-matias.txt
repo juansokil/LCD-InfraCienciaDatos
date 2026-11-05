@@ -1,0 +1,16 @@
+Apellido: Bardelli
+Nombre: Matias
+Rama: estudiante/bardelli-matias
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la configuración interna de Airflow. data_warehouse guarda los datos reales. Están separados para no mezclar la herramienta con los datos.
+Pregunta (b) - Datos despues del down:
+  Porque los datos se guardan en un Volumen de Docker (postgres-data), que persiste en el disco aunque el contenedor se apague.
+Pregunta (c) - DAGs en el contenedor:
+  A través de un volumen compartido (bind mount) en el docker-compose, que mapea la carpeta local ./dags a la carpeta interna del contenedor.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el lado izquierdo del puerto en el compose a "8081:8080". El izquierdo es de mi PC, el derecho del contenedor.
+Pregunta (e) - Credenciales del warehouse:
+  Las lee desde variables de entorno (usando la sintaxis ${VARIABLE}) que están definidas en el archivo oculto .env.
+Codigo: 61ECA3399DF8
+Fecha: 2026-11-04

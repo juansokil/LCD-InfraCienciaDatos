@@ -1,0 +1,27 @@
+Apellido: Bardelli
+Nombre: Matias
+Rama: estudiante/bardelli-matias
+Tracking: sin_mlflow (-)
+Experimento: clase06_veredicto
+Candidatos (sin MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Es el modelo random_forest_7d_v2 (acc_test 0.69). Es el que mejor generaliza, ya que tiene la precisión más alta sobre datos que nunca vio durante el entrenamiento.
+Pregunta (b) - El acc_train mas alto:
+  Es el modelo random_forest_3d_deep (acc_train 0.98). Tiene un sobreajuste (overfitting) severo: memorizó los datos de entrenamiento, pero su acc_test cae a 0.54, lo que significa que es inútil para predecir datos nuevos.
+Pregunta (c) - El acc_test mas bajo:
+  Es el modelo svm_3d (acc_test 0.51). Su rendimiento es apenas mejor que lanzar una moneda al aire (50%), lo que indica que no logró aprender patrones útiles.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Elegiría random_forest_7d_v2 porque tiene el acc_test más alto (0.69). Descarto el decision_tree_1d porque, aunque tiene un buen acc_test (0.83), se entrenó con muy pocos datos (12 fechas), lo que lo hace poco confiable. Y descarto el _3d_deep porque está sobreajustado.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Monitoreando su acc_test en producción en el tiempo. Si la precisión empieza a caer por debajo de un umbral aceptable (por ejemplo, 0.65) o si cambia la distribución de los datos (data drift), habría que reentrenarlo.
+Codigo: 39606175BFC3
+Fecha: 2026-11-05

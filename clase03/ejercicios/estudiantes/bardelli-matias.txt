@@ -1,0 +1,19 @@
+Apellido: Bardelli
+Nombre: Matias
+Rama: estudiante/bardelli-matias
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80525
+Doble ingesta: SI
+Ultima carga: 2026-11-04 19:29:47.031869
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla de Bronze porque la puedo reconstruir desde el archivo crudo (raw) en cualquier momento. Si borro el archivo raw, pierdo la foto exacta de lo que envió la API y no podría reprocesar nada si hay un error.
+Pregunta (b) - replace y append:
+  Replace borra la tabla y la crea de cero (sobrescribe). Append agrega nuevas filas al final. El DAG productivo usa append porque corre cada 15 minutos y necesita mantener el historial de todas las capturas.
+Pregunta (c) - Dos cargas identicas:
+  Pasan idénticos porque se consultan con segundos de diferencia y el precio no cambió. El pipeline los guarda igual porque no deduplica en la zona raw: actúa como un historial de fotos, registrando el hecho de que hubo una ingesta en ese momento exacto.
+Codigo: DE1098117855
+Fecha: 2026-11-04

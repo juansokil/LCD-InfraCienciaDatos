@@ -1,0 +1,9 @@
+Apellido: Bardelli
+Nombre: Matias
+Rama: estudiante/bardelli-matias
+Caso: gimnasio
+Hecho: Una fila del hecho representa una visita de un socio al gimnasio (desde que entra hasta que sale).
+Dimensiones: Tiempo (fecha y hora, para agrupar por mes y franja horaria), Sede (dónde ocurrió), Socio (quién es) y Plan (full, local o flex).
+Metricas: Los minutos de duración de la visita, el monto gastado en la barra, y un contador (1 por fila) para poder contar las visitas. El promedio de gasto NO se guarda: se calcula después dividiendo la suma de gastos por la cantidad de visitas.
+Codigo: 1B776F22FC1E
+Fecha: 2026-11-04
