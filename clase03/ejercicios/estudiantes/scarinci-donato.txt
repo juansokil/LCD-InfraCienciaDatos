@@ -1,0 +1,19 @@
+Apellido: Scarinci
+Nombre: Donato
+Rama: estudiante/scarinci-donato
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81709
+Doble ingesta: SI
+Ultima carga: 2026-10-19 21:13:29.791625
+Pregunta (a) - La zona raw y la tabla:
+  dejaria el archivo ya que posee los datos con la cual se construyo la tabla
+Pregunta (b) - replace y append:
+  replace recrea una tabla desde 0 mientras que append, quien utiliza el DAG productivo, inserta los datos al final de una tabla existente
+Pregunta (c) - Dos cargas identicas:
+  quedan identicos ya que los datos no cambian en cuestion de segundos y no se deduplican porque la capa Bronze guarda los datos crudos sin ser filtrados
+Codigo: 0271D5E748C1
+Fecha: 2026-10-19

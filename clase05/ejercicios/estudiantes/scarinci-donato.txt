@@ -1,0 +1,9 @@
+Apellido: Scarinci
+Nombre: Donato
+Rama: estudiante/scarinci-donato
+Caso: gimnasio
+Hecho: cada fila de la tabla de hechos representa la visita de un cliente en el gimnasio, desde que pasa el molinete hasta que sale
+Dimensiones: tenemos socio, que incluye nombre, fecha de alta, sede de asociación y plan; tiempo que se extrae de la fecha y hora de entrada/salida de la visita y por ultimo sede que salre del barrio, horario y cantidad de maquinas
+Metricas: en cada fila se miden minutos entrenados (segun la entrada y salida) y el consumo en barra. Luego calculamos el total de minutos entrenados, suma de facturación en la barra, conteo total de visitas y el promedio de gasto por visita
+Codigo: 6CCA6AA25722
+Fecha: 2026-11-05
