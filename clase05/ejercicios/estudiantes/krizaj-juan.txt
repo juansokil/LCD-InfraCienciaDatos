@@ -1,0 +1,9 @@
+Apellido: Krizaj
+Nombre: Juan
+Rama: estudiante/krizaj-juan
+Caso: gimnasio
+Hecho: Cada fila representa una visita de un socio a una sede del gimnasio, desde que ingresa hasta que sale.
+Dimensiones: Tiempo (fecha, mes y franja horaria de la visita), sede (donde se realizo la visita) y plan (full, local o flex, obtenido del socio).
+Metricas: Duracion de la visita en minutos, importe consumido en la barra y cantidad de visitas (1 por fila). Se calculan los totales mediante sumas y el gasto promedio dividiendo la facturacion total por la cantidad de visitas.
+Codigo: 12E629F3A6AA
+Fecha: 2026-11-05
