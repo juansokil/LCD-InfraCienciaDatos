@@ -1,0 +1,16 @@
+Apellido: Krizaj
+Nombre: Juan
+Rama: estudiante/krizaj-juan
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db es una base de datos operativa que almacena la información interna de Airflow, como los estados y ejecuciones de los DAGs. En cambio, data_warehouse almacena los datos que procesamos y analizamos. Se mantienen separadas para que las operaciones sobre los datos no interfieran con el funcionamiento de Airflow y para facilitar su administración.
+Pregunta (b) - Datos despues del down:
+  Los datos permanecen porque se almacenan en un volumen persistente de Docker, independiente del contenedor. El comando docker compose down elimina los contenedores, pero conserva los volúmenes. Para eliminarlos también habría que utilizar docker compose down -v.
+Pregunta (c) - DAGs en el contenedor:
+  Airflow puede acceder a los DAGs mediante un Bind Mount de Docker, que vincula la carpeta stack/dags de nuestra computadora con un directorio dentro del contenedor. De esta manera, los cambios que hacemos en los archivos locales se reflejan dentro del contenedor sin necesidad de reconstruirlo.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el primer número de "8080:8080" por otro puerto disponible, por ejemplo "8081:8080". Esto permite acceder a Airflow desde el puerto 8081 de mi computadora, sin modificar el puerto 8080 en el que escucha dentro del contenedor.
+Pregunta (e) - Credenciales del warehouse:
+  Docker Compose obtiene la contraseña mediante variables de entorno, que pueden definirse en un archivo .env o en el sistema operativo. Esto permite separar las credenciales de la configuración del servicio y evitar escribirlas directamente en docker-compose.yml.
+Codigo: 83CF713181F3
+Fecha: 2026-10-15
