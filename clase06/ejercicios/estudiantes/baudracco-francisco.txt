@@ -1,0 +1,27 @@
+Apellido: Baudracco
+Nombre: Francisco
+Rama: estudiante/baudracco-francisco
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  decision_tree_1d tiene el acc_test más alto, pero se midió con solo 3 fechas de prueba, así que el resultado es poco confiable.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep tiene el acc_train más alto, pero vemos que sobreajusta porque el acc_test es muy bajo
+Pregunta (c) - El acc_test mas bajo:
+  logistic_regression tiene el acc_test más bajo, lo que nos dice que no generaliza bien a nuevos datos.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  random_forest_7d_v2 tiene el acc_train alto y un acc_test razonable, lo que indica que generaliza bien para nuevos datos.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Monitoreando métricas de rendimiento en tiempo real y comparándolas con los valores históricos.
+Codigo: 7A44050C9704
+Fecha: 2026-11-05
