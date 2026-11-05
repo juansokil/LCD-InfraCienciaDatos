@@ -1,0 +1,16 @@
+Apellido: Gauto
+Nombre: IgnacioTomas
+Rama: estudiante/gauto-ignaciotomas
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la información interna del estado de Airflow. Como los DAG runs. Data_warehouse guarda la informacion del curso que usan las aplicaciones
+Pregunta (b) - Datos despues del down:
+  Porque se almacena en volumenes, que no se eliminan al apagar el stack
+Pregunta (c) - DAGs en el contenedor:
+  mediante bind mounts,
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria a 8081:8080. Asi podria acceder a Airflow desde Localhost: 8081.
+Pregunta (e) - Credenciales del warehouse:
+  Docker Compose se encarga de pasarla al contenedor cuando lo inicia.
+Codigo: 7846216B9049
+Fecha: 2026-11-03

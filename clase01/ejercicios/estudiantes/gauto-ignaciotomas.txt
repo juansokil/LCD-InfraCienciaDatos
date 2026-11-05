@@ -1,0 +1,6 @@
+Apellido: Gauto
+Nombre: IgnacioTomas
+Usuario GitHub: Ignacio006
+Rama: estudiante/gauto-ignaciotomas
+Codigo: 6E88EBB285E3
+Fecha: 2026-10-14
