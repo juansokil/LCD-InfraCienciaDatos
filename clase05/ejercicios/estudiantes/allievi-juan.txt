@@ -1,0 +1,9 @@
+Apellido: Allievi
+Nombre: Juan
+Rama: estudiante/allievi-juanmanuel
+Caso: gimnasio
+Hecho: cada visita o asistencia de un socio al gimnasio
+Dimensiones: sede, plan del socio, franja horaria y fecha o mes
+Metricas: minutos de entrenamiento, consumo en barra y cantidad de visitas
+Codigo: FCEBA198811B
+Fecha: 2026-11-05
