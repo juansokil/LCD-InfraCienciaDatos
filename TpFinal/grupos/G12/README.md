@@ -7,18 +7,18 @@
 
 ## Integrantes
 
-- Nombre Apellido (@usuario-github)
-- Nombre Apellido (@usuario-github)
-- ...
-
+- Lautaro Ramos (@lautira2006)
+- Valentina Varisco (@valenvarisco)
+- Francisco Baudracco (@franbaudra)
+- Ramiro Kammerer (@ProjectEMP18)
 ## API elegida
 
-- **Nombre**: `<nombre de la API>`
-- **URL**: `<link a la doc oficial>`
+- **Nombre**: `USGS Earthquakes`
+- **URL**: `https://earthquake.usgs.gov/fdsnws/event/1/query`
 - **Descripcion**: `<breve explicación de que devuelve la API>`
-- **Auth**: `<sin auth / API key gratis / OAuth>`
-- **API key**: `<no necesita / si — ver "Como levantar el stack">`
-- **Refresh**: `<cada cuanto se actualizan los datos>`
+- **Auth**: `sin auth`
+- **API key**: `no necesita`
+- **Refresh**: `Tiempo real cada vez que ocurre un sismo`
 
 ## Modelo de datos
 
