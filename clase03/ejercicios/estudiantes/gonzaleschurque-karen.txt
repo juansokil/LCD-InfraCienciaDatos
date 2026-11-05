@@ -1,0 +1,19 @@
+Apellido: GonzalesChurque
+Nombre: Karen
+Rama: estudiante/gonzaleschurque-karen
+Motor: postgres
+Archivos crudos: 3
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82853
+Doble ingesta: SI
+Ultima carga: 2026-10-21 23:55:43.977944
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla Bronze y conservaría los archivos JSON originales porque con ellos puedo recosntruir los datos.
+Pregunta (b) - replace y append:
+  replace reemplaza toda la tabla y deja únicamente los datos de la última carga. Append agrega nuevos registros sin borrar los anteriores, conservando el historial. El DAG productivo utiliza append para acumular los datos de cada ejecución.
+Pregunta (c) - Dos cargas identicas:
+  Porque CoinGecko puede devolver los mismos datos si hacemos las consultas con pocos segundos de diferencia.Se guardan igual porque Bronze busca conservar cada ingesta aunque el contenido se repita.
+Codigo: C4B5DAD363CD
+Fecha: 2026-10-22
