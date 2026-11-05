@@ -1,4 +1,4 @@
-# TP Final - G00 (Template del README)
+# TP Final - G12 (Template del README)
 
 > **Template del README del grupo.** Copienlo a `TpFinal/grupos/G<NN>/README.md` y
 > completen cada seccion. `G00` no es una entrega real.
