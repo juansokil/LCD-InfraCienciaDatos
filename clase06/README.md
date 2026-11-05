@@ -99,9 +99,11 @@ clase de modelado: es el piso sin el cual las métricas que vienen después mien
 **2. 🧪 Tracking — que el experimento sea reproducible.** MLflow del stack
 (`localhost:5000`, backend Postgres, artifacts persistentes). La grilla cruza
 **2 algoritmos × 3 ventanas** de historia: 6 runs con params, métricas y
-artifacts registrados. Cada run lleva la **ventana como tag**, para poder
-aislarlos en la UI. Sin esto, "el modelo que anduvo bien la semana pasada" es
-una carpeta con un `.pkl` y la memoria de alguien.
+el modelo. Cada run lleva la **ventana como tag**, para poder aislarlos en la
+UI. Y un run aparte (3.5) guarda además una descripción, la accuracy día por
+día, el dataset con el que se entrenó, gráficos, tablas y el modelo con su
+firma. Sin esto, "el modelo que anduvo bien la semana pasada" es una carpeta
+con un `.pkl` y la memoria de alguien.
 
 **3. 🏆 Model Registry y aliases — qué modelo va a producción.** Un solo
 modelo registrado, `crypto_volatilidad_7d`: el que usa el DAG (la grilla compara
@@ -240,7 +242,7 @@ La mitad de esta tabla **ya la hiciste hoy**. Sirve para ver qué te falta, no p
 
 | Concepto | Para qué sirve | ¿En esta clase? |
 |----------|----------------|-----------------|
-| **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack, 6 runs con params, métricas y artifacts |
+| **Experiment tracking** | Que un resultado se pueda reproducir y comparar | ✅ **Sí** — MLflow del stack: 6 runs con params, métricas y el modelo, y un run de análisis con gráficos, tablas y el dataset (3.5) |
 | **Model Registry** | Versionado y promoción con aliases | ✅ **Sí** — un modelo, el que sirve el DAG; el nuevo entra como `@challenger` y reemplaza al `@champion` solo si le gana |
 | **Model serving** | Que el modelo prediga solo, sin que nadie corra nada | ✅ **Sí** — `dag_crypto_ml`, disparado por asset e idempotente |
 | **Training-Serving Skew** | Features idénticas al entrenar y al predecir | ✅ **Sí** — el notebook entrena y el DAG predice leyendo la misma ABT, y el DAG saltea si el modelo espera otras features |
