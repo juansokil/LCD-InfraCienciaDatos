@@ -1,0 +1,9 @@
+Apellido: Varisco
+Nombre: Valentina
+Rama: estudiante/varisco-valentina
+Caso: gimnasio
+Hecho: Visitas, con una fila por visita que incluye el id del socio, de la fecha y de la sede incluyendo una clave para las horas, tanto de salida como de entrada.
+Dimensiones: Sede,fecha,socio y hora.
+Metricas: Minutos_entrenamiento,importe_visita y cantidad_visitas.
+Codigo: ABFA0A612E89
+Fecha: 2026-11-01

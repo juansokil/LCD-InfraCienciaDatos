@@ -1,0 +1,16 @@
+Apellido: Varisco
+Nombre: Valentina
+Rama: estudiante/varisco-valentina
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los metadatos de Airflow, mientras que data_warehouse almacena los datos que utilizaremos (los de la capa bronze,silver y gold). Estan separados para aislar los datos informativos des contenedor de los que este procesa.
+Pregunta (b) - Datos despues del down:
+  Porque usa un volumen, que garantiza almacenamiento persistente
+Pregunta (c) - DAGs en el contenedor:
+  Los ve gracias a que en el compose se configuro una conexión tipo "puente" en tiempo real entre mi carpeta local ./dags de mi computadora con la ruta /opt/airflow/dags del contenedor.
+Pregunta (d) - Puerto 8080 ocupado:
+  "Pasaría a usar la opción B detallada en el compose, ya que solo hay que cambiar el número de la izquierda de los dos puntos, osea el puerto de mi compu. Esto no afecta ni a los notebooks ni a los DAGs.
+Pregunta (e) - Credenciales del warehouse:
+  La sabe porque esta guardada en el archivo .env del stack
+Codigo: B49B55F96054
+Fecha: 2026-10-12

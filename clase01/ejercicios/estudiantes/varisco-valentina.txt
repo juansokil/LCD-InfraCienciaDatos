@@ -1,0 +1,6 @@
+Apellido: varisco
+Nombre: valentina
+Usuario GitHub: valenvarisco
+Rama: estudiante/varisco-valentina
+Codigo: 1E2FF343139A
+Fecha: 2026-10-08

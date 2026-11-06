@@ -1,0 +1,19 @@
+Apellido: Varisco
+Nombre: Valentina
+Rama: estudiante/varisco-valentina
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 82081
+Doble ingesta: SI
+Ultima carga: 2026-10-19 19:11:17.943455
+Pregunta (a) - La zona raw y la tabla:
+  Borraría el bronze y dejaria los datos crudos que son los originales, pero dejaría de poder hacer consultas SQL
+Pregunta (b) - replace y append:
+  El DAG productivo usa el append (Paso 4). En la tabla de paso 3 que utiliza replace queda el último "snapshot" sobreescribiendo el anterior a este, mientras que en la tabla que utiliza append se agrega al final las filas de este nuevo "snapshot", manteniendo los historicos
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque entre ambas corridas la API no actualiza sus datos; sin embargo el pipeline los guarda igual porque lo que se guarda en raw debe registrar tal como está. Mientras que la deduplicación corresponde a la capa posterior Silver
+Codigo: E6982C3ED99C
+Fecha: 2026-10-19
