@@ -1,0 +1,6 @@
+Apellido: grochowski
+Nombre: uriel
+Usuario GitHub: ugro2904
+Rama: estudiante/grochowski-uriel
+Codigo: 5B6F0887DA37
+Fecha: 2026-10-05

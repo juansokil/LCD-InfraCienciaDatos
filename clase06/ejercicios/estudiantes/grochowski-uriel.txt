@@ -1,0 +1,27 @@
+Apellido: grochowski
+Nombre: uriel
+Rama: estudiante/grochowski-uriel
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  el modelo con mayor acc_test es decision_tree_1d, con 0,83. El problema es que fue evaluado unicamente con 3 fechas de test, por lo que hace que el resultado sea poco representatico y no es suficiente para confirmar que el modelo sea el mejor
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep es el modelo con mayor acc_trian con 0,98, pero el test baja a 0,54. Esto significa que hay una diferencia importante entre entremamiento y evaluacion, por lo tanto el modelo estas sobreajustado y no generealiza bien sobre los datos
+Pregunta (c) - El acc_test mas bajo:
+  con 0,51, el modelo mas bajo de acc_test es svm_3d.Es el que peor desempeño tiene sobre los datos que no vio durante el entrenamiento
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  tiene un acc_test de 0,69 sobre 60 fechas de test y una diferencia muy chica con su acc_train de 0,74. Creo que es el candidato con mejor balance entre desempeño y capacidad de generalizar
+Pregunta (e) - Como te darias cuenta de que empeora:
+  haria, regularmente, una comparacion con las predicciones y lo que realmente ocurrió y seguría su accuracy sobre los datos nuevos. Si el accuracy baja respecto a su rendimiento historica, es una señal que el modelo esta empeorando.
+Codigo: 1C6BA1170AC0
+Fecha: 2026-11-06
