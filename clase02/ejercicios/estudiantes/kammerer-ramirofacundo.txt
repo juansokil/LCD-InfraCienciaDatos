@@ -1,0 +1,16 @@
+Apellido: Kammerer
+Nombre: RamiroFacundo
+Rama: estudiante/kammerer-ramirofacundo
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la metadata de Airflow mientras que data_warehouse guarda los datos de negocio o de destino y están separados por el principio de separación de responsabilidades y disponibilidad
+Pregunta (b) - Datos despues del down:
+  Los datos siguen estando porque la base de datos está configurada para guardar su información
+Pregunta (c) - DAGs en el contenedor:
+  A través de un Bind Mount
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el primer número, por ejemplo a 8081:8080 porque el puerto de la derecha (el del contenedor) está aislado en la red interna de Docker y no genera conflictos en la máquina
+Pregunta (e) - Credenciales del warehouse:
+  La sabe porque se la está inyectando a través de variables de entorno
+Codigo: 9DF2922E93E4
+Fecha: 2026-10-14

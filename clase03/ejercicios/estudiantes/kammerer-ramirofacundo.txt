@@ -1,0 +1,19 @@
+Apellido: Kammerer
+Nombre: RamiroFacundo
+Rama: estudiante/kammerer-ramirofacundo
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 84298
+Doble ingesta: SI
+Ultima carga: 2026-10-21 20:18:43.889495
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla bronze.crypto_markets_demo. Dejaría de poder consultar los datos tabulados directamente con SQL para trabajar en el momento.
+Pregunta (b) - replace y append:
+  Con if_exists=replace, la tabla borra todo su contenido previo, arranca de cero y conserva únicamente los datos de la última corrida. Con if_exists=append, la tabla agrega los registros de la nueva carga sin borrar los anteriores, acumulando el historial. El DAG productivo utiliza append para correr cada 15 minutos, ya que su objetivo es acumular los snapshots y preservar todo el historial temporal de precios.
+Pregunta (c) - Dos cargas identicas:
+  Quedan idénticos porque si se consulta a la API con solo unos segundos de diferencia, los precios y datos devueltos probablemente no hayan cambiado aún. El pipeline los guarda igual porque la zona raw (Bronze) guarda los bytes exactos tal cual llegaron, funcionando como un archivo histórico acumulativo. Nunca se borran datos ni se deduplican en la capa Bronze; el trabajo de limpiar, validar y deduplicar registros corresponde a la capa Silver (que lee desde Bronze).
+Codigo: EA3A5BEB1DD6
+Fecha: 2026-10-21
