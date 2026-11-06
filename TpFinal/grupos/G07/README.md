@@ -10,12 +10,12 @@
 
 ## API elegida
 
-- **Nombre**: 
-- **URL**: 
-- **Descripcion**: 
-- **Auth**: 
-- **API key**: 
-- **Refresh**: 
+- **Nombre**: USGS Earthquakes
+- **URL**: https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php
+- **Descripcion**: API pública que proporciona información sobre eventos sísmicos a nivel mundial, incluyendo magnitud, fecha, ubicación geográfica, coordenadas y profundidad.
+- **Auth**: Sin autenticación.
+- **API key**: No necesita.
+- **Refresh**: Cada minuto.
 
 ## Modelo de datos
 
