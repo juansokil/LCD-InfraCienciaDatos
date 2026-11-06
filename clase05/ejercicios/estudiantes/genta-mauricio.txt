@@ -1,0 +1,9 @@
+Apellido: genta
+Nombre: mauricio
+Rama: estudiante/genta-mauricio
+Caso: gimnasio
+Hecho: una visita realizada por un socio, se compone de los siguientes campos: ingreso (timestamp), egreso (timestamp), gasto, duracion (minutos), fecha_id, sede_id, socio_id, franja_id.
+Dimensiones: socio (socio_id, nombre, fecha de alta, sede de alta, plan), tiempo (fecha_id, fecha, mes), franja (franja_id, nombre, hora_desde, hora_hasta), sede (sede_id, barrio, máquinas).
+Metricas: Por fila: minutos (duracion) y consumo en barra (gasto), filtrables y agregables por mes, sede y franja. Visitas = count de filas, agrupable por plan. Gasto promedio = sum(gasto)/count(visitas) por plan (calculado en el momento, no se guarda).
+Codigo: BD241F277E99
+Fecha: 2026-10-29

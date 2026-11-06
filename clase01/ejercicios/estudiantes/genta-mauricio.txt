@@ -1,0 +1,6 @@
+Apellido: genta
+Nombre: mauricio
+Usuario GitHub: 5y5f4il
+Rama: estudiante/genta-mauricio
+Codigo: D9DCB5B74ADF
+Fecha: 2026-10-04
