@@ -20,6 +20,21 @@
 ## Modelo de datos
 
 ### Bronze
+
+Se realizó la extracción de datos sobre los sismos desde la API de USGS Earthquakes. La información obtenida se guarda en una base de datos PostgreSQL, dentro de la tabla `bronze.sismos_raw`.
+
+**La tabla contiene los siguientes datos:
+
+- `id`: número que identifica cada registro.
+- `event_id`: identificador del sismo en USGS.
+- `payload`: registro original completo en formato JSONB.
+- `ingested_at`: fecha y hora en que se guardaron los datos.
+- `source_updated_ms`: fecha de última actualización del evento en USGS.
+
+Para obtener los datos utilizamos el archivo `scripts/ingest_usgs.py`, que se ejecuta automaticamente a través del DAG `bronze_usgs_g07` en Airflow.
+
+Este proceso permite guardar la información orginal sin modificarla y evita duplicar registros cuando se vuelve a ejecutar, siempre que el sismo y su fecha de actualizacion sean los mismos.
+
 ### Silver
 ### Gold
 
