@@ -59,8 +59,8 @@ La cadena entera se encadena por DATOS, no por reloj:
 
   crypto_bronze   cron 0,15,30,45          --emite-->  BRONZE_CRYPTO
   crypto_silver   schedule=[BRONZE_CRYPTO] --emite-->  SILVER_CRYPTO
-  crypto_gold     schedule=[SILVER_CRYPTO] --emite-->  GOLD_STAR
-  crypto_ml       schedule=[GOLD_STAR]        --emite-->  GOLD_ABT
+  crypto_gold     schedule=[SILVER_CRYPTO] --emite-->  GOLD_STAR   (BI)
+  crypto_ml       schedule=[SILVER_CRYPTO] --emite-->  GOLD_ABT    (ML, clase 06)
 
 Bronze conserva cron porque es el BORDE (consulta una API externa, no tiene
 nada aguas arriba que esperar). Nadie mas adivina tiempos.
@@ -69,10 +69,13 @@ Antes esto se resolvia con CRON ESCALONADO (bronze :00, silver :05, gold :10).
 El colchon era de 5 minutos: si Silver se atrasaba, Gold leia Silver a medio
 actualizar y publicaba igual. Un pipeline que "anda" mientras miente.
 
-Este DAG emite UN asset con DOS consumidores -- eso es FAN-OUT real, no un
-ejemplo de juguete:
-  GOLD_STAR -> el dashboard (las vistas gold.v_* ya estan)
-  GOLD_STAR -> crypto_ml, que arma su ABT y scorea sobre el fact ya verificado
+El FAN-OUT real esta en Silver: SILVER_CRYPTO tiene DOS consumidores, que
+corren en paralelo y no se esperan entre si:
+  SILVER_CRYPTO -> este DAG, que arma el star para BI
+  SILVER_CRYPTO -> crypto_ml (clase 06), que arma lo suyo para ML
+Dos formas de Gold que salen de la misma fuente. Este DAG emite GOLD_STAR
+cuando la capa semantica queda lista y verificada: el dato del que puede
+colgarse cualquier consumidor del star.
 
 =============================================================================
 POR QUE GOLD NO USA EL CONTRATO (Pydantic)
@@ -106,6 +109,11 @@ DB_URI = (
     f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:5432/"
     f"{os.getenv('SOURCE_DB_NAME', 'InfraCienciaDatos')}"
 )
+
+# Las vistas que crea crypto_ml (clase 06) viven en `gold` pero NO son de este
+# DAG: leen Silver y gold.predicciones, no las tablas de aca. drop_views no
+# las toca (una vista, un dueno).
+VISTAS_DE_ML = ("v_volatilidad_diaria", "v_ml_aciertos", "v_ml_veredicto")
 
 
 def _run_ddl(sql: str):
@@ -174,9 +182,9 @@ def _tabla_existe(nombre_calificado: str) -> bool:
     DAG una vez y toma el estado actual de Silver (ya backfilleado).
 
     **Acople Silver->Gold**: data-aware. Este DAG no tiene cron: arranca cuando
-    `crypto_silver` emite el asset `silver_crypto_markets`. A su vez emite
-    `gold_star` (capa semantica lista y modelo verificado), que consumen el
-    dashboard y `crypto_ml`.
+    `crypto_silver` emite el asset `silver_crypto_markets` (que tambien
+    despierta a `crypto_ml`, en paralelo). A su vez emite `gold_star` (capa
+    semantica lista y modelo verificado).
     """,
 )
 def crypto_gold():
@@ -422,8 +430,7 @@ def crypto_gold():
     # ============================================================
     # VISTAS SEMANTICAS - la "API publica" de Gold
     # ============================================================
-    # El dashboard y el modelo NO consultan las tablas fisicas: consumen
-    # estas vistas. Asi los KPIs se definen UNA vez, en SQL, dentro del
+    # El dashboard NO consulta las tablas fisicas: consume estas vistas. Asi los KPIs se definen UNA vez, en SQL, dentro del
     # warehouse (capa semantica) -- no en cada pagina de la BI tool.
     # Se recrean en cada corrida porque los DROP ... CASCADE de arriba
     # las tiran junto con las tablas.
@@ -439,16 +446,11 @@ def crypto_gold():
         Se desarma de arriba hacia abajo (vistas -> tablas) y se arma de abajo
         hacia arriba (tablas -> vistas).
 
-        OJO con el alcance: esto baja TODAS las vistas de `gold`, incluidas las
-        tres que crea crypto_ml (v_volatilidad_diaria, v_ml_aciertos y
-        v_ml_veredicto). No es un descuido: v_volatilidad_diaria cuelga de
-        gold.fact_crypto_markets, asi que el DROP TABLE ... CASCADE de build_fact
-        se la llevaria igual, y encima en paralelo con otra task -- el deadlock que
-        esta tarea existe para evitar. La consecuencia hay que tenerla presente:
-        entre que corre este DAG y que crypto_ml se despierta por el asset GOLD_STAR,
-        la pagina 6_Gold_ML del tablero se queda sin sus vistas; y si crypto_ml esta
-        pausado o falla, no vuelven hasta que corra. Es la contracara de tener una
-        vista que cruza dos duenos.
+        OJO con el alcance: baja SOLO las vistas de este DAG. Las tres de
+        crypto_ml (VISTAS_DE_ML) viven en `gold` pero leen Silver y
+        gold.predicciones, no las tablas de aca, y crypto_ml corre en paralelo
+        a este DAG: bajarlas seria tocar objetos de otro dueno mientras los
+        esta usando.
         """
         import sqlalchemy
 
@@ -456,7 +458,7 @@ def crypto_gold():
         with engine.begin() as conn:
             vistas = [r[0] for r in conn.exec_driver_sql(
                 "SELECT viewname FROM pg_views WHERE schemaname = 'gold'"
-            )]
+            ) if r[0] not in VISTAS_DE_ML]
             for v in vistas:
                 conn.exec_driver_sql(f"DROP VIEW IF EXISTS gold.{v} CASCADE")
         print(f"capa semantica desarmada: {len(vistas)} vistas")
@@ -985,7 +987,7 @@ def crypto_gold():
     #
     # Y se publica DESPUES de verify_integrity(): si la fact tiene huerfanos, el
     # DAG falla ahi, no se rehacen las vistas y no se emite el asset -- asi nadie
-    # aguas abajo (ni el tablero ni crypto_ml) arranca sobre un modelo roto.
+    # aguas abajo arranca sobre un modelo roto.
     dim_c = build_dim_crypto()
     dim_t = build_dim_tiempo()
     fact = build_fact()
