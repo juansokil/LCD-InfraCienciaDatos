@@ -1,0 +1,9 @@
+Apellido: Kalinscky
+Nombre: Tomas
+Rama: estudiante/kalinscky-tomas
+Caso: gimnasio
+Hecho: Cada fila es una visita de un socio a una sede, con su entrada, salida y consumo en la barra
+Dimensiones: Socio y plan que tenia al visitar, sede y barrio, fecha y mes. La franja horaria sale de la hora de entrada
+Metricas: Minutos de la visita, gasto en la barra y una visita para contar. El gasto promedio es el gasto total dividido por todas las visitas, incluso las que no consumieron
+Codigo: 17E02C1D74A9
+Fecha: 2026-11-01

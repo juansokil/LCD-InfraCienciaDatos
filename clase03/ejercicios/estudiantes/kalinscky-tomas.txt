@@ -1,0 +1,19 @@
+Apellido: Kalinscky
+Nombre: Tomas
+Rama: estudiante/kalinscky-tomas
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 77559
+Doble ingesta: SI
+Ultima carga: 2026-10-31 19:47:42.983654
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla porque puedo reconstruirla desde el crudo, perderia la consulta SQL directa
+Pregunta (b) - replace y append:
+  replace (como indica su nombre), reemplaza la tabla, mientras que append agrega filas. El DAG productivo usa append
+Pregunta (c) - Dos cargas identicas:
+  Guardamos la misma respuesta sin consultar otra vez la API. Se conserva cada carga como registro de ingesta
+Codigo: 0C8245AB99BD
+Fecha: 2026-10-31
