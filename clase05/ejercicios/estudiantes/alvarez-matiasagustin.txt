@@ -1,0 +1,9 @@
+Apellido: Alvarez
+Nombre: MatiasAgustin
+Rama: estudiante/alvarez-matiasagustin
+Caso: gimnasio
+Hecho: La visita de un usuario al gimnasio (desde que entra y sale por el molinete), en una sucursal, y los consumos realizados
+Dimensiones: Tiempo (mes, franja), sede (con el barrio), y socio (plan y sede donde se asoció)
+Metricas: tiempo de entrenamiento y consumo en la barra. Con estas metricas luego se calcula los minutos entrenados por mes y sede, cuanto se facturó en la barra, tambien por sede y franja y cuanto se gastó en promedio por plan. La cantidad de visitas se calcula con la cantidad de filas.
+Codigo: 665BAFE52FBF
+Fecha: 2026-11-01
