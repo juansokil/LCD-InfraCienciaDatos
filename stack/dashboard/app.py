@@ -94,9 +94,10 @@ else:
         unsafe_allow_html=True,
     )
     st.caption(
-        "Los DAGs de Silver, Gold y ML **no tienen cron**: arrancan cuando el "
-        "anterior publica su asset. Si ese contador está en cero, la cadena no "
-        "se está encadenando — aunque los DAGs figuren en verde."
+        "Los DAGs de Silver, Gold y ML **no tienen cron**: arrancan cuando la "
+        "capa que leen publica su asset (Gold y ML, los dos, cuando termina "
+        "Silver). Si ese contador está en cero, la cadena no se está "
+        "encadenando — aunque los DAGs figuren en verde."
     )
 
 st.markdown("<div style='height:22px'></div>", unsafe_allow_html=True)
@@ -126,9 +127,9 @@ PAGINAS = [
     ("🥇", "Gold · Análisis", "¿Qué estructura hay detrás?",
      "Riesgo contra retorno, correlación intradía, concentración — y el star "
      "schema funcionando: la misma pregunta cortada por dos dimensiones."),
-    ("🤖", "Gold · ML", "¿El modelo sirve?",
-     "El veredicto primero: el modelo contra las dos varas, la fácil y la "
-     "difícil. Debajo, la maquinaria (ABT, MLflow, champion, predicciones)."),
+    ("🤖", "Gold · ML", "¿Cómo le va al modelo?",
+     "El champion en producción: qué predice, cuánto acierta al lado de la "
+     "persistencia y la clase mayoritaria, y cómo llegó a ser el champion."),
 ]
 
 st.markdown(
@@ -169,8 +170,9 @@ st.markdown(
     "<span style='color:var(--ink)'>🥈 silver</span>"
     "<span style='color:var(--ink-3)'>— 📦 asset →</span>"
     "<span style='color:var(--ink)'>🥇 gold</span>"
-    "<span style='color:var(--ink-3)'>— 📦 asset →</span>"
+    "<span style='color:var(--ink-3)'>y</span>"
     "<span style='color:var(--ink)'>🤖 ml</span>"
+    "<span style='color:var(--ink-3)'>(los dos leen Silver, en paralelo)</span>"
     "</div>"
     "<div style='margin-top:12px;color:var(--ink-3);font-size:12px'>"
     "Un solo reloj, y está en el borde: CoinGecko no avisa cuándo hay dato nuevo. "
