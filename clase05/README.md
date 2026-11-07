@@ -208,12 +208,12 @@ Si las 2 queries devuelven valores razonables, tu pipeline Gold está **funciona
 
 **Clase 06** es la **clase de cierre del cuatrimestre**: el pipeline pasa a modo producción y le metemos un modelo adentro. Tiene una **entrega chica y de criterio** — *El veredicto* — y no reemplaza al TP Final. Lo que vas a ver:
 
-- **El pipeline, cerrado**: recap del cuatrimestre, las cuatro capas encadenadas por **Assets** (un solo cron, en Bronze), el switch a **modo producción** y los tres niveles de monitoring.
-- **La ABT, hecha DAG**: la forma de tabla con la que se entrena un modelo. La arma `crypto_ml`, el pipeline que la usa — una tabla, un dueño.
-- **Airflow para ML**: el modelo como una **task más**. Un DAG pedagógico que lee la ABT, entrena registrando en MLflow y escribe predicciones idempotentes; y el productivo `crypto_ml`, disparado **por el asset** `gold_star` (o sea cuando el modelo de Gold quedó armado y verificado), que arma la ABT y scorea.
-- **MLflow como sistema**: tracking contra el server del stack, **Model Registry** y el alias `@champion` — promover es una decisión humana, y cambiar el alias cambia lo que predice el pipeline sin tocar código.
+- **El pipeline, en producción**: las capas encadenadas por **Assets** (un solo cron, en Bronze), con Silver abriéndose en dos ramas paralelas —`crypto_gold` para BI y `crypto_ml` para ML— y el switch a **modo producción**.
+- **La ABT**: la forma de tabla con la que se entrena un modelo, una fila por caso. Primero en chiquito, con un DAG pedagógico que verifica su grano; después, la que `crypto_ml` arma desde Silver para predecir.
+- **Airflow para ML**: el modelo como una **task más**. El productivo `crypto_ml`, disparado **por el asset de Silver** en paralelo a Gold, carga el champion del Registry y predice.
+- **MLflow como sistema**: tracking contra el server del stack, **Model Registry** y los aliases `@champion` y `@challenger` — el modelo nuevo reemplaza al vigente solo si le gana, y cambiar el alias cambia lo que predice el pipeline sin tocar código.
 - **El tablero corrige al modelo**: la página `6_Gold_ML` mide el acierto contra lo que efectivamente pasó, y contra dos varas.
-- **Bonus Track MLOps**: el mapa completo, con **cinco piezas ya hechas** en esa clase (tracking, registry, serving, training-serving skew y monitoring) y tres que quedan para después: Feature Stores, Drift Detection y Observability Gate.
+- **Bonus Track MLOps**: el mapa completo, con **cinco piezas ya hechas** en esa clase (tracking, registry, serving, training-serving skew y monitoring), una **a medias** (Observability Gate) y dos que quedan para después: Feature Stores y Drift Detection.
 
 > 🔁 **El círculo Medallion se cierra**: el contrato YAML que validó la **forma** del archivo en Bronze (clase 03) y la **semántica** de cada fila en Silver (clase 04) culmina en Gold con la **integridad referencial** del modelo dimensional (clase 05). En clase06 consumimos ese output para entrenar ML productivo + ver el cuadro completo. **Un solo contrato, cuatro capas, cuatro responsabilidades**.
 
