@@ -18,10 +18,16 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin
     AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
 
+    WAREHOUSE_HOST: warehouse
+    WAREHOUSE_DB: ${POSTGRES_DB}
+    WAREHOUSE_USER: ${POSTGRES_USER}
+    WAREHOUSE_PASSWORD: ${POSTGRES_PASSWORD}
+
   volumes:
     - ./dags:/opt/airflow/dags
     - airflow_logs:/opt/airflow/logs
     - airflow_auth:/opt/airflow/auth
+    - ./config:/opt/airflow/config:ro
 
   depends_on:
     airflow_db:
