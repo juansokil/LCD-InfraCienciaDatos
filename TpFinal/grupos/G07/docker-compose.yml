@@ -76,6 +76,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./scripts:/opt/airflow/scripts:ro
+      - ./sql:/opt/airflow/sql:ro
 
     depends_on:
       airflow-init:
@@ -124,6 +125,34 @@ services:
       - ON_ERROR_STOP=1
       - -f
       - /sql/01_create_bronze.sql
+
+    restart: "no"
+
+  silver-init:
+    image: postgres:16
+
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - ./sql:/sql:ro
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    command:
+      - psql
+      - -h
+      - postgres
+      - -U
+      - ${POSTGRES_USER}
+      - -d
+      - ${POSTGRES_DB}
+      - -v
+      - ON_ERROR_STOP=1
+      - -f
+      - /sql/02_create_silver.sql
 
     restart: "no"
 

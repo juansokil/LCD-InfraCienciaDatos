@@ -36,6 +36,24 @@ Para obtener los datos utilizamos el archivo `scripts/ingest_usgs.py`, que se ej
 Este proceso permite guardar la información orginal sin modificarla y evita duplicar registros cuando se vuelve a ejecutar, siempre que el sismo y su fecha de actualizacion sean los mismos.
 
 ### Silver
+
+En esta etapa, los datos almacenados en Bronze se procesan a traves de consultas SQL y se guardan en la tabla `silver.sismos`.
+
+Los procesos realizados son:
+    - Obtención de los campos necesarios a partir del JSONB original.+
+    - Transformacion de las fechas en formato Unix a TIMESTAMPT.
+    - Conversion de los datos de magnitud, latitud, longitus, profundidad a valores numericos.
+    - Identificacion y seleccion de la informacion más actualizada de cada sismo.
+    - Prevención de registros duplicados utilizando `event_id` como primary key.
+    - Actualizacón de los datos existentes cuando USGS informa una nueva versión de un evento.
+
+Archivos ulitizados:
+    - `sql/02_create_silver.sql`: define el schema y crea la tabla correspondiente a Silver.
+    - `sql/03_transform_silver.sql`: contiene las consultas SQL necesarias para transformar los datos.
+    - `dags/silver_usgs_g07.py`: permite ejecutar el procesamiento de Silver mediante Airflow.
+
+Una vez que el DAG de bronze termina su ejecucion de manera exitosa, se inicia automaticamente en DAG de silver.
+
 ### Gold
 
 ## Como levantar el stack
