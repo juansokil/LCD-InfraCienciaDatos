@@ -1,0 +1,9 @@
+Apellido: Wallach
+Nombre: ClaraHinde
+Rama: estudiante/wallach-clarahinde
+Caso: gimnasio
+Hecho: una fila representa una visita completa: hora de entrada, hora de salida, consumo
+Dimensiones: socio, plan contratado, sede, fecha
+Metricas: en cada fila calcular los minutos entrenados en una visita. Por otro lado suma total de minutos por mes y por sede, suma de consumo por sede y franja horaria, suma de cantidad de visitas por plan, promedio de cosnumo
+Codigo: 238218913F8C
+Fecha: 2026-11-08

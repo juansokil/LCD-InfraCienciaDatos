@@ -1,0 +1,27 @@
+Apellido: Wallach
+Nombre: ClaraHinde
+Rama: estudiante/wallach-clarahinde
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo que logra mejor accuracy en test es un arbol de decisión entrenado con datos de un único día. Por esto fue entrenado y testeado con muchas menos muestras que los demas modelos
+Pregunta (b) - El acc_train mas alto:
+  El modelo con mejor accuracy en train es un random forest entrenado con datos de 7 días
+Pregunta (c) - El acc_test mas bajo:
+  El modelo con accuracy test mas bajo es un support vector machine entrenado con datos de 3 días. El modelo obtiene valores muy similares en train y test.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Esta entrenado con datos de 7 días lo que lo hace mas robusto. Es el que tiene accuracy en test mas alto y la diferencia con el accuracy obtenido en train es pequeña.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Para darse cuenta de que empieza a funcionar peor es necesario monitorear continuamente las predicciones y las etiquetas reales para poder detectar cuando cae el rendimiento. Ademas se debe identificar el data drift para alertar cuando este cambie siendo necesario modificar el modelo.
+Codigo: 0003FE97A550
+Fecha: 2026-11-08
