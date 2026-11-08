@@ -1,0 +1,11 @@
+# Variables privadas
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Archivos temporales
+*.log
+.DS_Store
