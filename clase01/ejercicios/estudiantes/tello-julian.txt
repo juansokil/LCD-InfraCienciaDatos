@@ -1,0 +1,6 @@
+Apellido: Tello
+Nombre: Julián
+Usuario GitHub: jtello94
+Rama: estudiante/tello-julian
+Codigo: F151E0BB51BF
+Fecha: 2026-11-09
