@@ -1,0 +1,6 @@
+Apellido: Rojas Rodriguez
+Nombre: Christian Rodrigo
+Usuario GitHub: @Christian-Rojas-Rodriguez
+Rama: estudiante/rojasrodriguez-christianrodrigo
+Codigo: 683A33B0589B
+Fecha: 2026-11-08
