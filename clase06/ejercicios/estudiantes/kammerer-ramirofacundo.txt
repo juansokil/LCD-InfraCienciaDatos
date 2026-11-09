@@ -1,0 +1,27 @@
+Apellido: Kammerer
+Nombre: RamiroFacundo
+Rama: estudiante/kammerer-ramirofacundo
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo con el acc_test más alto es decision_tree_1d (0.83). Sin embargo, este valor no es confiable ni concluyente porque fue evaluado con una muestra extremadamente pequeña de días (n_test = 3).
+Pregunta (b) - El acc_train mas alto:
+  El modelo random_forest_3d_deep tiene el acc_train más alto (0.98). Sufre de un claro overfitting (sobreajuste), ya que memorizó casi a la perfección los datos de entrenamiento pero falló rotundamente al generalizar, obteniendo un acc_test muy pobre de apenas 0.54.
+Pregunta (c) - El acc_test mas bajo:
+  El modelo svm_3d tiene el acc_test más bajo (0.51). Dado que el target (la volatilidad) se diseña de forma balanceada dividiendo por la mediana (mitad y mitad), un accuracy de 0.51 indica que el modelo está underfiteando y su capacidad predictiva es prácticamente igual a un dummy classifier que clasifique al azar
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Es el modelo con el mejor desempeño real en datos no vistos (acc_test = 0.69) dentro del grupo de candidatos evaluados sobre una ventana temporal con un tamaño de muestra estadísticamente válido (n_test = 60). Además, la diferencia con su acc_train (0.74) es pequeña (0.05 de brecha), lo que indica que logró una buena capacidad de generalización sin sobreajustarse.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Monitoreando las métricas servidas en la página 6_Gold_ML del tablero de control. Este tablero cruza diariamente los registros de la tabla gold.predicciones emitidas por el modelo contra la volatilidad real posterior que el pipeline continúa ingiriendo. Si la brecha de accuracy diario cae sistemáticamente por debajo de las referencias base de control (la persistencia y la clase mayoritaria), indicaría una degradación o data drift y justificaría buscar un nuevo.
+Codigo: 1861E369DB90
+Fecha: 2026-11-09
