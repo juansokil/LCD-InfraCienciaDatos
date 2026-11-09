@@ -1,0 +1,27 @@
+Apellido: mesina
+Nombre: julian
+Rama: estudiante/mesina-julian
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  solo se evaluó con 3 fechas, por lo que la muestra es demasiado pequeña para confiar plenamente en ese resultado.
+Pregunta (b) - El acc_train mas alto:
+  su acc_test es de solo 54%. Esto indica un posible sobreajuste: aprende muy bien los datos de entrenamiento, pero no generaliza correctamente.
+Pregunta (c) - El acc_test mas bajo:
+  indica un rendimiento bajo al trabajar con datos nuevos
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  tiene un acc_test de 69%, el mejor entre los modelos evaluados con una cantidad considerable de datos. Además, la diferencia entre entrenamiento (74%) y prueba (69%) es pequeña.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  revisaria periódicamente las predicciones y las compararía con los resultados reales. Si el accuracy disminuye con el tiempo, podría indicar que el modelo está perdiendo rendimiento. También controlaría posibles cambios en los datos de entrada.
+Codigo: 1D65A6C8B1E3
+Fecha: 2026-11-09
