@@ -1,0 +1,27 @@
+Apellido: Simonenco
+Nombre: JuanIgnacio
+Rama: estudiante/simonenco-juanignacio
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Es decision_tree_1d con 0.83, pero no me fiaria: se entreno con 12 fechas y se midio con solo 3. Con 3 fechas de test el numero depende mucho de la suerte, no alcanza para decir que generaliza mejor que los otros.
+Pregunta (b) - El acc_train mas alto:
+  Es random_forest_3d_deep con 0.98 en train, pero en test cae a 0.54. Esa diferencia tan grande es overfitting: se aprendio de memoria los datos de entrenamiento y con datos nuevos anda casi como tirar una moneda.
+Pregunta (c) - El acc_test mas bajo:
+  Es svm_3d con 0.51 en test, y en train tiene 0.52. No sobreajusta, directamente no aprende nada util (underfitting): acierta mas o menos lo mismo que adivinar al azar.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Tiene el mejor acc_test (0.69) entre los que se midieron con 60 fechas, asi que el numero es confiable, y la diferencia con train (0.74) es chica, o sea que no esta sobreajustando. Si quisiera algo mas simple miraria logistic_3d (0.66), pero rinde un poco menos.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Guardando las predicciones y comparandolas con lo que realmente paso cuando se conoce el resultado, para ir calculando el accuracy real por dia o por semana. Si baja claramente del 0.69 que dio en test (por ejemplo varios dias seguidos debajo de 0.60) es senal de que empeoro; tambien vigilaria si las variables de entrada cambian mucho respecto de las de entrenamiento. Ahi habria que reentrenar.
+Codigo: 6945ECB23690
+Fecha: 2026-11-09
