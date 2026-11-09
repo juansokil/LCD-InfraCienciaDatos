@@ -1,0 +1,9 @@
+Apellido: Garcia
+Nombre: ErikDaniel
+Rama: estudiante/garcia-erikdaniel
+Caso: gimnasio
+Hecho: Cada fila de la tabla hechos representan visitas individuales en las distintas sedes
+Dimensiones: Los atributos de las dimensiones serian el usuario, la sede que visito, el plan que paga, la hora de entrada y la hora de salida.
+Metricas: En cada fila de la tabla hecho se mide cuanto consumio por barra la persona por cada visita que hizo y el tiempo que estuvo en esa visita. Luego se calcula mediante agrupación los minutos entrenados por mes y por sedes, facturacion total en la barra por sede y por franja, visitas por plan, gasto en promedio por cada visita
+Codigo: 37377EA9825A
+Fecha: 2026-10-30

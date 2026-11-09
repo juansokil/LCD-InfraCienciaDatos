@@ -1,0 +1,6 @@
+Apellido: Garcia
+Nombre: ErikDaniel
+Usuario GitHub: ErikDanielGar
+Rama: estudiante/garcia-erikdaniel
+Codigo: 471AC843FA93
+Fecha: 2026-10-10
