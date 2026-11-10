@@ -1,0 +1,9 @@
+Apellido: Rousso
+Nombre: Matias
+Rama: estudiante/rousso-matias
+Caso: gimnasio
+Hecho: El hecho seria la estadia de socio del gimnasio en el gimnasio, desde que entra hasta que sale
+Dimensiones: Fecha, sede, franja horaria y plan del socio. Se obtienen de los registros de acceso, las sedes y los datos de los socios.
+Metricas: Por visita se guardan los minutos entrenados, el importe consumido en la barra y un contador de visitas (=1). Luego se calculan sumas y el gasto promedio como importe total / cantidad de visitas.
+Codigo: 9A51CDF4BAB0
+Fecha: 2026-11-07
