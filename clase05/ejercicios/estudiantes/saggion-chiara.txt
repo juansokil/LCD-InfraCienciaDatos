@@ -1,0 +1,9 @@
+Apellido: Saggion
+Nombre: Chiara
+Rama: estudiante/saggion-chiara
+Caso: gimnasio
+Hecho: Cada fila representa una visita de un socio a una sede del gimnasio, desde que entra hasta que sale.
+Dimensiones: Tiempo (mes y franja horaria del ingreso), sede del gimnasio y plan del socio (full, local o flex).
+Metricas: Minutos entrenados, importe consumido en la barra y cantidad de visitas (1 por fila). El gasto promedio se calcula dividiendo el consumo total por la cantidad de visitas.
+Codigo: E29CF9672E5E
+Fecha: 2026-11-10
