@@ -1,0 +1,27 @@
+Apellido: fiorini
+Nombre: agustin
+Rama: estudiante/fiorini-agustin
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo con acc_test mas alto es decision_tree_1d (0.83), pero esta medido sobre apenas 3 fechas de test (y 12 de train). Es un resultado enganoso e inestable porque la muestra de evaluacion es diminuta y no garantiza generalizacion.
+Pregunta (b) - El acc_train mas alto:
+  El modelo con acc_train mas alto es random_forest_3d_deep (0.98). Sin embargo, sufre de un overfitting severo: memorizo los datos de entrenamiento y al evaluar en test su desempeno cae abruptamente a 0.54.
+Pregunta (c) - El acc_test mas bajo:
+  El modelo con acc_test mas bajo es svm_3d (0.51). Ese rendimiento es practicamente equivalente al azar (lanzar una moneda), demostrando incapacidad para capturar el patron de los datos.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Elegiria random_forest_7d_v2 porque fue evaluado en una muestra temporal solida y representativa (240 fechas de train y 60 de test), logrando el mejor balance de generalizacion (acc_test de 0.69 y acc_train de 0.74) sin caer en sobreajuste desmedido.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Monitoreando en produccion el accuracy real a lo largo del tiempo frente a los nuevos datos etiquetados (ground truth) para detectar data drift o concept drift, y comparando la distribucion de las predicciones respecto al entrenamiento.
+Codigo: 09DA8C5170BD
+Fecha: 2026-11-10
