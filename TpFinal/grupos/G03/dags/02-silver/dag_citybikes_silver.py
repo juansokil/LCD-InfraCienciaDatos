@@ -36,7 +36,7 @@ MAX_NEAREST_DISTANCE_M = 200
 @dag(
     dag_id="citybikes_silver",
     start_date=datetime(2026, 11, 1),
-    schedule=None,  # manual mientras desarrollamos
+    schedule="*/10 * * * *",  
     catchup=False,
     is_paused_upon_creation=True,
     max_active_runs=1,
