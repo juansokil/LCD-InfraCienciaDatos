@@ -1,0 +1,56 @@
+# ==================================================
+# DEPENDENCIAS PYTHON - CORE DATA ENGINEERING LAB
+# ==================================================
+
+# --- Core & Orchestration ---
+python-dotenv==1.0.1
+
+# --- Data Processing & Transformation ---
+pandas==2.1.4
+SQLAlchemy==1.4.54
+psycopg2-binary==2.9.11
+
+# --- Advanced Transformation ---
+duckdb==1.1.3
+duckdb-engine>=0.13,<0.15                              # SQL analitico ultra rapido e in-memory
+polars==1.21.0                      # Siguiente generacion de DataFrames (Rust-backed)
+pyarrow>=18.0.0                     # Lectura/escritura de .parquet (DAGs de clase03)
+
+# --- Contratos de datos (clase04: validacion en Silver) ---
+# Airflow los arrastra como transitivas, pero los DAGs los importan DIRECTO
+# (common/contracts.py): declararlos evita que una actualizacion de Airflow
+# los saque de abajo sin aviso.
+pydantic[email]>=2.0                # validacion fila a fila del contrato
+PyYAML>=6.0                         # los contratos son .yaml
+
+# --- API & Networking ---
+requests==2.32.5
+
+# --- Airflow: version PINEADA ---
+# Sin este pin, instalar el provider hacia que pip RESOLVIERA apache-airflow por
+# su cuenta y lo BAJARA de la 3.1.5 de la imagen base a la 3.0.6 -- en silencio.
+# El Dockerfile decia 3.1.5, el contenedor corria 3.0.6, y el TP exige 3.1.5.
+#
+# Es el mismo problema que la rubrica le descuenta a los grupos ("deps sin
+# pinnear que rompen el pip"): una dependencia transitiva sin fijar puede
+# reescribir la version de la cosa mas importante del stack.
+apache-airflow==3.1.5
+
+# --- Airflow Providers (Core) ---
+apache-airflow-providers-postgres==6.5.0
+
+# --- Cloud & dbt (se instalan pero solo se usan en clases avanzadas) ---
+# No requieren credenciales para instalar, solo para ejecutar DAGs de cloud.
+gcsfs                                # Acceso a GCS como sistema de archivos
+pandas-gbq                           # Integracion Pandas <-> BigQuery
+
+# --- ML & Tracking (clase06) ---
+scikit-learn==1.5.2                  # Modelos clásicos (KMeans, RandomForest)
+mlflow==3.4.0                        # Tracking de experimentos.
+# POR QUE 3.4 Y NO 2.18: Airflow 3.1.5 exige packaging>=25 y TODA la linea
+# mlflow 2.x pinea packaging<25. Son incompatibles. Con mlflow 2.18 instalado,
+# pip resolvia BAJANDO Airflow a 3.0.6 -- en silencio, con el Dockerfile
+# diciendo 3.1.5. Como 3.1.5 es requisito del curso, sube mlflow.
+matplotlib==3.9.2                    # Visualización de resultados ML
+
+
