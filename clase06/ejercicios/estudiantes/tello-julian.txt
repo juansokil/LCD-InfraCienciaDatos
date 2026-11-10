@@ -1,0 +1,27 @@
+Apellido: Tello
+Nombre: Julián
+Rama: estudiante/tello-julian
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El de acc_test mas alto es decision_tree_1d (0.83), pero se midio con solo 3 fechas de test y se entreno con 12. Con tan pocas fechas acertar 2 o 3 cambia muchisimo el numero, asi que no es confiable: no se puede comparar contra los que se evaluaron con 60 fechas.
+Pregunta (b) - El acc_train mas alto:
+  El de acc_train mas alto es random_forest_3d_deep (0.98), pero en test cae a 0.54. Es sobreajuste: memorizo los datos de entrenamiento y no generaliza a fechas que no vio. El acc_train solo no sirve para elegir.
+Pregunta (c) - El acc_test mas bajo:
+  El de acc_test mas bajo es svm_3d (0.51). No sobreajusta (train y test casi iguales), pero no aprende nada: rinde como tirar una moneda, asi que no le ganaria a una referencia simple como la clase mayoritaria o la persistencia.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Es el de mejor acc_test (0.69) entre los que se evaluaron con suficientes fechas (240 de train y 60 de test), y la diferencia entre train y test es chica (0.74 contra 0.69), asi que generaliza bien. La ventaja sobre random_forest_7d es minima, por eso igual lo validaria contra el champion actual antes de promoverlo.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Comparando todos los dias sus predicciones con lo que efectivamente paso: si la accuracy de los ultimos dias cae de forma sostenida por debajo de la del test (0.69) o deja de ganarle a las referencias simples (clase mayoritaria y persistencia), empezo a andar peor. Tambien miraria si los datos de entrada se alejan de los de entrenamiento (drift), y ahi lo reentrenaria y lo pondria a competir como challenger.
+Codigo: 530EB87A2469
+Fecha: 2026-11-10
