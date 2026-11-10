@@ -320,7 +320,11 @@ with DAG(
 
     tarea_ingesta = PythonOperator(
         task_id="ingestar_sismos_usgs",
-        python_callable=extraer_y_guardar_raw
+        python_callable=extraer_y_guardar_raw,
+        # Recien levantado el stack, la primera corrida a veces falla antes de
+        # empezar (Airflow todavia esta arrancando). Con reintentar alcanza.
+        retries=2,
+        retry_delay=timedelta(seconds=30),
     )
 
     disparar_silver = TriggerDagRunOperator(
@@ -335,7 +339,9 @@ with DAG(
 with DAG(
     dag_id="00_backfill_sismos_30_dias",
     start_date=datetime(2026, 1, 1),
-    schedule=None,
+    # Corre una sola vez, apenas se levanta el stack: la consigna pide que
+    # arranque sin activar DAGs a mano, y el feed horario solo trae 7 dias.
+    schedule="@once",
     catchup=False,
     is_paused_upon_creation=False,
     tags=["bronze", "usgs", "sismos", "backfill"],
@@ -344,6 +350,8 @@ with DAG(
     tarea_backfill = PythonOperator(
         task_id="backfill_30_dias_usgs",
         python_callable=ejecutar_backfill_30_dias,
+        retries=2,
+        retry_delay=timedelta(seconds=30),
     )
 
     disparar_silver_backfill = TriggerDagRunOperator(

@@ -31,9 +31,10 @@ es una versión por sismo (`id`, `updated_epoch`), con los campos del GeoJSON y
 auditoría (`ingested_at`, `source`, `run_id`). El archivo GeoJSON de cada
 respuesta se guarda en `data/raw/sismos/`.
 
-El DAG manual `00_backfill_sismos_30_dias` trae los últimos 30 días. Divide
-los intervalos si una consulta alcanza el límite de 20.000 eventos de FDSN.
-Luego `01_bronze_sismos` consulta el feed semanal cada hora.
+El DAG `00_backfill_sismos_30_dias` trae los últimos 30 días. Corre una sola
+vez, solo, apenas se levanta el stack. Divide los intervalos si una consulta
+alcanza el límite de 20.000 eventos de FDSN. Luego `01_bronze_sismos` consulta
+el feed semanal cada hora.
 
 ### Silver
 
@@ -63,19 +64,22 @@ interpreta como una alerta ni una predicción.
 ```bash
 cd TpFinal/grupos/G05/
 docker compose up -d --build
-# Esperar a que Airflow termine de inicializar
 ```
 
+No hace falta activar nada a mano. Al levantar el stack:
+
+1. `00_backfill_sismos_30_dias` corre una sola vez y trae los últimos 30 días.
+2. `01_bronze_sismos` corre enseguida y después cada hora.
+3. Cada carga de Bronze dispara Silver, y Silver dispara Gold al completar.
+
+En unos minutos el dashboard ya muestra los datos.
+
 **Accesos**:
-- Airflow UI: http://localhost:8080 (sin autenticación)
+- Airflow UI: http://localhost:8080. No pide usuario ni contraseña: todos
+  entran como admin (`SIMPLE_AUTH_MANAGER_ALL_ADMINS=True` en el `.env`).
 - Dashboard (Gold): http://localhost:8501
-- Postgres: `localhost:5432` / DB: `InfraCienciaDatos` / `admin`
-
-**Primera ejecución**:
-
-1. En Airflow, ejecutar manualmente `00_backfill_sismos_30_dias` una sola vez.
-2. Ese DAG carga Bronze y dispara Silver; Silver dispara Gold al completar.
-3. Las ingestas posteriores corren cada hora con `01_bronze_sismos`.
+- Postgres: `localhost:5432` / DB: `InfraCienciaDatos` / usuario `admin` /
+  contraseña `admin`
 
 **Apagar**:
 ```bash
