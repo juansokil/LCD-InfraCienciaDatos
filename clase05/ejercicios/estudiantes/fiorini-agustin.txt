@@ -1,0 +1,9 @@
+Apellido: fiorini
+Nombre: agustin
+Rama: estudiante/fiorini-agustin
+Caso: gimnasio
+Hecho: Una visita individual de un socio a una sede, delimitada por el fichaje de entrada y salida en el molinete.
+Dimensiones: Tiempo/Fecha (mes y franja horaria de la visita), Sede (barrio y características), Socio (nombre y fecha de alta) y Plan (full, local o flex).
+Metricas: Por fila se registran la duracion de la visita (en minutos) y el gasto consumido en la barra. A partir de ellas se calculan luego el total de minutos, facturacion total, cantidad de visitas y el gasto promedio por visita.
+Codigo: 7B451782C3FD
+Fecha: 2026-11-10

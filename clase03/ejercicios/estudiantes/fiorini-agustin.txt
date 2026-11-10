@@ -1,0 +1,19 @@
+Apellido: fiorini
+Nombre: agustin
+Rama: estudiante/fiorini-agustin
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81894
+Doble ingesta: SI
+Ultima carga: 2026-10-19 14:22:51.718227
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla en Bronze (la base de datos). El archivo crudo JSON en la zona raw contiene la respuesta exacta e inmutable de la API; a partir de ese archivo siempre se puede volver a recrear o reprocesar la tabla cuantas veces haga falta. Si borrara el crudo, perderia datos que la API ya envio pero que la tabla quiza no mapeo (como roi o image).
+Pregunta (b) - replace y append:
+  Con replace se sobreescribe la tabla completa dejando solo la foto actual (50 filas). Con append se agregan las nuevas filas acumulandolas cronologicamente (quedan 100 filas con diferente ingested_at). El DAG productivo usa append cada 15 minutos para preservar el historial temporal de precios de cada moneda.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque los precios de mercado pueden no haber cambiado en pocos segundos. El pipeline los guarda igual sin deduplicar porque en la capa Bronze la regla es inmutabilidad y preservar la historia cruda de lo que llego en cada ejecucion; la deduplicacion y limpieza temporal corresponden a la capa Silver.
+Codigo: E2E971A9FC52
+Fecha: 2026-10-19
