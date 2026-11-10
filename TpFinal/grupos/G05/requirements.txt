@@ -44,13 +44,4 @@ apache-airflow-providers-postgres==6.5.0
 gcsfs                                # Acceso a GCS como sistema de archivos
 pandas-gbq                           # Integracion Pandas <-> BigQuery
 
-# --- ML & Tracking (clase06) ---
-scikit-learn==1.5.2                  # Modelos clásicos (KMeans, RandomForest)
-mlflow==3.4.0                        # Tracking de experimentos.
-# POR QUE 3.4 Y NO 2.18: Airflow 3.1.5 exige packaging>=25 y TODA la linea
-# mlflow 2.x pinea packaging<25. Son incompatibles. Con mlflow 2.18 instalado,
-# pip resolvia BAJANDO Airflow a 3.0.6 -- en silencio, con el Dockerfile
-# diciendo 3.1.5. Como 3.1.5 es requisito del curso, sube mlflow.
-matplotlib==3.9.2                    # Visualización de resultados ML
-
 
