@@ -1,29 +1,165 @@
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: g03_postgres
 
-    restart: unless-stopped
+  # ======================================================
+  # PostgreSQL - Metadata de Airflow
+  # ======================================================
+  airflow_db:
+    image: postgres:17-alpine
+    container_name: g03_airflow_db
 
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: ${AF_DB_USER}
+      POSTGRES_PASSWORD: ${AF_DB_PASS}
+      POSTGRES_DB: ${AF_DB_NAME}
 
     volumes:
-      - postgres_g03_data:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+      - airflow_db_data:/var/lib/postgresql/data
 
     healthcheck:
       test:
         - CMD-SHELL
-        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
-      interval: 10s
+        - pg_isready -U ${AF_DB_USER} -d ${AF_DB_NAME}
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+
+    restart: "no"
+
+    networks:
+      - g03_network
+
+
+  # ======================================================
+  # PostgreSQL - Data Warehouse
+  # Bronze / Silver / Gold
+  # ======================================================
+  data_warehouse:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+
+    image: g03_data_warehouse:latest
+    container_name: g03_data_warehouse
+
+    environment:
+      POSTGRES_USER: ${SOURCE_DB_USER}
+      POSTGRES_PASSWORD: ${SOURCE_DB_PASS}
+      POSTGRES_DB: ${SOURCE_DB_NAME}
+
+    volumes:
+      - data_warehouse_data:/var/lib/postgresql/data
+
+    ports:
+      - "5432:5432"
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+    restart: "no"
+
+    networks:
+      - g03_network
+
+
+  # ======================================================
+  # Airflow 3
+  # Orquestación Bronze -> Silver -> Gold
+  # ======================================================
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: g03_airflow:latest
+    container_name: g03_airflow
+
+    env_file:
+      - .env
+
+    environment:
+      AIRFLOW_UID: ${AIRFLOW_UID:-0}
+
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: >-
+        postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
+
+      AIRFLOW__API__SECRET_KEY: g03-local-secret-key
+
+      SOURCE_DB_HOST: data_warehouse
+
+      AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: 10
+      AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL: 10
+
+    volumes:
+      - type: bind
+        source: ./dags
+        target: /opt/airflow/dags
+
+      - type: bind
+        source: ./data
+        target: /opt/airflow/data
+
+      - airflow_logs:/opt/airflow/logs
+
+    ports:
+      - "8080:8080"
+
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+
+      data_warehouse:
+        condition: service_healthy
+
+    restart: "no"
+
+    networks:
+      - g03_network
+
+
+  # ======================================================
+  # Streamlit - Dashboard
+  # ======================================================
+  dashboard:
+    build:
+      context: ./dashboard
+
+    image: g03_dashboard:latest
+    container_name: g03_dashboard
+
+    env_file:
+      - .env
+
+    environment:
+      SOURCE_DB_HOST: data_warehouse
+
+    ports:
+      - "8501:8501"
+
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
+
+    restart: "no"
+
+    networks:
+      - g03_network
+
 
 volumes:
-  postgres_g03_data:
+  airflow_db_data:
+  airflow_logs:
+  data_warehouse_data:
+
+
+networks:
+  g03_network:
+    name: g03_network
+    driver: bridge

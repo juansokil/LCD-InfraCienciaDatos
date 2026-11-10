@@ -193,3 +193,8 @@ stack/credentials/*.key
 # Se genera con .claude/skills/analizar-entregas-curso/reporte_colaboradores.py
 # y NUNCA se commitea. El script aborta si esta ruta deja de estar ignorada.
 reportes_docente/
+
+# --- Runtime CityBikes ---
+# Los snapshots crudos los genera Bronze en cada ejecución.
+data/raw/**
+!data/raw/.gitkeep
