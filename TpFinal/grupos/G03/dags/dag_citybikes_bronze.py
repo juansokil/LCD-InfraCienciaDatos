@@ -9,15 +9,29 @@ import sqlalchemy
 from sqlalchemy.dialects.postgresql import JSONB
 
 
-API_URL = "https://api.citybik.es/v2/networks/ecobici"
+# =========================================================
+# CONFIGURACIÓN
+# =========================================================
 
-RAW_BASE_DIR = "/opt/airflow/data/raw/citybikes_ecobici"
+API_URL = (
+    "https://api.citybik.es/v2/networks/"
+    "ecobici-buenos-aires"
+)
 
+RAW_BASE_DIR = (
+    "/opt/airflow/data/raw/"
+    "citybikes_ecobici_buenos_aires"
+)
+
+
+# =========================================================
+# DAG
+# =========================================================
 
 @dag(
     dag_id="citybikes_bronze",
     start_date=datetime(2026, 10, 1),
-    schedule="*/5 * * * *", 
+    schedule="*/5 * * * *",
     catchup=False,
     is_paused_upon_creation=False,
     tags=["prod", "bronze", "citybikes"],
@@ -28,198 +42,451 @@ def citybikes_bronze():
     def ingest_citybikes():
 
         # -------------------------------------------------
-        # 1. Consultar API
+        # 1. Consultar API CityBikes
         # -------------------------------------------------
-        response = requests.get(API_URL, timeout=30)
+
+        response = requests.get(
+            API_URL,
+            timeout=30,
+        )
+
         response.raise_for_status()
 
         payload = response.json()
 
         network = payload["network"]
+
         stations = network["stations"]
 
-        location = network.get("location") or {}
+        location = (
+            network.get("location")
+            or {}
+        )
 
-        print(f"Red: {network.get('name')}")
-        print(f"Estaciones recibidas: {len(stations)}")
+        print(
+            f"Red: {network.get('name')}"
+        )
 
+        print(
+            f"ID red: {network.get('id')}"
+        )
+
+        print(
+            f"Ciudad: {location.get('city')}"
+        )
+
+        print(
+            f"País: {location.get('country')}"
+        )
+
+        print(
+            f"Estaciones recibidas: {len(stations)}"
+        )
+
+        # -------------------------------------------------
+        # Inspección de campos extra disponibles
+        # -------------------------------------------------
 
         extra_keys = sorted({
             key
             for station in stations
-            for key in (station.get("extra") or {}).keys()
+            for key in (
+                station.get("extra")
+                or {}
+            ).keys()
         })
 
-        print(f"Campos encontrados en extra: {extra_keys}")
+        print(
+            f"Campos encontrados en extra: "
+            f"{extra_keys}"
+        )
 
         # -------------------------------------------------
-        # 2. Guardar payload crudo en zona RAW
+        # 2. Guardar payload crudo en RAW
         # -------------------------------------------------
-        now = datetime.now(timezone.utc)
 
-        ds = now.strftime("%Y-%m-%d")
-        timestamp_file = now.strftime("%Y%m%dT%H%M%SZ")
+        now = datetime.now(
+            timezone.utc
+        )
 
-        raw_dir = f"{RAW_BASE_DIR}/ds={ds}"
-        os.makedirs(raw_dir, exist_ok=True)
+        ds = now.strftime(
+            "%Y-%m-%d"
+        )
 
-        raw_file = f"{raw_dir}/ecobici_{timestamp_file}.json"
+        timestamp_file = now.strftime(
+            "%Y%m%dT%H%M%SZ"
+        )
 
-        with open(raw_file, "wb") as f:
-            f.write(response.content)
+        raw_dir = (
+            f"{RAW_BASE_DIR}/ds={ds}"
+        )
 
-        print(f"RAW guardado en: {raw_file}")
+        os.makedirs(
+            raw_dir,
+            exist_ok=True,
+        )
 
-        # Identificador común para todas las estaciones
-        # pertenecientes a esta corrida / snapshot
-        snapshot_id = timestamp_file
+        raw_file = (
+            f"{raw_dir}/"
+            f"ecobici_buenos_aires_"
+            f"{timestamp_file}.json"
+        )
+
+        with open(
+            raw_file,
+            "wb",
+        ) as f:
+
+            f.write(
+                response.content
+            )
+
+        print(
+            f"RAW guardado en: "
+            f"{raw_file}"
+        )
 
         # -------------------------------------------------
-        # 3. Construir tabla Bronze
+        # Identificador común del snapshot
         # -------------------------------------------------
+
+        snapshot_id = (
+            timestamp_file
+        )
+
+        # -------------------------------------------------
+        # 3. Construir dataset Bronze
+        # -------------------------------------------------
+
         rows = []
 
         for station in stations:
 
-            extra = station.get("extra") or {}
+            extra = (
+                station.get("extra")
+                or {}
+            )
 
-            uid = extra.get("uid")
+            uid = (
+                extra.get("uid")
+            )
 
-            provider_last_updated = extra.get("last_updated")
+            provider_last_updated = (
+                extra.get(
+                    "last_updated"
+                )
+            )
+
+            post_code = (
+                extra.get(
+                    "post_code"
+                )
+            )
+
+            # ---------------------------------------------
+            # Normalización mínima Bronze
+            # ---------------------------------------------
+            #
+            # CityBikes Buenos Aires devuelve renting y
+            # returning como booleanos.
+            #
+            # Nuestro contrato Bronze/Silver utiliza:
+            #
+            # True  -> 1
+            # False -> 0
+            # None  -> NULL
+            #
+            # ---------------------------------------------
+
+            renting = (
+                int(
+                    extra.get(
+                        "renting"
+                    )
+                )
+                if extra.get(
+                    "renting"
+                ) is not None
+                else None
+            )
+
+            returning_allowed = (
+                int(
+                    extra.get(
+                        "returning"
+                    )
+                )
+                if extra.get(
+                    "returning"
+                ) is not None
+                else None
+            )
 
             rows.append({
 
-                # -----------------------------------------
-                # Metadata de la red
-                # -----------------------------------------
-                "network_id": network.get("id"),
-                "network_name": network.get("name"),
+                # =========================================
+                # RED
+                # =========================================
 
-                "network_city": location.get("city"),
-                "network_country": location.get("country"),
-                "network_latitude": location.get("latitude"),
-                "network_longitude": location.get("longitude"),
+                "network_id":
+                    network.get("id"),
 
-                "network_href": network.get("href"),
-                "network_gbfs_href": network.get("gbfs_href"),
+                "network_name":
+                    network.get("name"),
 
-                # Puede venir como lista, por eso se
-                # conservará como JSONB
-                "network_company": network.get("company"),
+                "network_city":
+                    location.get("city"),
 
-                # También preservamos cualquier metadata
-                # del campo source
-                "network_source": network.get("source"),
+                "network_country":
+                    location.get("country"),
 
-                # -----------------------------------------
-                # Identificación de estación
-                # -----------------------------------------
-                "station_id": station.get("id"),
+                "network_latitude":
+                    location.get(
+                        "latitude"
+                    ),
 
-                # UID propio del operador
+                "network_longitude":
+                    location.get(
+                        "longitude"
+                    ),
+
+                "network_href":
+                    network.get("href"),
+
+                "network_gbfs_href":
+                    network.get(
+                        "gbfs_href"
+                    ),
+
+                # Puede ser lista u otra estructura.
+                # Se conserva como JSONB.
+                "network_company":
+                    network.get(
+                        "company"
+                    ),
+
+                # Metadata adicional de origen.
+                "network_source":
+                    network.get(
+                        "source"
+                    ),
+
+                # =========================================
+                # IDENTIFICACIÓN DE ESTACIÓN
+                # =========================================
+
+                "station_id":
+                    station.get("id"),
+
+                # UID propio del operador.
                 "station_uid": (
                     str(uid)
                     if uid is not None
                     else None
                 ),
 
-                "station_name": station.get("name"),
+                "station_name":
+                    station.get("name"),
 
-                # -----------------------------------------
-                # Geolocalización
-                # -----------------------------------------
-                "latitude": station.get("latitude"),
-                "longitude": station.get("longitude"),
+                # =========================================
+                # GEOLOCALIZACIÓN
+                # =========================================
 
-                # -----------------------------------------
-                # Tiempo reportado por CityBikes
-                # -----------------------------------------
-                "station_timestamp": station.get("timestamp"),
+                "latitude":
+                    station.get(
+                        "latitude"
+                    ),
 
-                # Tiempo de actualización informado
-                # dentro de extra
+                "longitude":
+                    station.get(
+                        "longitude"
+                    ),
+
+                "altitude":
+                    extra.get(
+                        "altitude"
+                    ),
+
+                # =========================================
+                # TIEMPO
+                # =========================================
+
+                "station_timestamp":
+                    station.get(
+                        "timestamp"
+                    ),
+
                 "provider_last_updated": (
-                    str(provider_last_updated)
-                    if provider_last_updated is not None
+                    str(
+                        provider_last_updated
+                    )
+                    if provider_last_updated
+                    is not None
                     else None
                 ),
 
-                # -----------------------------------------
-                # Disponibilidad
-                # -----------------------------------------
-                "free_bikes": station.get("free_bikes"),
-                "empty_slots": station.get("empty_slots"),
-                "slots": extra.get("slots"),
+                # =========================================
+                # DISPONIBILIDAD
+                # =========================================
 
-                # -----------------------------------------
-                # Estado operativo
-                # -----------------------------------------
-                "renting": extra.get("renting"),
-                "returning_allowed": extra.get("returning"),
+                "free_bikes":
+                    station.get(
+                        "free_bikes"
+                    ),
 
-                "virtual": extra.get("virtual"),
+                "empty_slots":
+                    station.get(
+                        "empty_slots"
+                    ),
 
-                # Otros posibles estados del estándar /
-                # proveedores CityBikes.
-                # Si EcoBici no los devuelve, quedan NULL.
-                "installed": extra.get("installed"),
-                "locked": extra.get("locked"),
-                "status": extra.get("status"),
+                # Capacidad nominal informada
+                # por el proveedor.
+                "slots":
+                    extra.get(
+                        "slots"
+                    ),
 
-                # -----------------------------------------
-                # Bicicletas eléctricas
-                # -----------------------------------------
-                # Los dejamos disponibles aunque actualmente
-                # EcoBici pueda no informarlos.
-                "ebikes": extra.get("ebikes"),
-                "has_ebikes": extra.get("has_ebikes"),
-                "normal_bikes": extra.get("normal_bikes"),
+                "normal_bikes":
+                    extra.get(
+                        "normal_bikes"
+                    ),
 
-                # -----------------------------------------
-                # Información descriptiva
-                # -----------------------------------------
-                "address": extra.get("address"),
+                # Posibles bicicletas eléctricas.
+                # Actualmente pueden venir NULL.
+                "ebikes":
+                    extra.get(
+                        "ebikes"
+                    ),
 
-                # -----------------------------------------
-                # Medios / terminales de pago
-                # -----------------------------------------
-                "payment_terminal": extra.get("payment-terminal"),
+                "has_ebikes":
+                    extra.get(
+                        "has_ebikes"
+                    ),
 
-                # Puede ser lista u otra estructura:
-                # se guarda JSONB.
-                "payment": extra.get("payment"),
+                # =========================================
+                # ESTADO OPERATIVO
+                # =========================================
 
-                # -----------------------------------------
-                # Preservación completa
-                # -----------------------------------------
-                # Todo el objeto extra tal como llega.
-                "raw_extra": extra,
+                "renting":
+                    renting,
 
-                # Toda la estación tal como llega desde API.
-                "raw_station": station,
+                "returning_allowed":
+                    returning_allowed,
 
-                # -----------------------------------------
-                # Metadata técnica de nuestra ingesta
-                # -----------------------------------------
-                "source_url": API_URL,
+                # Estos campos son booleanos reales
+                # y se conservan como BOOLEAN.
+                "virtual":
+                    extra.get(
+                        "virtual"
+                    ),
 
-                "http_status_code": response.status_code,
+                "installed":
+                    extra.get(
+                        "installed"
+                    ),
 
-                "snapshot_id": snapshot_id,
+                "locked":
+                    extra.get(
+                        "locked"
+                    ),
 
-                "raw_file_path": raw_file,
+                "status":
+                    extra.get(
+                        "status"
+                    ),
 
-                "ingested_at": now,
+                # =========================================
+                # INFORMACIÓN DESCRIPTIVA
+                # =========================================
+
+                "address":
+                    extra.get(
+                        "address"
+                    ),
+
+                # Siempre se guarda como texto.
+                # Hay códigos como C1056, 1111, etc.
+                "post_code": (
+                    str(post_code)
+                    if post_code is not None
+                    else None
+                ),
+
+                # =========================================
+                # PAGO / ALQUILER
+                # =========================================
+
+                "payment_terminal":
+                    extra.get(
+                        "payment-terminal"
+                    ),
+
+                # Lista de medios de pago.
+                "payment":
+                    extra.get(
+                        "payment"
+                    ),
+
+                # URLs específicas del operador.
+                "rental_uris":
+                    extra.get(
+                        "rental_uris"
+                    ),
+
+                # =========================================
+                # PRESERVACIÓN COMPLETA DEL ORIGEN
+                # =========================================
+
+                # Objeto extra completo.
+                "raw_extra":
+                    extra,
+
+                # Estación completa tal como llega.
+                "raw_station":
+                    station,
+
+                # =========================================
+                # AUDITORÍA DE INGESTA
+                # =========================================
+
+                "source_url":
+                    API_URL,
+
+                "http_status_code":
+                    response.status_code,
+
+                "snapshot_id":
+                    snapshot_id,
+
+                "raw_file_path":
+                    raw_file,
+
+                "ingested_at":
+                    now,
             })
 
-        df = pd.DataFrame(rows)
+        # -------------------------------------------------
+        # DataFrame Bronze
+        # -------------------------------------------------
 
-        print(f"Columnas Bronze: {list(df.columns)}")
-        print(f"Filas Bronze generadas: {len(df)}")
+        df = pd.DataFrame(
+            rows
+        )
+
+        print(
+            f"Columnas Bronze: "
+            f"{list(df.columns)}"
+        )
+
+        print(
+            f"Filas Bronze generadas: "
+            f"{len(df)}"
+        )
 
         # -------------------------------------------------
         # 4. Conectar al Data Warehouse
         # -------------------------------------------------
+
         engine = sqlalchemy.create_engine(
             f"postgresql+psycopg2://"
             f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
@@ -231,28 +498,40 @@ def citybikes_bronze():
         # -------------------------------------------------
         # 5. Asegurar schema Bronze
         # -------------------------------------------------
+
         with engine.begin() as conn:
+
             conn.execute(
                 sqlalchemy.text(
-                    "CREATE SCHEMA IF NOT EXISTS bronze;"
+                    """
+                    CREATE SCHEMA
+                    IF NOT EXISTS bronze;
+                    """
                 )
             )
 
         # -------------------------------------------------
         # 6. Asegurar estructura de tabla Bronze
         # -------------------------------------------------
-        inspector = sqlalchemy.inspect(engine)
+
+        inspector = (
+            sqlalchemy.inspect(
+                engine
+            )
+        )
 
         if inspector.has_table(
             "citybikes_stations",
-            schema="bronze"
+            schema="bronze",
         ):
 
             with engine.begin() as conn:
 
                 conn.execute(
-                    sqlalchemy.text("""
-                        ALTER TABLE bronze.citybikes_stations
+                    sqlalchemy.text(
+                        """
+                        ALTER TABLE
+                        bronze.citybikes_stations
 
                         ADD COLUMN IF NOT EXISTS
                             network_city TEXT,
@@ -318,10 +597,19 @@ def citybikes_bronze():
                             address TEXT,
 
                         ADD COLUMN IF NOT EXISTS
+                            post_code TEXT,
+
+                        ADD COLUMN IF NOT EXISTS
+                            altitude DOUBLE PRECISION,
+
+                        ADD COLUMN IF NOT EXISTS
                             payment_terminal BOOLEAN,
 
                         ADD COLUMN IF NOT EXISTS
                             payment JSONB,
+
+                        ADD COLUMN IF NOT EXISTS
+                            rental_uris JSONB,
 
                         ADD COLUMN IF NOT EXISTS
                             raw_extra JSONB,
@@ -340,12 +628,14 @@ def citybikes_bronze():
 
                         ADD COLUMN IF NOT EXISTS
                             raw_file_path TEXT;
-                    """)
+                        """
+                    )
                 )
 
         # -------------------------------------------------
-        # 7. Guardar snapshot en Bronze
+        # 7. Guardar snapshot estructurado en Bronze
         # -------------------------------------------------
+
         df.to_sql(
             "citybikes_stations",
             engine,
@@ -353,19 +643,53 @@ def citybikes_bronze():
             if_exists="append",
             index=False,
 
-            # Fuerza estas columnas a JSONB
+            # ---------------------------------------------
+            # Columnas que deben persistirse como JSONB
+            # ---------------------------------------------
             dtype={
-                "network_company": JSONB,
-                "network_source": JSONB,
-                "payment": JSONB,
-                "raw_extra": JSONB,
-                "raw_station": JSONB,
+                "network_company":
+                    JSONB,
+
+                "network_source":
+                    JSONB,
+
+                "payment":
+                    JSONB,
+
+                "rental_uris":
+                    JSONB,
+
+                "raw_extra":
+                    JSONB,
+
+                "raw_station":
+                    JSONB,
             },
         )
 
+        # -------------------------------------------------
+        # 8. Resumen de ejecución
+        # -------------------------------------------------
+
         print(
-            f"OK: {len(df)} filas agregadas a "
-            "bronze.citybikes_stations"
+            f"OK: {len(df)} filas "
+            f"agregadas a "
+            f"bronze.citybikes_stations"
+        )
+
+        print(
+            f"Snapshot ID: "
+            f"{snapshot_id}"
+        )
+
+        print(
+            f"Red cargada: "
+            f"{network.get('id')}"
+        )
+
+        print(
+            f"Ciudad cargada: "
+            f"{location.get('city')}"
         )
 
     ingest_citybikes()
