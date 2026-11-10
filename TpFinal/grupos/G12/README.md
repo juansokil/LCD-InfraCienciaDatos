@@ -10,7 +10,7 @@
 - Lautaro Ramos (@lautira2006)
 - Valentina Varisco (@valenvarisco)
 - Francisco Baudracco (@franbaudra)
-- Ramiro Kammerer (@ProjectEMP18)
+- Ramiro Kammerer (@)
 ## API elegida
 
 - **Nombre**: `USGS Earthquakes`
