@@ -1,0 +1,9 @@
+Apellido: Tello
+Nombre: Julián
+Rama: estudiante/tello-julian
+Caso: gimnasio
+Hecho: Una fila es una visita: un socio que entra a una sede por el molinete y vuelve a salir. El grano es socio x sede x momento de entrada.
+Dimensiones: Socio (nombre, fecha de alta, sede donde se asocio y plan full/local/flex, del registro de socios); Sede (barrio, cantidad de maquinas y horario, del maestro de sedes; es la sede donde ocurrio la visita); Tiempo (fecha, mes y franja horaria, derivados de la hora de entrada del molinete). La cantidad de maquinas describe a la sede, no se mide: va en la dimension.
+Metricas: En cada visita se guardan dos aditivas: minutos entrenados (salida menos entrada) y monto consumido en la barra. Las visitas se cuentan como filas (COUNT). El gasto promedio por visita no se guarda: se calcula al consultar como SUM(monto) / COUNT(visitas), porque el promedio de promedios no da el de toda la cadena.
+Codigo: B3DD0656C1DE
+Fecha: 2026-11-10
