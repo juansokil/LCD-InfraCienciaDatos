@@ -46,7 +46,11 @@ docker compose up -d --build   # el .env ya viene en el repo
 ```
 
 **Accesos**:
+<<<<<<< HEAD
 - Airflow UI: http://localhost:8080 (Usuario: `admin` / Contraseña: `admin`)
+=======
+- Airflow UI: http://localhost:8080 (usuario: `admin` / contraseña: `admin`)
+>>>>>>> 756c5406dd425aaab7e54a8cd244d826af1b75e3
 - Dashboard (Gold): http://localhost:8501
 - Postgres: `localhost:5432` / DB: `InfraCienciaDatos` / `admin`
 
