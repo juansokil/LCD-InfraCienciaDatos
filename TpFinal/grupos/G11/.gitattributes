@@ -1,0 +1,5 @@
+# Los scripts que corren adentro de Linux tienen que tener fin de linea LF.
+# Con CRLF (lo que pone Windows), bash falla con "$'\r': command not found".
+*.sh  text eol=lf
+*.sql text eol=lf
+*.py  text eol=lf
