@@ -53,4 +53,4 @@ mlflow==3.4.0                        # Tracking de experimentos.
 # diciendo 3.1.5. Como 3.1.5 es requisito del curso, sube mlflow.
 matplotlib==3.9.2                    # Visualización de resultados ML
 
-
+shapely==2.0.6

@@ -16,12 +16,15 @@ services:
     volumes:
       # long-form syntax — cross-platform (Windows/Linux/Mac)
       - type: bind
-        source: ./dags
+        source: ../TpFinal/grupos/G03/dags
         target: /opt/airflow/dags
+      - type: bind
+        source: ../TpFinal/grupos/G03/notebooks
+        target: /opt/airflow/notebooks 
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
       - type: bind
-        source: ./data
+        source: ../TpFinal/grupos/G03/data
         target: /opt/airflow/data
       - type: bind
         source: ./credentials
