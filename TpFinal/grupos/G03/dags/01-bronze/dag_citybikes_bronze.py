@@ -1,4 +1,6 @@
 from airflow.sdk import dag, task
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
+
 from datetime import datetime, timezone
 
 import os
@@ -34,6 +36,7 @@ RAW_BASE_DIR = (
     schedule="*/5 * * * *",
     catchup=False,
     is_paused_upon_creation=False,
+    max_active_runs=1,
     tags=["prod", "bronze", "citybikes"],
 )
 def citybikes_bronze():
@@ -692,7 +695,18 @@ def citybikes_bronze():
             f"{location.get('city')}"
         )
 
-    ingest_citybikes()
+    ingest = ingest_citybikes()
+
+    trigger_silver = TriggerDagRunOperator(
+        task_id="trigger_citybikes_silver",
+        trigger_dag_id="citybikes_silver",
+        wait_for_completion=True,
+        poke_interval=5,
+        allowed_states=["success"],
+        failed_states=["failed"],
+    )
+
+    ingest >> trigger_silver
 
 
 citybikes_bronze()

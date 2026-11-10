@@ -25,7 +25,7 @@ LOCAL_TIMEZONE = "America/Argentina/Buenos_Aires"
     start_date=datetime(2026, 11, 1),
     schedule=None,
     catchup=False,
-    is_paused_upon_creation=True,
+    is_paused_upon_creation=False,
     max_active_runs=1,
     tags=["prod", "gold", "citybikes"],
 )

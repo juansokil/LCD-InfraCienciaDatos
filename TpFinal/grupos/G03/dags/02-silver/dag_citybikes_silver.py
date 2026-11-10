@@ -1,4 +1,6 @@
 from airflow.sdk import dag, task
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
+
 from datetime import datetime, timezone
 
 import json
@@ -36,9 +38,9 @@ MAX_NEAREST_DISTANCE_M = 200
 @dag(
     dag_id="citybikes_silver",
     start_date=datetime(2026, 11, 1),
-    schedule="*/10 * * * *",  
+    schedule=None,  
     catchup=False,
-    is_paused_upon_creation=True,
+    is_paused_upon_creation=False,
     max_active_runs=1,
     tags=["prod", "silver", "citybikes"],
 )
@@ -1604,7 +1606,18 @@ def citybikes_silver():
             )
 
 
-    transform_bronze_to_silver()
+    transform = transform_bronze_to_silver()
+
+    trigger_gold = TriggerDagRunOperator(
+        task_id="trigger_citybikes_gold",
+        trigger_dag_id="citybikes_gold",
+        wait_for_completion=True,
+        poke_interval=5,
+        allowed_states=["success"],
+        failed_states=["failed"],
+    )
+
+    transform >> trigger_gold
 
 
 citybikes_silver()
