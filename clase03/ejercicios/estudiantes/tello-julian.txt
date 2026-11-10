@@ -1,0 +1,19 @@
+Apellido: Tello
+Nombre: Julián
+Rama: estudiante/tello-julian
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 73184
+Doble ingesta: SI
+Ultima carga: 2026-11-10 15:23:15.376217
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla, porque se puede reconstruir a partir de los archivos crudos: releo los JSON y los vuelvo a cargar sin llamar otra vez a la API. Si borrara el crudo perderia la respuesta original de la API: no podria reprocesar desde el origen ni recuperar columnas que la tabla decida no guardar, y esa foto del mercado en ese momento no se puede volver a pedir.
+Pregunta (b) - replace y append:
+  Con replace la tabla se borra y se crea de nuevo, asi que queda solo la ultima carga (50 filas). Con append las filas nuevas se agregan debajo de las que ya estaban y se acumula el historial (100 filas, cada cripto dos veces con distinto ingested_at). El DAG productivo usa append, porque cada corrida cada 15 minutos es una foto nueva que se quiere conservar.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque CoinGecko no actualiza los precios al instante sino cada cierto intervalo, entonces si pido dos veces con poca diferencia me devuelve la misma respuesta. El pipeline los guarda igual porque Bronze registra cada carga como un hecho (a esta hora pedi y me contesto esto) y no decide que es un duplicado: deduplicar es trabajo de Silver, y si Bronze filtrara podria perder informacion.
+Codigo: 72F8586E3E17
+Fecha: 2026-11-10
