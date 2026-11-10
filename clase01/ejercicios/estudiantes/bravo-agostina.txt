@@ -1,0 +1,6 @@
+Apellido: bravo
+Nombre: agostina
+Usuario GitHub: agostbravo
+Rama: estudiante/bravo-agostina
+Codigo: 4A7031C8D478
+Fecha: 2026-11-10
