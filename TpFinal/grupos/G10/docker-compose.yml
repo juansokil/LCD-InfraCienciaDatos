@@ -95,7 +95,7 @@ services:
 
   # Interfaz web y API
   
-  # Prepara los permisos de autenticación
+  # Prepara permisos y usuario de prueba de Airflow
   airflow-permissions:
     image: apache/airflow:3.1.5-python3.11
     user: "0:0"
@@ -103,12 +103,14 @@ services:
     command:
       - -c
       - |
+        mkdir -p /opt/airflow/auth
+        printf '{"admin":"admin"}\n' > /opt/airflow/auth/simple_auth_manager_passwords.json.generated
         chown -R 50000:0 /opt/airflow/auth
         chmod -R g+rwX /opt/airflow/auth
     volumes:
       - airflow_auth:/opt/airflow/auth
     restart: "no"
-  
+    
   # Interfaz web y API
   airflow-api-server:
     <<: *airflow-common

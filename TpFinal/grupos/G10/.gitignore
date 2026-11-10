@@ -1,5 +1,5 @@
-# Variables privadas
-.env
+# El .env de G10 se versiona con credenciales de demostracion.
+# No incluir aqui contraseñas reales ni claves privadas.
 
 # Python
 __pycache__/
