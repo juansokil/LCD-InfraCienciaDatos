@@ -1,0 +1,27 @@
+Apellido: Saggion
+Nombre: Chiara
+Rama: estudiante/saggion-chiara
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  decision_tree_1d tiene el acc_test mas alto (0.83), pero se evaluo con solo 3 fechas. Es una muestra demasiado pequena para confiar en ese resultado.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep tiene el acc_train mas alto (0.98), pero en test baja a 0.54. Esto indica un posible sobreajuste.
+Pregunta (c) - El acc_test mas bajo:
+  svm_3d tiene el acc_test mas bajo (0.51), por lo que su rendimiento es apenas superior al azar.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Elegiria random_forest_7d_v2 porque tiene una accuracy de test de 0.69 sobre 60 fechas, con una diferencia moderada respecto del entrenamiento (0.74). Es una opcion mas confiable que el modelo evaluado con solo 3 fechas.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Compararia periodicamente sus predicciones con los resultados reales, monitoreando la accuracy y comparandola con las referencias. Si disminuye de forma sostenida, investigaria si el modelo necesita actualizarse.
+Codigo: 4B559F9EBBDD
+Fecha: 2026-11-10
