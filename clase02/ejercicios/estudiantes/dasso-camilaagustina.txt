@@ -1,0 +1,16 @@
+Apellido: Dasso
+Nombre: Camila Agustina
+Rama: estudiante/dasso-camilaagustina
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los datos internos de airflow (es su base de datos). data_warehouse es la base de datos usada para analsiis de datos y la transformacion de la arquitectura de los mismos en base a la estructura Medallon. Estan separados porque airflow_db controla las tareas y data_warehouse guarda la informacion del proyecto.
+Pregunta (b) - Datos despues del down:
+  Porque los datos se guardan en un volumen de Docker, que no se borra cuando apagamos el stack.
+Pregunta (c) - DAGs en el contenedor:
+  Porque Docker conecta la carpeta dags de mi computadora con una carpeta dentro del contenedor de Airflow.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el primer 8080 por 8081, para que Airflow se pueda abrir desde el puerto 8081 de mi computadora.
+Pregunta (e) - Credenciales del warehouse:
+  La obtiene del archivo .env, donde está guardada la contraseña, y Docker Compose la utiliza para configurar el warehouse.
+Codigo: D058931B5E6D
+Fecha: 2026-11-10
