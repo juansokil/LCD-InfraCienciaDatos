@@ -1,0 +1,16 @@
+Apellido: Rojas Rodriguez
+Nombre: Christian Rodrigo
+Rama: estudiante/rojasrodriguez-christianrodrigo
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db son los metadatos de airflow (Bind Mount) y data_warehouse es el warehouse (Named Volume), osea los datos de las tablas que se van a usar en el proyecto
+Pregunta (b) - Datos despues del down:
+  Porque los datos del warehouse se guardan en un volumen (Named Volume) y se guardan en el disco duro de la maquina
+Pregunta (c) - DAGs en el contenedor:
+  Airflow usa un volumen (Named Volume) para guardar los DAGs y los ve desde el contenedor por medio de un bind mount
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria el puerto 8080 a 8081 en el docker-compose.yml
+Pregunta (e) - Credenciales del warehouse:
+  La contraseña del warehouse se guarda en el archivo .env y se usa en el docker-compose.yml
+Codigo: 94513432C043
+Fecha: 2026-11-10
