@@ -1,0 +1,19 @@
+Apellido: Simonenco
+Nombre: JuanIgnacio
+Rama: estudiante/simonenco-juanignacio
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80515
+Doble ingesta: SI
+Ultima carga: 2026-10-25 16:52:22.766431
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla. Con el archivo crudo puedo volver a armarla cuando quiera, porque tiene la respuesta completa tal cual llego. Si borrara el crudo, perderia lo original y no podria reprocesar esa foto del mercado (por ejemplo con otras columnas o tipos), porque la API ya no me devuelve los datos de ese momento.
+Pregunta (b) - replace y append:
+  Con replace la tabla se borra y queda solo la ultima carga (50 filas). Con append se suma la carga nueva a lo que ya habia, asi que cada cripto aparece una vez por carga con su ingested_at. El DAG que corre cada 15 minutos usa append, para ir guardando el historial.
+Pregunta (c) - Dos cargas identicas:
+  Porque el Paso 4 no vuelve a pedirle nada a la API: reusa la misma response que quedo en memoria, asi que escribe exactamente los mismos bytes (y aunque pidiera de nuevo, en pocos segundos CoinGecko suele devolver la misma foto). Se guardan igual porque Bronze registra cada carga tal cual llego y cuando llego, sin decidir nada; deduplicar y quedarse con la version mas nueva es trabajo de Silver.
+Codigo: A14E63FB1F32
+Fecha: 2026-10-25

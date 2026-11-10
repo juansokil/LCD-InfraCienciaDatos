@@ -1,0 +1,9 @@
+Apellido: Simonenco
+Nombre: JuanIgnacio
+Rama: estudiante/simonenco-juanignacio
+Caso: gimnasio
+Hecho: La visita: una fila es una entrada de un socio a una sede, desde que pasa el molinete al entrar hasta que lo vuelve a pasar al salir (con lo que consumio en la barra durante esa visita).
+Dimensiones: Fecha (dia, mes, anio; sale de la hora de entrada del molinete), franja horaria (tambien de la hora de entrada: manana, tarde, noche), sede (barrio, cantidad de maquinas y horario de apertura son atributos que la describen, no se miden), socio (nombre, fecha de alta, sede donde se asocio; sale del registro de socios) y plan (full, local o flex, el que pagaba el socio al momento de la visita).
+Metricas: En cada fila: minutos_entrenados (salida menos entrada en el molinete) y monto_barra (lo que pago con la credencial en esa visita, 0 si no consumio). Las visitas se cuentan con COUNT de filas. El gasto promedio por visita no se guarda: se calcula al final como SUM(monto_barra) / COUNT(visitas), asi sirve igual por plan, por sede o para toda la cadena.
+Codigo: 92DBC921D650
+Fecha: 2026-11-09

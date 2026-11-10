@@ -1,0 +1,6 @@
+Apellido: Simonenco
+Nombre: JuanIgnacio
+Usuario GitHub: simonenconacho
+Rama: estudiante/simonenco-juanignacio
+Codigo: E5AA41D3F989
+Fecha: 2026-10-15
