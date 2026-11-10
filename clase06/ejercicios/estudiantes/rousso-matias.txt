@@ -1,0 +1,27 @@
+Apellido: Rousso
+Nombre: Matias
+Rama: estudiante/rousso-matias
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo con el accurracy en test mas alto es el decision tree 1d, con 0.83, pero fue evaluado con solamente 3 fechas, por lo que no es confiable.
+Pregunta (b) - El acc_train mas alto:
+  El modelo con el accurracy en train mas alto es el random forest 3d deep, con 0.98, pero tiene un accurracy en test de 0.54, por lo que indica un overfitting.
+Pregunta (c) - El acc_test mas bajo:
+  El svm 3d tiene la menor accuracy de test (0.51). Como el problema tiene clases aproximadamente balanceadas, su rendimiento es apenas superior al azar. Ademas, su accuracy de entrenamiento es 0.52, por lo que parece que no logra aprender patrones predictivos utiles.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Lo pondria en produccion porque tiene un accurracy en test decente, y es evaluado en 60 fechas. Tampoco tiene signos evidentes de overfitting, las metricas en test vs train son similares.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Si el accuracy de test baja significativamente respecto al de entrenamiento, o si el accuracy de test baja respecto a la version anterior del modelo, entonces el modelo empeoro.
+Codigo: 06B84A80FD83
+Fecha: 2026-11-10
