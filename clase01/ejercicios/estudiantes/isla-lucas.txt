@@ -1,0 +1,6 @@
+Apellido: Isla
+Nombre: Lucas
+Usuario GitHub: Lisla23
+Rama: estudiante/isla-lucas
+Codigo: 7F8141F1FE07
+Fecha: 2026-10-29

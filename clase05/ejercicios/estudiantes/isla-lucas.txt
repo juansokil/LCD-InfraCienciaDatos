@@ -1,0 +1,9 @@
+Apellido: Isla
+Nombre: Lucas
+Rama: estudiante/isla-lucas
+Caso: gimnasio
+Hecho: Una fila representa una visita de un socio al gimnasio (desde que entra por el molinete hasta que sale)
+Dimensiones: sede (barrio), socio (nombre, fecha de alta), plan (full, local, flex), fecha (dia, mes).
+Metricas: minutos_entrenados (duración de la visita) y facturacion_barra (gasto en la barra durante la visita).
+Codigo: 0D7C4EAE965C
+Fecha: 2026-10-29

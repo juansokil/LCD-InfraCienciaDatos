@@ -1,0 +1,19 @@
+Apellido: Isla
+Nombre: Lucas
+Rama: estudiante/isla-lucas
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 78867
+Doble ingesta: SI
+Ultima carga: 2026-10-29 18:42:52.072437
+Pregunta (a) - La zona raw y la tabla:
+  Borraria el archivo en stack/data/raw/ porque la tabla bronze.crypto_markets_demo contiene los datos estructurados y accesibles para análisis. Sin embargo, perderia la capacidad de acceder a los datos crudos originales tal como fueron recibidos de la API, lo que podría ser útil para auditorías o reconstrucciones futuras.
+Pregunta (b) - replace y append:
+  lo que queda en la tabla con if_exists="replace" es que se reemplaza toda la tabla con los nuevos datos, mientras que con if_exists="append" se agregan nuevas filas a la tabla existente. El DAG productivo que corre cada 15 minutos utiliza "append" para agregar nuevas cargas sin perder los datos anteriores.
+Pregunta (c) - Dos cargas identicas:
+  Por que el Paso 4 se ejecuta inmediatamente después del Paso 3, la API devuelve los mismos datos en ambas llamadas, resultando en archivos crudos idénticos. El pipeline los guarda igual sin deduplicar para mantener un registro completo de cada carga realizada, permitiendo auditorías y análisis históricos de cómo los datos han cambiado con el tiempo.
+Codigo: AA2758002B72
+Fecha: 2026-10-29
