@@ -1,0 +1,19 @@
+Apellido: Krizaj
+Nombre: Juan
+Rama: estudiante/krizaj-juan
+Motor: postgres
+Archivos crudos: 4
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80593
+Doble ingesta: SI
+Ultima carga: 2026-10-23 22:06:45.766489
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla de Bronze y conservaría los archivos JSON crudos, porque son la fuente original de los datos. A partir de ellos podría reconstruir la tabla sin tener que volver a consultar la API.
+Pregunta (b) - replace y append:
+  Con replace se reemplaza el contenido anterior de la tabla por la nueva carga, mientras que con append se agregan nuevas filas sin eliminar las anteriores. El DAG productivo utiliza append para conservar los distintos snapshots y mantener el historial
+Pregunta (c) - Dos cargas identicas:
+  Los archivos pueden ser idénticos porque entre ambas consultas los datos del mercado pueden no haber cambiado. El pipeline los guarda igualmente porque representan dos ejecuciones diferentes, identificadas por sus momentos de ingesta. No se deduplican estos snapshots porque Bronze busca conservar el historial de las cargas
+Codigo: F3173909FAC5
+Fecha: 2026-10-23
