@@ -53,14 +53,13 @@ Se pueden utilizar las variables de entorno G09_START_DATE y G09_END_DATE para m
 
 ## 5. Arquitectura
 
-El pipeline reutiliza la infraestructura general de la materia:
+El pipeline utiliza Docker Compose propio del grupo (`TpFinal/grupos/G09/docker-compose.yml`):
 
-- Airflow para la orquestación.
-- Docker para ejecutar los servicios.
+- Airflow 3.1.5 para la orquestación.
 - PostgreSQL como Data Warehouse.
 - Open-Meteo como fuente de información.
 
-No se crean servicios independientes para G09.
+Bronze corre una vez al levantar el stack (`schedule="@once"`). Al terminar las tres ingestas, publica el Asset `g09_bronze_open_meteo_raw`, que dispara Silver.
 
 ## 6. Tabla de destino
 
@@ -91,12 +90,14 @@ Cada registro representa una captura de la respuesta API para una localidad y un
 - Se registra la metadata necesaria para auditar la ingesta.
 - Las tareas de cada localidad pueden ejecutarse independientemente.
 - Se contemplan reintentos ante fallos de conexión o consulta.
+- El Asset de salida se publica una sola vez, cuando terminaron las tres ingestas, para que Silver no arranque con datos incompletos.
+- Cada ejecución agrega capturas nuevas; Silver toma la última ingesta de cada localidad.
 
 ## 8. Próximas etapas
 
 1. Acordar el período histórico definitivo.
 2. Validar las variables meteorológicas.
-3. Diseñar la capa Silver.
+3. Implementar la capa Silver (en curso).
 4. Expandir los JSON a registros diarios.
 5. Controlar valores faltantes y duplicados.
 6. Diseñar la capa Gold.

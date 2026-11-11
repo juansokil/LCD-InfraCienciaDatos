@@ -10,7 +10,7 @@ Implementar la primera etapa del pipeline de datos del proyecto G09, cuyo objeti
 
 La fuente de datos seleccionada es la API histórica de [Open-Meteo](https://open-meteo.com/).
 
-La implementación utiliza la infraestructura general del repositorio de InfraCienciaDatos, reutilizando Docker, Apache Airflow y PostgreSQL.
+La implementación utiliza el Docker Compose propio del grupo (`TpFinal/grupos/G09/docker-compose.yml`), con Airflow 3.1.5 y PostgreSQL.
 
 ## 2. Estado actual
 
@@ -22,8 +22,10 @@ Se verificó que:
 - Airflow puede conectarse al servicio PostgreSQL `data_warehouse`.
 - Se creó el esquema `bronze`.
 - Se creó la tabla `bronze.open_meteo_raw`.
+- Bronze corre solo al levantar el stack (`schedule="@once"`), sin activar el DAG a mano.
 - Se ejecutaron correctamente las tres tareas de ingesta.
 - Las respuestas de Open-Meteo quedaron almacenadas en PostgreSQL.
+- Al terminar las tres ingestas, se publica el Asset `g09_bronze_open_meteo_raw`.
 - Se verificó mediante consultas SQL la presencia de las tres localidades.
 
 ## 3. Arquitectura implementada
@@ -62,8 +64,6 @@ bronze.open_meteo_raw
 | Requests | Consumo de la API |
 | SQLAlchemy | Conexión e interacción con PostgreSQL |
 | PostgreSQL | Almacenamiento de los datos originales |
-
-No se creó una infraestructura independiente para G09: se reutilizan los servicios generales del repositorio.
 
 ## 4. Fuente de datos
 
@@ -117,14 +117,17 @@ TpFinal/
                 └── dag_g09_bronze_open_meteo.py
 ```
 
-El DAG tiene dos etapas principales:
+El DAG tiene tres etapas:
 
 1. `create_bronze_table`: crea el esquema y la tabla de almacenamiento si todavía no existen.
 2. `ingest_location`: obtiene los datos de cada localidad y almacena la respuesta de la API.
+3. `publish_bronze_asset`: se ejecuta cuando terminaron las tres ingestas y publica el Asset de salida.
 
 La segunda tarea utiliza mapeo dinámico de Airflow, por lo que se generan tres instancias independientes, una por localidad.
 
-La ejecución actual es manual (`schedule=None`).
+Bronze corre una vez al levantar el stack (`schedule="@once"`). Al finalizar, `publish_bronze_asset` publica el Asset `g09_bronze_open_meteo_raw`, que dispara la capa Silver.
+
+El Asset se publica una sola vez, después de las tres ingestas, para que Silver no arranque con datos incompletos.
 
 ## 6. Modelo de almacenamiento Bronze
 
@@ -174,16 +177,17 @@ Esta decisión permite conservar la fuente original y realizar las transformacio
 
 La tabla contiene actualmente tres filas, cada una con su correspondiente respuesta JSON.
 
-La ejecución del DAG finalizó correctamente y las cuatro tareas (una de creación y tres de ingesta) quedaron en estado exitoso.
+La ejecución del DAG finalizó correctamente y las cinco tareas (una de creación, tres de ingesta y otra de publicación del Asset) quedaron en estado exitoso.
 
 **Importante:** el período utilizado corresponde a la primera carga de prueba funcional. Todavía debe acordarse con el grupo si será el período definitivo del análisis.
 
 ## 8. Cómo levantar el entorno
 
-Desde la carpeta `stack/` del repositorio:
+Desde la carpeta del grupo (`TpFinal/grupos/G09`):
 
 ```powershell
-docker compose up -d airflow data_warehouse
+cd TpFinal/grupos/G09
+docker compose up -d
 ```
 
 Verificar los servicios:
@@ -200,11 +204,15 @@ Se deben encontrar activos:
 
 El servicio `data_warehouse` debe estar en estado `healthy`.
 
+No hace falta activar ningún DAG: Bronze arranca solo.
+
 Airflow se encuentra disponible en:
 
 ```text
 http://localhost:8080
 ```
+
+Usuario y contraseña: `admin` / `admin`.
 
 ### Consultar los datos almacenados
 
@@ -250,6 +258,7 @@ Antes de avanzar, el grupo debería acordar:
 
 ### Próximas etapas propuestas
 
+- [x] Encadenar Bronze con Silver mediante Assets.
 - [ ] Validar la integridad de las respuestas almacenadas en Bronze.
 - [ ] Acordar el período definitivo con el grupo.
 - [ ] Diseñar la transformación Bronze → Silver.

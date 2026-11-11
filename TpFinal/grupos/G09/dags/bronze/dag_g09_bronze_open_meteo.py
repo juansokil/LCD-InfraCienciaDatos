@@ -6,7 +6,7 @@ import os
 
 import requests
 
-from airflow.sdk import dag, task
+from airflow.sdk import dag, task, Asset
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
@@ -15,6 +15,11 @@ from sqlalchemy.engine import URL
 # --------------------------------------------------
 # CONFIGURACION
 # --------------------------------------------------
+
+BRONZE_ASSET = Asset(
+    name="g09_bronze_open_meteo_raw",
+    uri="postgres://data_warehouse:5432/InfraCienciaDatos/bronze/open_meteo_raw",
+)
 
 API_URL = "https://archive-api.open-meteo.com/v1/archive"
 
@@ -115,7 +120,7 @@ def get_database_engine():
     start_date=datetime(
         2026, 1, 1, tzinfo=timezone.utc
     ),
-    schedule=None,
+    schedule="@once",
     catchup=False,
     max_active_runs=1,
     tags=["g09", "bronze", "open-meteo"],
@@ -267,13 +272,16 @@ def g09_bronze_open_meteo():
     # DEPENDENCIAS
     # ----------------------------------------------
 
+    @task(outlets=[BRONZE_ASSET])
+    def publish_bronze_asset():
+        print("Bronze completo: Silver puede arrancar.")
+
     table_ready = create_bronze_table()
 
     ingestions = ingest_location.expand(
         location=LOCATIONS
     )
 
-    table_ready >> ingestions
-
+    table_ready >> ingestions >> publish_bronze_asset()
 
 g09_bronze_open_meteo()
