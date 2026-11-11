@@ -1,0 +1,27 @@
+Apellido: Ibar Jalil
+Nombre: Maria Sol
+Rama: estudiante/ibarjalil-mariasol
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo que tiene el acc_test más alto es el de decision_tree_1d con 0,83 pero no es totalmente confiable porque ese número se calculó sobre n_test= 3 (tiene 3 predicciones). Esto quiere decir que tiene pocas muestras por lo que en realidad el 0,83 no representa la realidad y no asegura que el modelo sea bueno.
+Pregunta (b) - El acc_train mas alto:
+  El modelo que tiene el acc_train más alto es random_forest_3d_deep con 0.98. Se puede remarcar que su acc_test es 0,54 que es prácticamente lo mismo que basarse en el azar. También se podría decir que tiene overfitting ya que el gap entre train y test es de 0,44 por lo que el modelo memorizó los datos de entrenamiento pero no generaliza a datos nuevos. En conclusión, un acc_train de 0.98 con acc_test de 0.54 conlleva que el modelo no es bueno.
+Pregunta (c) - El acc_test mas bajo:
+  El acc_test más bajo es svm_3d con 0,51. Su train es 0,52 , por lo que no hay overfitting porque el gap es mínimo. Lo que sí , se podría decir que es underfitting porque el modelo no "aprendio" ninguna señal.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Elijo ese candido para poner en producción porque tiene el acc_test más alto entre los modelos con una muestra razonable (n_test = 60) volviendolo automáticamente más confiable que el de la respuesta del item a. Tiene un gap train/test chico por lo que tampoco es overfitting.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Para darme cuenta de que el modelo empezó a andar peor compararía la accuracy real de las predicciones contra la volatilidad que se observa un día después, porque el target es de mañana. También la compararía contra el baseline de persistencia, porque si el modelo cae por debajo de "mañana = hoy" ya no aporta valor. Por último, revisaría el drift de las features contra las del entrenamiento, porque si cambia el mercado el modelo puede empeorar sin que la métrica lo muestre todavía.
+Codigo: 623683C6A11A
+Fecha: 2026-11-10
