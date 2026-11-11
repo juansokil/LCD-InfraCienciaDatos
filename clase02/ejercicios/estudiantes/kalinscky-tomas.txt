@@ -1,0 +1,16 @@
+Apellido: Kalinscky
+Nombre: Tomas
+Rama: estudiante/kalinscky-tomas
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow guarda los metadatos de Airflow. data warehouse guarda los datos de Bronze, Silver y Gold. Estos estan separados para administrarlos independientemente.
+Pregunta (b) - Datos despues del down:
+  Porque los datos estan en im volumen persistente que apagarlo no elimina.
+Pregunta (c) - DAGs en el contenedor:
+  Para verlos usa un bind mount que conecta stack/dags con /opt/airflow/dags adentro de ese contenedor.
+Pregunta (d) - Puerto 8080 ocupado:
+  Lo cambiaría a 8081:8080, porque eso cambia el puerto de mi máquina y mantiene el del contenedor.
+Pregunta (e) - Credenciales del warehouse:
+  Docker compose agarra SOURCE_DB_PASS del .env y se lo asigna a POSTGRES_PASSWORD
+Codigo: C54DD8D28E7E
+Fecha: 2026-10-31

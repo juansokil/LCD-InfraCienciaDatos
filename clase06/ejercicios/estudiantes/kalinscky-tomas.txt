@@ -1,0 +1,27 @@
+Apellido: Kalinscky
+Nombre: Tomás
+Rama: estudiante/kalinscky-tomas
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Es el decision_tree_1d. El mismo sacó 83% en prueba pero solo se probó en 3 fechas, lo que es muy poca evidencia
+Pregunta (b) - El acc_train mas alto:
+  El random_forest_3d_deep pasó de 98 % en entrenamiento a 54 % en prueba, por lo que hubo sobreajuste
+Pregunta (c) - El acc_test mas bajo:
+  El svm_3d quedó último con 51 % en 60 fechas, su resultado es bajísimo. Es prácticamente lo mismo que tirar una moneda.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Lo elegiría porque tuvo el mejor resultado entre los que se probaron en 60 fechas con 69 % de acierto
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Compararía lo que predijo con lo que pasó. Si cada vez acierta menos o queda por debajo de una referencia simple lo revisaría
+Codigo: 3A0B17388FDC
+Fecha: 2026-11-11
