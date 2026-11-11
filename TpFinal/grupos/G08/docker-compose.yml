@@ -2,7 +2,7 @@ services:
   # Airflow Standalone - Orquestador UN-SAM
   airflow:
     build: .
-    container_name: airflow_standalone
+    container_name: airflow_standalone_G08
     env_file: .env
     environment:
       - AIRFLOW_UID=${AIRFLOW_UID:-0}
@@ -54,7 +54,7 @@ services:
   # PostgreSQL - Metadatos de Airflow (Interno)
   airflow_db:
     image: postgres:17-alpine
-    container_name: airflow_db
+    container_name: airflow_db_G08
     environment:
       - POSTGRES_USER=${AF_DB_USER}
       - POSTGRES_PASSWORD=${AF_DB_PASS}
@@ -81,7 +81,7 @@ services:
       context: .
       dockerfile: Dockerfile.postgres
     image: data_warehouse:custom
-    container_name: data_warehouse
+    container_name: data_warehouse_G08
     environment:
       - POSTGRES_USER=${SOURCE_DB_USER}
       - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
