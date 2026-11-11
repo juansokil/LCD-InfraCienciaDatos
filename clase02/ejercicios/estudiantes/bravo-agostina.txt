@@ -1,0 +1,16 @@
+Apellido: bravo
+Nombre: agostina
+Rama: estudiante/bravo-agostina
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow?db guarda los metadatos internos de Airflow, como el estado de los DAGs, ejecuciones, conexiones y variables del sistema. data_warehouse almacena los datos analiticos y tablas procesadas por los pipelines. Se separan para aislar los metadatos y asegurar que fallas en el orquestador no corrompan los datos analiticos.
+Pregunta (b) - Datos despues del down:
+  Por los volumebes de Docker, los cuales conservan el almacenamiento en el disco del host a pesar de que los contenedores sean detenidos y eliminados.
+Pregunta (c) - DAGs en el contenedor:
+  a traves de un volumen compartido (bind mount) en el archivo docker-compose.yml, que vincula el directorio local con la ruta interna donde el motor busca los scripts de pyhton.
+Pregunta (d) - Puerto 8080 ocupado:
+  modificaria unicamente el puerto del host (el primer valor por ej, a 8081:8080), ya que el segundo corresponde al puerto interno del contenedor y no se altera.
+Pregunta (e) - Credenciales del warehouse:
+  las credenciales se cargan de forma dinamica mediante un archivo de entorno externo (.env), lo que aisla los datos sensibles de la infrestructura y evita exponer informacion confidencial.
+Codigo: 99FB2C70EB56
+Fecha: 2026-11-10
