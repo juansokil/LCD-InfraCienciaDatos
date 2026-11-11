@@ -1,0 +1,19 @@
+Apellido: Herbas
+Nombre: Enzo
+Rama: estudiante/herbas-enzo
+Motor: postgres
+Archivos crudos: 5
+Filas demo: 250
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81632
+Doble ingesta: SI
+Ultima carga: 2026-10-23 00:40:55.474029
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla, ya que se obtiene desde el raw, el json crudo, si mantengo ese, puedo generar otra vez la tabla
+Pregunta (b) - replace y append:
+  Con el primero, vacia y vuelve a crear la tabla. Con append, genera otro raw, de esta manera persisten las respuestas de las llamadas que se vayan haciendo. El DAG productivo utiliza el append
+Pregunta (c) - Dos cargas identicas:
+  porque hace una consulta a un mismo endpoint que, al no sufrir cambios en sus datos en el momento, devuelva lo mismo. El pipeline los guarda porque si bien son identicos, son respuestas a diferentes llamados
+Codigo: DDFDDED4D95F
+Fecha: 2026-10-23

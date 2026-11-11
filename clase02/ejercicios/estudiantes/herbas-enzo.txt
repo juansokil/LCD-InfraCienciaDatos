@@ -1,0 +1,16 @@
+Apellido: Herbas
+Nombre: Enzo
+Rama: estudiante/herbas-enzo
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la información interna que necesita Airflow para gestionar las DAGs y sus ejecuciones, mientras que data_warehouse guarda los datos que procesa el pipeline. Están separados porque cumplen funciones diferentes.
+Pregunta (b) - Datos despues del down:
+  docker compose down elimina los contenedores, pero no elimina el volumen que definimos en el warehouse
+Pregunta (c) - DAGs en el contenedor:
+  porque se definio dentro del docker-compose en la parte de servicios dice de donde agarrara los dags y cual es su target.                source: ./dags target: /opt/airflow/dags. De esta manera los archivos que modifiquen en stack/dags estan disponibles para Airflow
+Pregunta (d) - Puerto 8080 ocupado:
+  Si 8080 está ocupado, cambiaría el puerto del host, por ejemplo "8081:8080", porque el primer puerto corresponde al de la máquina y el segundo al del contenedor.
+Pregunta (e) - Credenciales del warehouse:
+  La tiene definida en el archivo .env
+Codigo: FC714052B270
+Fecha: 2026-10-08
