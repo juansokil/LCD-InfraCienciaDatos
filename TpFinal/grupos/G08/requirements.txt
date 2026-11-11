@@ -25,6 +25,10 @@ pyarrow>=18.0.0                     # Lectura/escritura de .parquet (DAGs de cla
 pydantic[email]>=2.0                # validacion fila a fila del contrato
 PyYAML>=6.0                         # los contratos son .yaml
 
+# --- Geo (silver: zona de cada estacion por coordenadas) ---
+# Ya viene como transitiva de la imagen; se pinea porque el DAG lo importa directo.
+shapely==2.1.2
+
 # --- API & Networking ---
 requests==2.32.5
 

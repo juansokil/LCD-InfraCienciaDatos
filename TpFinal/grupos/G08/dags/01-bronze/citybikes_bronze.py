@@ -28,7 +28,7 @@ from common.contracts import load_contract  # noqa: E402
 DB_URI = (
     f"postgresql+psycopg2://"
     f"{os.getenv('SOURCE_DB_USER', 'admin')}:"
-    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@"
+    f"{os.getenv('SOURCE_DB_PASS', 'admin')}@" #MALA PRACTICA pero se deja a efectos de que funcione aunque falte .env
     f"{os.getenv('SOURCE_DB_HOST', 'data_warehouse')}:5432/"
     f"{os.getenv('SOURCE_DB_NAME', 'CityBikes')}"
 )

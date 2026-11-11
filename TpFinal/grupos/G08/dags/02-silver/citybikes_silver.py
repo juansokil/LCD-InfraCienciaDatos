@@ -6,6 +6,7 @@ Bronze -> Silver de CityBikes: limpieza, tipado, contrato y cuarentena.
                               -> silver.quarantine_citybikes_stations  (rechazadas + motivo)
                               -> silver.quality_runs                   (una fila por regla y corrida)
     bronze.citybikes_networks -> silver.citybikes_networks
+    coordenadas + data/geo    -> silver.citybikes_station_zone         (zona por estacion)
 
 Sigue el molde de `crypto_silver` (clase 04): arranca cuando bronze emite su
 asset, normaliza y deduplica en SQL, valida fila a fila con Pydantic generado
@@ -51,7 +52,10 @@ from common.contracts import (  # noqa: E402
     build_pydantic_from_contract,
     evaluar_reglas,
     load_contract,
+    motivo_rechazo,
 )
+from common.derivadas import DERIVADAS, agregar_derivadas  # noqa: E402
+from common.zonas import cargar_capas, zona_de  # noqa: E402
 
 
 DB_URI = (
@@ -64,6 +68,7 @@ DB_URI = (
 
 DATA_DIR = Path("/opt/airflow/data")
 CONTRACT_PATH = DATA_DIR / "contracts" / "citybikes_stations.yaml"
+GEO_DIR = DATA_DIR / "geo"  # capas de common/zonas.py
 
 # Grano de silver: una fila por estacion y snapshot.
 CLAVES = ["network_id", "station_id", "snapshot_ts"]
@@ -100,7 +105,7 @@ REPARACION = {
 }
 
 # Snapshots pendientes: los de bronze cuyo ingested_at mas reciente no coincide
-# con el de silver + cuarentena. Cubre tres casos con la misma consulta:
+# con el de silver + cuarentena, o que tienen derivadas sin calcular. Casos:
 #   - snapshot nuevo (no esta en silver),
 #   - corrida de silver que fallo (nunca llego),
 #   - bronze re-corrido (bronze reemplaza por run_id y cambia su ingested_at).
@@ -128,6 +133,12 @@ SQL_PENDIENTES = """
     FROM b
     LEFT JOIN s USING (snapshot_ts)
     WHERE s.ing IS DISTINCT FROM b.ing
+       -- Cuarto caso: snapshot cargado antes de que existieran las columnas
+       -- derivadas (el ALTER las deja en NULL). Se reprocesa una sola vez.
+       OR EXISTS (
+            SELECT 1 FROM silver.citybikes_stations x
+            WHERE x.snapshot_ts = b.snapshot_ts AND x.snapshot_local IS NULL
+       )
     ORDER BY b.snapshot_ts DESC
     LIMIT :tope
 """
@@ -186,18 +197,6 @@ def _sql_lectura(contract: dict) -> str:
         WHERE b.{EN_SNAPSHOTS}
         ORDER BY b.network_id, b.station_id, b.snapshot_ts, b.ingested_at DESC
     """
-
-
-def _motivo(error) -> str:
-    """Motivo de rechazo corto y AGRUPABLE: 'columna:tipo_de_error'.
-
-    El mensaje completo de Pydantic incluye el valor que fallo, asi que es
-    distinto en cada fila y un GROUP BY quarantine_reason no sirve de nada.
-    """
-    partes = sorted({
-        f"{'.'.join(str(p) for p in e['loc'])}:{e['type']}" for e in error.errors()
-    })
-    return "ValidationError: " + "; ".join(partes)
 
 
 def _a_utc(valor):
@@ -268,6 +267,7 @@ def citybikes_silver():
         esquema = contract["schema"]
 
         tipadas = ",\n".join(f'"{c["name"]}" {_tipo_pg(c)}' for c in esquema)
+        derivadas = ",\n".join(f'"{c}" {t}' for c, t in DERIVADAS.items())
         en_texto = ",\n".join(
             f'"{c["name"]}" ' + ("timestamptz NOT NULL" if c["name"] == "snapshot_ts" else "text")
             for c in esquema
@@ -278,6 +278,7 @@ def citybikes_silver():
             conn.execute(sqlalchemy.text(f"""
                 CREATE TABLE IF NOT EXISTS silver.citybikes_stations (
                     {tipadas},
+                    {derivadas},
                     ingested_at        timestamptz NOT NULL,
                     _quality_flags     text        NOT NULL DEFAULT '',
                     _processed_at      timestamptz NOT NULL,
@@ -332,6 +333,28 @@ def citybikes_silver():
                 );
             """))
 
+            conn.execute(sqlalchemy.text("""
+                CREATE TABLE IF NOT EXISTS silver.citybikes_station_zone (
+                    network_id     text             NOT NULL,
+                    station_id     text             NOT NULL,
+                    latitude       double precision NOT NULL,
+                    longitude      double precision NOT NULL,
+                    ciudad         text,
+                    zona           text             NOT NULL,
+                    zona_padre     text,
+                    zona_nivel     text             NOT NULL,
+                    capa           text             NOT NULL,
+                    snapshot_ts    timestamptz,
+                    _processed_at  timestamptz      NOT NULL,
+                    PRIMARY KEY (network_id, station_id)
+                );
+            """))
+            # Agregada despues de la primera version de la tabla.
+            conn.execute(sqlalchemy.text(
+                "ALTER TABLE silver.citybikes_station_zone "
+                "ADD COLUMN IF NOT EXISTS snapshot_ts timestamptz"
+            ))
+
             # EVOLUCION DE ESQUEMA (el contrato permite allow_new_columns).
             # CREATE TABLE IF NOT EXISTS no agrega columnas a una tabla que ya
             # existe. Se mira el catalogo y se agregan SOLO las que faltan: un
@@ -342,14 +365,18 @@ def citybikes_silver():
                     "SELECT column_name FROM information_schema.columns "
                     "WHERE table_schema = 'silver' AND table_name = :tabla"
                 ), {"tabla": tabla})}
-                for c in esquema:
-                    if c["name"] in existentes:
+                columnas = [(c["name"], _tipo_pg(c) if con_tipo else "text") for c in esquema]
+                if con_tipo:
+                    # Las derivadas solo existen en silver: la cuarentena guarda
+                    # la fila como llego, sin calculos.
+                    columnas += list(DERIVADAS.items())
+                for nombre, tipo in columnas:
+                    if nombre in existentes:
                         continue
-                    tipo = _tipo_pg(c) if con_tipo else "text"
                     conn.execute(sqlalchemy.text(
-                        f'ALTER TABLE silver.{tabla} ADD COLUMN "{c["name"]}" {tipo}'
+                        f'ALTER TABLE silver.{tabla} ADD COLUMN "{nombre}" {tipo}'
                     ))
-                    print(f"[schema] silver.{tabla}: + {c['name']} {tipo}")
+                    print(f"[schema] silver.{tabla}: + {nombre} {tipo}")
 
     @task
     def snapshots_del_run() -> list[str]:
@@ -515,6 +542,83 @@ def citybikes_silver():
             """), params).rowcount
         print(f"silver.citybikes_networks: +{cargadas} redes en {len(snapshots)} snapshot(s)")
 
+    @task
+    def asignar_zonas(snapshots: list[str]):
+        """Zona de cada estacion por coordenadas -> silver.citybikes_station_zone.
+
+        Una fila por estacion (no por snapshot: las estaciones no se mueven).
+        Se recalculan todas las del run, pero solo se escribe la que es nueva
+        o cambio (se movio, o se agrego una capa para su red). Corre ANTES de
+        limpiar_y_cargar, igual que cargar_redes, para que gold encuentre la
+        zona de una estacion nueva cuando llega el asset.
+        """
+        import sqlalchemy
+
+        params = {"snaps": snapshots, "re_decimal": "^-?[0-9]+([.][0-9]+)?$"}
+        engine = sqlalchemy.create_engine(DB_URI)
+        with engine.connect() as conn:
+            # Ultima posicion conocida de cada estacion del run. Las coordenadas
+            # que no son numeros no tienen zona posible y se saltean (esas filas
+            # van a cuarentena en limpiar_y_cargar). Una coordenada numerica
+            # pero absurda cae afuera de los poligonos y queda con la ciudad.
+            estaciones = conn.execute(sqlalchemy.text(f"""
+                SELECT DISTINCT ON (b.network_id, b.station_id)
+                       b.network_id, b.station_id, b.snapshot_ts,
+                       CAST(btrim(b.latitude) AS double precision)  AS latitude,
+                       CAST(btrim(b.longitude) AS double precision) AS longitude,
+                       (SELECT NULLIF(btrim(n.city), '') FROM bronze.citybikes_networks n
+                         WHERE n.network_id = b.network_id
+                         ORDER BY n.snapshot_ts DESC LIMIT 1)       AS ciudad
+                FROM bronze.citybikes_stations b
+                WHERE b.{EN_SNAPSHOTS}
+                  AND btrim(b.latitude) ~ :re_decimal
+                  AND btrim(b.longitude) ~ :re_decimal
+                ORDER BY b.network_id, b.station_id, b.snapshot_ts DESC, b.ingested_at DESC
+            """), params).mappings().all()
+
+        capas = cargar_capas(GEO_DIR)
+        procesado = datetime.now(timezone.utc)
+        filas = [
+            {**e, **zona_de(capas, e["network_id"], e["latitude"], e["longitude"], e["ciudad"]),
+             "procesado": procesado}
+            for e in estaciones
+        ]
+        sin_poligono = sum(f["capa"] == "fallback" and f["network_id"] in capas for f in filas)
+
+        if not filas:
+            print("[zonas] sin estaciones con coordenadas validas en este run")
+            return
+
+        with engine.begin() as conn:
+            escritas = conn.execute(sqlalchemy.text("""
+                INSERT INTO silver.citybikes_station_zone AS z (
+                    network_id, station_id, latitude, longitude, ciudad,
+                    zona, zona_padre, zona_nivel, capa, snapshot_ts, _processed_at
+                ) VALUES (
+                    :network_id, :station_id, :latitude, :longitude, :ciudad,
+                    :zona, :zona_padre, :zona_nivel, :capa, :snapshot_ts, :procesado
+                )
+                ON CONFLICT (network_id, station_id) DO UPDATE SET
+                    latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
+                    ciudad = EXCLUDED.ciudad, zona = EXCLUDED.zona,
+                    zona_padre = EXCLUDED.zona_padre, zona_nivel = EXCLUDED.zona_nivel,
+                    capa = EXCLUDED.capa, snapshot_ts = EXCLUDED.snapshot_ts,
+                    _processed_at = EXCLUDED._processed_at
+                -- Solo si cambio algo Y la posicion no es mas vieja que la
+                -- guardada: el atraso se drena del snapshot mas nuevo al mas
+                -- viejo, y uno viejo no tiene que pisar una reubicacion.
+                -- (snapshot_ts NULL = fila de antes de que existiera la columna).
+                WHERE z.snapshot_ts IS NULL
+                   OR EXCLUDED.snapshot_ts >= z.snapshot_ts
+                  AND (z.latitude, z.longitude, z.ciudad, z.zona, z.zona_padre, z.zona_nivel, z.capa)
+                      IS DISTINCT FROM
+                      (EXCLUDED.latitude, EXCLUDED.longitude, EXCLUDED.ciudad, EXCLUDED.zona,
+                       EXCLUDED.zona_padre, EXCLUDED.zona_nivel, EXCLUDED.capa)
+            """), filas).rowcount
+
+        print(f"[zonas] {len(filas)} estaciones evaluadas | {escritas} nuevas o cambiadas | "
+              f"{sin_poligono} fuera de los poligonos de su red")
+
     @task(outlets=[SILVER_CITYBIKES])
     def limpiar_y_cargar(snapshots: list[str]) -> dict:
         """Lee bronze limpio, valida contra el contrato y carga silver + cuarentena.
@@ -556,7 +660,7 @@ def citybikes_silver():
             try:
                 modelo = Contrato(**{c: fila[c] for c in campos})
             except ValidationError as error:
-                rechazadas.append({**fila, "quarantine_reason": _motivo(error)})
+                rechazadas.append({**fila, "quarantine_reason": motivo_rechazo(error)})
                 continue
             tipadas.append({
                 **{c: _a_utc(v) for c, v in modelo.model_dump().items()},
@@ -594,6 +698,7 @@ def citybikes_silver():
 
         df_silver = df[~rechaza].copy()
         df_silver["_quality_flags"] = flags[~rechaza].str.rstrip(";")
+        df_silver = agregar_derivadas(df_silver)
         df_cuarentena = pd.DataFrame(
             rechazadas, columns=campos + ["ingested_at", "quarantine_reason"], dtype=object
         )
@@ -660,9 +765,10 @@ def citybikes_silver():
     snaps = snapshots_del_run()
     crear_tablas() >> snaps
 
-    # evaluar_calidad y cargar_redes corren en paralelo; la carga espera a las dos.
+    # evaluar_calidad, cargar_redes y asignar_zonas corren en paralelo; la carga
+    # espera a las tres.
     conteos = limpiar_y_cargar(snaps)
-    [evaluar_calidad(snaps), cargar_redes(snaps)] >> conteos
+    [evaluar_calidad(snaps), cargar_redes(snaps), asignar_zonas(snaps)] >> conteos
     resumen(conteos)
 
 

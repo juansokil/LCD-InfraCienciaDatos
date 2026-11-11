@@ -167,3 +167,16 @@ def evaluar_reglas(df, contract: dict) -> list[dict]:
             "mask": mask,
         })
     return resultados
+
+
+def motivo_rechazo(error) -> str:
+    """Motivo de rechazo corto y AGRUPABLE a partir de un ValidationError:
+    'columna:tipo_de_error'.
+
+    El mensaje completo de Pydantic incluye el valor que fallo, asi que es
+    distinto en cada fila y un GROUP BY quarantine_reason no sirve de nada.
+    """
+    partes = sorted({
+        f"{'.'.join(str(p) for p in e['loc'])}:{e['type']}" for e in error.errors()
+    })
+    return "ValidationError: " + "; ".join(partes)
