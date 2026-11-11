@@ -1,0 +1,212 @@
+# LogiWeather - TP Final G10
+
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+  environment: &airflow-environment
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD_URLENCODED}@airflow_db:5432/${AIRFLOW_DB}
+
+    AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution/
+
+    AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_JWT_SECRET}
+
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: admin:admin
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/simple_auth_manager_passwords.json.generated
+
+    WAREHOUSE_HOST: warehouse
+    WAREHOUSE_DB: ${POSTGRES_DB}
+    WAREHOUSE_USER: ${POSTGRES_USER}
+    WAREHOUSE_PASSWORD: ${POSTGRES_PASSWORD}
+
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - airflow_logs:/opt/airflow/logs
+    - airflow_auth:/opt/airflow/auth
+    - ./config:/opt/airflow/config:ro
+
+  depends_on:
+    airflow_db:
+      condition: service_healthy
+
+  restart: unless-stopped
+
+services:
+
+  # Base de datos del proyecto
+  warehouse:
+    image: postgres:17
+    container_name: logiweather_warehouse
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
+
+  # Base de metadatos de Airflow
+  airflow_db:
+    image: postgres:17
+    container_name: logiweather_airflow_db
+
+    environment:
+      POSTGRES_DB: ${AIRFLOW_DB}
+      POSTGRES_USER: ${AIRFLOW_DB_USER}
+      POSTGRES_PASSWORD: ${AIRFLOW_DB_PASSWORD}
+
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${AIRFLOW_DB_USER} -d ${AIRFLOW_DB}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
+
+  # Inicializa la base de Airflow
+  airflow-init:
+    <<: *airflow-common
+    command: db migrate
+    restart: "no"
+
+  # Interfaz web y API
+  
+  # Prepara permisos y usuario de prueba de Airflow
+  airflow-permissions:
+    image: apache/airflow:3.1.5-python3.11
+    user: "0:0"
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        mkdir -p /opt/airflow/auth
+        printf '{"admin":"admin"}\n' > /opt/airflow/auth/simple_auth_manager_passwords.json.generated
+        chown -R 50000:0 /opt/airflow/auth
+        chmod -R g+rwX /opt/airflow/auth
+    volumes:
+      - airflow_auth:/opt/airflow/auth
+    restart: "no"
+    
+  # Interfaz web y API
+  airflow-api-server:
+    <<: *airflow-common
+    command: api-server
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-permissions:
+        condition: service_completed_successfully
+
+
+  # Planifica las ejecuciones
+  airflow-scheduler:
+    <<: *airflow-common
+    command: scheduler
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  # Lee y registra los DAGs
+  airflow-dag-processor:
+    <<: *airflow-common
+    command: dag-processor
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  
+  # Gestiona tareas diferidas y eventos
+  airflow-triggerer:
+    <<: *airflow-common
+    command: triggerer
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+
+  
+  airflow-bootstrap:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+
+        MARCADOR=/opt/airflow/auth/.logiweather_bootstrap_done
+
+        if [ -f "$$MARCADOR" ]; then
+          echo "Bootstrap ya ejecutado anteriormente."
+          exit 0
+        fi
+
+        echo "Esperando que Airflow registre Bronze..."
+
+        until airflow dags list | grep -q logiweather_bronze; do
+          sleep 5
+        done
+
+        echo "Iniciando primera ejecucion de Bronze..."
+
+        until airflow dags trigger \
+          --run-id logiweather_bootstrap_inicial \
+          logiweather_bronze; do
+          echo "Airflow aun no esta listo. Reintentando..."
+          sleep 5
+        done
+
+        touch "$$MARCADOR"
+        echo "Bootstrap completado."
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-permissions:
+        condition: service_completed_successfully
+      airflow-api-server:
+        condition: service_started
+      airflow-dag-processor:
+        condition: service_started
+      airflow-scheduler:
+        condition: service_started
+    restart: "no"
+
+volumes:
+  warehouse_data:
+  airflow_db_data:
+  airflow_logs:
+  airflow_auth:

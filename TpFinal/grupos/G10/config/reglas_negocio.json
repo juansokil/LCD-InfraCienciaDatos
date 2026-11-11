@@ -1,0 +1,12 @@
+
+{
+  "alertas": {
+    "probabilidad_lluvia": null,
+    "temperatura_maxima": null
+  },
+  "incentivos": {
+    "bono_lluvia_moderada": null,
+    "bono_lluvia_alta": null
+  },
+  "estado": "pendiente_definicion"
+}

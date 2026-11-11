@@ -1,0 +1,39 @@
+{
+  "ciudades": [
+    {
+      "id": "new_york",
+      "nombre": "New York",
+      "latitud": 40.7128,
+      "longitud": -74.0060,
+      "timezone": "America/New_York"
+    },
+    {
+      "id": "miami",
+      "nombre": "Miami",
+      "latitud": 25.7617,
+      "longitud": -80.1918,
+      "timezone": "America/New_York"
+    },
+    {
+      "id": "chicago",
+      "nombre": "Chicago",
+      "latitud": 41.8781,
+      "longitud": -87.6298,
+      "timezone": "America/Chicago"
+    },
+    {
+      "id": "houston",
+      "nombre": "Houston",
+      "latitud": 29.7604,
+      "longitud": -95.3698,
+      "timezone": "America/Chicago"
+    },
+    {
+      "id": "los_angeles",
+      "nombre": "Los Angeles",
+      "latitud": 34.0522,
+      "longitud": -118.2437,
+      "timezone": "America/Los_Angeles"
+    }
+  ]
+}
