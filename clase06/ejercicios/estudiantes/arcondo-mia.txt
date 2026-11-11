@@ -1,0 +1,27 @@
+Apellido: Arcondo
+Nombre: Mia
+Rama: estudiante/arcondo-mia
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  decision_tree_1d tiene el acc_test más alto (0.83), pero se evaluó con solo 3 casos; es poca evidencia para confiar en esa métrica.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep tiene el acc_train más alto (0.98), pero su acc_test es 0.54. La diferencia sugiere sobreajuste.
+Pregunta (c) - El acc_test mas bajo:
+  svm_3d tiene el acc_test más bajo (0.51), así que fue el que peor generalizó en el conjunto de prueba.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Lo elegiría porque tiene el acc_test más alto entre los candidatos evaluados con 60 casos y una brecha moderada entre entrenamiento (0.74) y prueba (0.69).
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Cuando se conozcan los resultados reales, seguiría el acc_test en ventanas recientes y lo compararía con su nivel anterior y con una baseline. Alertaría si cae sostenidamente; también vigilaría cambios en los datos de entrada.
+Codigo: 9ADAB2FECB06
+Fecha: 2026-11-11
