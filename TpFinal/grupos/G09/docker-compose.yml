@@ -1,0 +1,78 @@
+name: g09
+
+services:
+  # PostgreSQL - Data Warehouse (Bronze, Silver, Gold)
+  data_warehouse:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${SOURCE_DB_USER}
+      POSTGRES_PASSWORD: ${SOURCE_DB_PASS}
+      POSTGRES_DB: ${SOURCE_DB_NAME}
+    volumes:
+      - data_warehouse_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # PostgreSQL - Metadatos de Airflow (interno)
+  airflow_db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${AF_DB_USER}
+      POSTGRES_PASSWORD: ${AF_DB_PASS}
+      POSTGRES_DB: ${AF_DB_NAME}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AF_DB_USER} -d ${AF_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Airflow 3.1.5 - Orquestador
+  airflow:
+    image: apache/airflow:3.1.5
+    command: standalone
+    env_file: .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
+      AIRFLOW__API__SECRET_KEY: ${AIRFLOW_SECRET_KEY}
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "False"
+      AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL: "10"
+      # Login admin/admin
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_USERS: "admin:admin"
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_PASSWORDS_FILE: /opt/airflow/auth/passwords.json
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./data:/opt/airflow/data
+      - ./airflow:/opt/airflow/auth
+      - airflow_logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      data_warehouse:
+        condition: service_healthy
+
+  # Dashboard Streamlit: se descomenta cuando exista la carpeta dashboard/
+  # dashboard:
+  #   build: ./dashboard
+  #   env_file: .env
+  #   ports:
+  #     - "8501:8501"
+  #   depends_on:
+  #     data_warehouse:
+  #       condition: service_healthy
+
+volumes:
+  data_warehouse_data:
+  airflow_db_data:
+  airflow_logs:
