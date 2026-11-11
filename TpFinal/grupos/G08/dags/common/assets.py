@@ -9,7 +9,7 @@ from airflow.sdk import Asset
 # Producido por citybikes_bronze (tarea cargar_bronze).
 BRONZE_CITYBIKES = Asset(name="bronze_citybikes")
 
-# Producido por citybikes_silver (pendiente).
+# Producido por citybikes_silver (tarea limpiar_y_cargar).
 SILVER_CITYBIKES = Asset(name="silver_citybikes")
 
 # Producido por citybikes_gold (pendiente): star schema que mira el dashboard.
