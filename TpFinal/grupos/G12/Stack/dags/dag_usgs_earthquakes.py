@@ -27,7 +27,7 @@ with DAG(
     dag_id='dag_usgs_earthquakes_pipeline',
     default_args=default_args,
     description='Pipeline Medallion sismos USGS',
-    schedule='@once',  
+    schedule='@hourly',  
     catchup=False,
     tags=['usgs', 'g12'],
 ) as dag:
