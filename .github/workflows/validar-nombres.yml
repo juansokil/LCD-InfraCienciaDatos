@@ -25,6 +25,10 @@ name: Validar PR (origen y nombre de rama)
 #   - estudiante/apellido-nombre   (entrega individual del estudiante)
 #   - tpfinal/G<NN>               (TP Final grupal, ej: tpfinal/G01)
 #
+# Solo se validan los PRs hacia main (filtro `branches` del disparador). Un PR entre ramas de
+# un grupo (feat/... -> tpfinal/G<NN>) es trabajo interno del grupo y no se toca: sin el
+# filtro, el bot cerró el PR #246 (feat/G04-infra-integracion -> tpfinal/G04, 2026-11-10).
+#
 # Regla de nombres compuestos: van PEGADOS, sin guion ni espacio.
 #   Maria Jose Garcia Lopez -> estudiante/garcialopez-mariajose
 # Asi el guion es SIEMPRE el separador apellido-nombre: la rama lleva
@@ -41,6 +45,7 @@ name: Validar PR (origen y nombre de rama)
 on:
   pull_request_target:
     types: [opened, reopened]
+    branches: [main]
 
 permissions:
   pull-requests: write
