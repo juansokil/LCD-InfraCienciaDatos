@@ -10,9 +10,6 @@ import json
 from datetime import datetime, timedelta, timezone
 
 
-
-
-
 CONN_ID = "warehouse"
 
 BRONZE_TABLE = "bronze.open_meteo_raw"
@@ -22,11 +19,6 @@ SILVER_CURRENT_TABLE = "silver.clima_actual"
 SILVER_FORECAST_TABLE = "silver.pronostico_diario"
 
 GOLD_DAG_ID = "open_meteo_gold"
-
-
-
-
-
 
 
 
@@ -78,11 +70,6 @@ def create_silver_tables():
 
 
 
-
-
-
-
-
 @task
 def extract_bronze_records():
     hook = PostgresHook(postgres_conn_id=CONN_ID)
@@ -119,10 +106,6 @@ def extract_bronze_records():
     logging.info("Registros Bronze pendientes de procesar: %s", len(records))
 
     return records
-
-
-
-
 
 
 
@@ -163,12 +146,6 @@ def get_weather_description(code):
         return None
 
     return descriptions.get(int(code), "Sin clasificar")
-
-
-
-
-
-
 
 
 
@@ -255,14 +232,6 @@ def validate_current(current):
 
 
 
-
-
-
-
-
-
-
-
 def transform_current(record):
     payload = record["payload"]
 
@@ -302,12 +271,6 @@ def transform_current(record):
         "wind_direction_deg": current.get("wind_direction_10m"),
         "cloud_cover_pct": current.get("cloud_cover")
     }
-
-
-
-
-
-
 
 
 
@@ -447,12 +410,6 @@ def transform_forecast(record):
 
 
 
-
-
-
-
-
-
 @task
 def load_silver(records):
     hook = PostgresHook(postgres_conn_id=CONN_ID)
@@ -533,17 +490,6 @@ def load_silver(records):
         "Carga Silver finalizada para %s registros Bronze.",
         len(records)
     )
-
-
-
-
-
-
-
-
-
-
-
 
 
 
