@@ -1,3 +1,4 @@
+import pendulum
 import subprocess
 import sys
 from airflow.sdk import dag, task
@@ -5,7 +6,8 @@ from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOpe
 
 @dag(
     dag_id="bronze_usgs_g07",
-    schedule=None,
+    schedule="@hourly",
+    start_date=pendulum.datetime(2026, 10, 1, tz="UTC"),
     catchup=False,
     tags=["G07", "bronze"]
 )

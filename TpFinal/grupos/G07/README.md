@@ -3,10 +3,9 @@
 ## Integrantes
 
 - Uriel Grochowski (ugro2904)
-- Candela Alejandra Rossi ()
 - Antonella Trinidad Frutos ()
 - Maria Sol Ibar Jalil ()
-- Lucas Patricio Isla ()
+- Lucas Patricio Isla (lisla23)
 
 ## API elegida
 
