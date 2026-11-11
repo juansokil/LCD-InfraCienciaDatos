@@ -20,7 +20,7 @@ FORECAST_DAYS = 7
 MAX_RETRIES = 2              
 RUN_EVERY = timedelta(hours=1)
 
-TRIGGER_SILVER = any((Path(__file__).resolve().parent.parent / "02-silver").glob("*.py")) # Se activa solo cuando existe algún .py en dags/02-silver/. 
+TRIGGER_SILVER = (Path(__file__).resolve().parent / "02-open_meteo_silver.py").is_file() # Se activa solo cuando existe algún .py en dags/02-silver/. 
 #Mientras no exista, Bronze termina sin disparar nada.
 
 CITIES = [
