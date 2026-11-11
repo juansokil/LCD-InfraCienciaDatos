@@ -1,0 +1,11 @@
+# Dependencias Python de la imagen de Airflow.
+#
+# Airflow PINEADO a proposito: sin este pin, pip puede resolver otra version
+# de apache-airflow al instalar el resto y bajarla en silencio (le paso al
+# stack del curso: el Dockerfile decia 3.1.5 y corria 3.0.6).
+apache-airflow==3.1.5
+
+# Los DAGs hablan con Postgres directo con psycopg2 y bajan la API con requests.
+# Las transformaciones son SQL que corre adentro de Postgres: no hace falta pandas.
+psycopg2-binary==2.9.11
+requests==2.32.5
