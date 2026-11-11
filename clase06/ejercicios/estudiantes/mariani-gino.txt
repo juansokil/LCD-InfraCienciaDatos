@@ -1,0 +1,27 @@
+Apellido: Mariani
+Nombre: Gino
+Rama: estudiante/mariani-gino
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Tiene muy pocas fechas en n_train y n_test como para fiarse de sus metricas
+Pregunta (b) - El acc_train mas alto:
+  Su acc_test (cercano al 0.5) denota que se hizo un sobreajuste en su entrenamiento y por eso dio tan alto su acc_train
+Pregunta (c) - El acc_test mas bajo:
+  No es un modelo util para produccion ya que seria lo mismo que seleccionar una opcion entre 2 a ciegas
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Porque fue el que dio el mejor acc_test (descontando al modelo de pocas fechas)
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Compararía cada día lo que predijo con la volatilidad que efectivamente ocurrió y seguiría su accuracy en el tiempo. Si cae hacia 0,5 o se aleja bastante de su acc_test original, el modelo empeoró y hay que revisarlo o reentrenarlo
+Codigo: 52769911DCB6
+Fecha: 2026-11-11
