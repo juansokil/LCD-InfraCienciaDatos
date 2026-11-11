@@ -13,7 +13,7 @@ from datetime import timedelta
 import pendulum
 import psycopg2
 from airflow.sdk import dag, task
-
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 def conectar_warehouse():
     return psycopg2.connect(
@@ -201,7 +201,13 @@ def logiweather_silver():
     preparacion = crear_tabla_silver()
     transformacion = transformar_bronze_a_silver()
 
-    preparacion >> transformacion
+    disparar_gold = TriggerDagRunOperator(
+        task_id="disparar_gold",
+        trigger_dag_id="logiweather_gold",
+        wait_for_completion=False,
+    )
+
+    preparacion >> transformacion >> disparar_gold
 
 
 logiweather_silver()

@@ -19,7 +19,7 @@ import requests
 
 from airflow.sdk import dag, task, get_current_context
 from psycopg2.extras import Json
-
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 API_URL = "https://api.open-meteo.com/v1/forecast"
 
@@ -192,7 +192,13 @@ def logiweather_bronze():
     preparacion = crear_tabla_bronze()
     extraccion = extraer_pronosticos()
 
-    preparacion >> extraccion
+    disparar_silver = TriggerDagRunOperator(
+        task_id="disparar_silver",
+        trigger_dag_id="logiweather_silver",
+        wait_for_completion=False,
+    )
+
+    preparacion >> extraccion >> disparar_silver
 
 
 logiweather_bronze()

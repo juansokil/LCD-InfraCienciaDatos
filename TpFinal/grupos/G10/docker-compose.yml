@@ -157,6 +157,54 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+  
+  airflow-bootstrap:
+    <<: *airflow-common
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        set -e
+
+        MARCADOR=/opt/airflow/auth/.logiweather_bootstrap_done
+
+        if [ -f "$$MARCADOR" ]; then
+          echo "Bootstrap ya ejecutado anteriormente."
+          exit 0
+        fi
+
+        echo "Esperando que Airflow registre Bronze..."
+
+        until airflow dags list | grep -q logiweather_bronze; do
+          sleep 5
+        done
+
+        echo "Iniciando primera ejecucion de Bronze..."
+
+        until airflow dags trigger \
+          --run-id logiweather_bootstrap_inicial \
+          logiweather_bronze; do
+          echo "Airflow aun no esta listo. Reintentando..."
+          sleep 5
+        done
+
+        touch "$$MARCADOR"
+        echo "Bootstrap completado."
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      airflow-permissions:
+        condition: service_completed_successfully
+      airflow-api-server:
+        condition: service_started
+      airflow-dag-processor:
+        condition: service_started
+      airflow-scheduler:
+        condition: service_started
+    restart: "no"
+
 volumes:
   warehouse_data:
   airflow_db_data:
