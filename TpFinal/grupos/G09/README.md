@@ -28,52 +28,102 @@ Localidades seleccionadas:
 
 ## Arquitectura
 
-El proyecto utiliza la infraestructura general de InfraCienciaDatos:
+El TP tiene su propia infraestructura, definida en el `docker-compose.yml` de esta carpeta. No depende del stack de la materia.
 
-- Apache Airflow para la orquestación.
-- PostgreSQL para el almacenamiento.
-- Docker para la ejecución de los servicios.
-- Open-Meteo como fuente de datos.
+| Servicio | Imagen | Para qué |
+|---|---|---|
+| `data_warehouse` | `postgres:17-alpine` | Base de datos con los schemas `bronze`, `silver` y `gold` |
+| `airflow_db` | `postgres:17-alpine` | Metadatos internos de Airflow |
+| `airflow` | `apache/airflow:3.1.5` | Orquestación de los DAGs |
+| `dashboard` | Streamlit (`dashboard/Dockerfile`) | Visualización sobre la capa Gold |
+
+Flujo del pipeline:
+
+```text
+Open-Meteo (API histórica, ERA5)
+   │
+   ▼
+g09_bronze_open_meteo  ── corre solo al levantar el stack (@once)
+   │  emite el asset g09_bronze_open_meteo_raw
+   ▼
+Silver  ──►  Gold  ──►  Dashboard
+```
+
+- Los schemas se crean solos al iniciar la base (`init/01_schemas.sql`).
+- Los DAGs arrancan activos: no hace falta despausarlos a mano.
+- Cada capa dispara a la siguiente mediante assets de Airflow.
+
+## Modelo de datos
+
+**Bronze** — `bronze.open_meteo_raw`: una fila por localidad e ingesta, con la respuesta original de la API en JSONB (`response_payload`) y los parámetros del pedido. Detalle en `docs/ARQUITECTURA_BRONZE.md`.
+
+**Silver y Gold** — en desarrollo (ver *Idea para Gold* arriba).
 
 ## Estructura
 
 ```text
 G09/
 ├── README.md
+├── docker-compose.yml        # servicios del TP
+├── .env                      # credenciales de juguete (van al repo a propósito)
+├── .gitignore
 ├── requirements.txt
-├── docs/
-│   └── ARQUITECTURA_BRONZE.md
-└── dags/
-    └── bronze/
-        └── dag_g09_bronze_open_meteo.py
+├── init/
+│   └── 01_schemas.sql        # crea bronze, silver y gold al iniciar
+├── airflow/
+│   └── passwords.json        # login admin/admin
+├── dags/
+│   ├── bronze/
+│   │   └── dag_g09_bronze_open_meteo.py
+│   └── dag_silver.py
+├── dashboard/
+│   ├── Dockerfile
+│   ├── requirements.txt
+│   └── app.py
+└── docs/
+    ├── ARQUITECTURA_BRONZE.md
+    └── ESTADO_BRONZE.md
 ```
 
 ## Estado del proyecto
 
-- [x] Integración de DAGs G09 con Airflow.
-- [x] Primera implementación de ingesta Bronze.
-- [ ] Validación de extracción de las tres localidades.
-- [ ] Diseño de Silver.
-- [ ] Diseño de Gold.
-- [ ] Análisis exploratorio.
-- [ ] Dashboard.
+- [x] Infraestructura propia del grupo (Airflow 3.1.5, schemas automáticos, login admin/admin).
+- [x] Ingesta Bronze de las tres localidades, automática al levantar el stack.
+- [x] Contenedor del dashboard.
+- [ ] Silver (transformación en SQL).
+- [ ] Gold (modelo estrella).
+- [ ] Dashboard con gráficos.
 
-## Ejecución
+## Cómo levantarlo
 
-Desde la carpeta `stack/`:
+**Requisitos:** Docker Desktop abierto, y los puertos `5432`, `8080` y `8501` libres. Si está corriendo el stack de la materia, apagarlo antes (`docker compose down` en la carpeta `stack/`).
 
 ```powershell
-docker compose up -d airflow
+cd TpFinal/grupos/G09
+docker compose up -d --build
 ```
 
-Interfaz de Airflow:
+No hace falta crear schemas ni activar DAGs: al levantar, Bronze corre solo y dispara las capas siguientes. La primera vez tarda unos minutos, porque descarga las imágenes y construye el dashboard.
 
-http://localhost:8080
+| Servicio | Dirección | Usuario | Contraseña |
+|---|---|---|---|
+| **Airflow** | http://localhost:8080 | `admin` | `admin` |
+| Dashboard | http://localhost:8501 | — | — |
+| PostgreSQL | `localhost:5432`, base `InfraCienciaDatos` | `admin` | `admin` |
 
-DAG:
+**Verificar que Bronze cargó los datos:**
 
-`g09_bronze_open_meteo`
+```powershell
+docker compose exec data_warehouse psql -U admin -d InfraCienciaDatos -c "SELECT city, ingested_at FROM bronze.open_meteo_raw;"
+```
 
-Para más información sobre la arquitectura Bronze, consultar:
+**Apagar:**
 
-`docs/ARQUITECTURA_BRONZE.md`
+- `docker compose down` apaga y conserva los datos.
+- `docker compose down -v` apaga y borra todo; al volver a levantar, el pipeline corre de nuevo desde cero.
+
+## Nota sobre credenciales
+
+El `.env` está en el repositorio **a propósito**, como pide la consigna: contiene solo credenciales de juguete (`admin/admin`) para que el stack levante con un solo comando. Open-Meteo no requiere API key.
+
+El check de **GitGuardian** del PR marca el `.env` como posible secreto. Es esperado: no contiene claves reales.
