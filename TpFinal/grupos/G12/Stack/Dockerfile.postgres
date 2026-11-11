@@ -1,0 +1,5 @@
+# Usa la imagen oficial de Postgres 17 (la misma que definiste en tu compose)
+FROM postgres:17-alpine
+
+# Copia tu archivo init.sql a la carpeta mágica de inicialización de Postgres
+COPY init.sql /docker-entrypoint-initdb.d/

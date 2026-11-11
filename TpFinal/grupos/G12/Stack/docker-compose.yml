@@ -3,6 +3,7 @@ services:
   airflow:
     build: .
     container_name: airflow_standalone
+    command: standalone
     env_file: .env
     environment:
       - AIRFLOW_UID=${AIRFLOW_UID:-0}
@@ -13,11 +14,17 @@ services:
       - AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=10
       - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=10
       - SOURCE_DB_HOST=data_warehouse
+      # --- MODIFICACIÓN 1: Agregar scripts al PYTHONPATH ---
+      - PYTHONPATH=/opt/airflow/scripts
     volumes:
       # long-form syntax — cross-platform (Windows/Linux/Mac)
       - type: bind
         source: ./dags
         target: /opt/airflow/dags
+      # --- MODIFICACIÓN 2: Montar la carpeta local de scripts ---
+      - type: bind
+        source: ./scripts
+        target: /opt/airflow/scripts
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
       - type: bind
@@ -186,7 +193,6 @@ volumes:
   airflow_plugins:
   data_warehouse_data:
   mlflow_artifacts:
-
 
 networks:
   de_stack_network:
