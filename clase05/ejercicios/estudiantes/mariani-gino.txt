@@ -1,0 +1,9 @@
+Apellido: Mariani
+Nombre: Gino
+Rama: estudiante/mariani-gino
+Caso: gimnasio
+Hecho: Una fila es una visita de un socio a una sede: desde que pasa el molinete al entrar hasta que sale, con su duración y lo que consumió en la barra.
+Dimensiones: Sede (barrio, cantidad de máquinas, horario de apertura): salen del registro de sedes. Socio (plan, fecha de alta): salen del registro de socios. Fecha (mes) y franja horaria (según la hora de entrada): salen de la hora de entrada que registra el molinete.
+Metricas: Duración de la visita (minutos) y consumo en la barra (pesos), que se suman. Las visitas se cuentan como una fila = una visita. El gasto promedio por visita no se guarda: se calcula como consumo total dividido por cantidad de visitas.
+Codigo: 1B743AD6C26E
+Fecha: 2026-11-11
