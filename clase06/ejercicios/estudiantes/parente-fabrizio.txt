@@ -1,0 +1,27 @@
+Apellido: Parente
+Nombre: Fabrizio
+Rama: estudiante/parente-fabrizio
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Es decision_tree_1d con 0.83, pero se entreno con 12 fechas y se midio con solo 3. Con tan pocos datos ese numero puede ser suerte, no es confiable.
+Pregunta (b) - El acc_train mas alto:
+  Es random_forest_3d_deep con 0.98 en train, pero en test baja a 0.54. Memorizo los datos de entrenamiento y no generaliza: es sobreajuste.
+Pregunta (c) - El acc_test mas bajo:
+  Es svm_3d con 0.51, casi lo mismo que tirar una moneda. En train tambien da 0.52, asi que no aprendio nada del problema.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Tiene el mejor acc_test (0.69) entre los que se midieron con datos suficientes (240 fechas de train y 60 de test), y la diferencia con train (0.74) es chica, asi que no esta sobreajustado.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Guardaria cada prediccion y despues la compararia con lo que paso de verdad. Si los aciertos de las ultimas semanas caen bastante por debajo del 0.69 del test, o se acercan a 0.5, empeoro y hay que reentrenarlo.
+Codigo: DD765BA2F6CA
+Fecha: 2026-11-11

@@ -1,0 +1,16 @@
+Apellido: Parente
+Nombre: Fabrizio
+Rama: estudiante/parente-fabrizio
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Hay dos bases de datos. Una es de Airflow, que anota lo suyo: qué tareas corrió y si salieron bien. La otra guarda los datos del curso. Están separadas para que no se mezclen y para que si una falla, la otra siga andando.
+Pregunta (b) - Datos despues del down:
+  Los datos no se guardan adentro del contenedor sino en un volumen, que es un espacio aparte. down borra el contenedor pero deja el volumen.
+Pregunta (c) - DAGs en el contenedor:
+  La carpeta dags de tu compu está conectada con una carpeta adentro del contenedor. Eso se llama bind mount, y lo que guardás de un lado aparece del otro.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el primer número, "8081:8080", porque el primero es el puerto de tu compu y el segundo el del contenedor. Adentro Airflow sigue en 8080 y vos entrás por el 8081.
+Pregunta (e) - Credenciales del warehouse:
+  La contraseña está en un archivo aparte, stack/.env, y Docker Compose la lee de ahí.
+Codigo: 3BD0FAA2CA9E
+Fecha: 2026-10-15
