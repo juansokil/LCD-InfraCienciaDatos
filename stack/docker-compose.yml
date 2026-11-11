@@ -18,10 +18,6 @@ services:
       - type: bind
         source: ./dags
         target: /opt/airflow/dags
-      - type: bind
-        source: ../TpFinal/grupos/G09/dags
-        target: /opt/airflow/dags/G09
-        read_only: true
       - airflow_logs:/opt/airflow/logs
       - airflow_plugins:/opt/airflow/plugins
       - type: bind
