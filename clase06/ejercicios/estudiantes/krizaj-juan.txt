@@ -1,0 +1,27 @@
+Apellido: Krizaj
+Nombre: Juan
+Rama: estudiante/krizaj-juan
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo decision_tree_1d obtuvo el mayor acc_test (0,83) y presenta resultados similares entre entrenamiento y test. Sin embargo, fue evaluado con solo 3 datos, por lo que no podemos asegurar que generalice bien.
+Pregunta (b) - El acc_train mas alto:
+  El modelo random_forest_3d_deep obtuvo el mayor acc_train (0,98), pero su acc_test es de 0,54. Esta diferencia sugiere sobreajuste (overfitting), es decir, que aprendió demasiado los datos de entrenamiento y no logra generalizar bien.
+Pregunta (c) - El acc_test mas bajo:
+  El modelo svm_3d obtuvo el menor acc_test (0,51), lo que indica un desempeño muy bajo, cercano al de una clasificación aleatoria si las clases están balanceadas.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Presenta el mejor acc_test (0,69) entre los modelos evaluados con 60 datos de prueba. Además, la diferencia entre entrenamiento y test es relativamente pequeña, lo que sugiere una mejor capacidad de generalización.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Monitorearía periódicamente la accuracy del modelo con nuevos datos etiquetados y la compararía con la obtenida inicialmente. Si disminuye de manera sostenida, sería una señal de que el modelo está perdiendo rendimiento.
+Codigo: F8D2CDDD222D
+Fecha: 2026-11-11
