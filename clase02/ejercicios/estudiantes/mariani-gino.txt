@@ -1,0 +1,16 @@
+Apellido: Mariani
+Nombre: Gino
+Rama: estudiante/mariani-gino
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los metadatos internos de Airflow. data_warehouse guarda los datos del curso. Están separados para que los datos del negocio no se mezclen con los datos operativos de Airflow
+Pregunta (b) - Datos despues del down:
+  Porque los datos se guardan en un volumen (data_warehouse_data). Los volúmenes persisten aunque el contenedor se apague o se borre
+Pregunta (c) - DAGs en el contenedor:
+  Mediante un bind mount. La carpeta ./dags de mi máquina esta conectada a /opt/airflow/dags en Docker.
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el puerto del host (el de la izquierda) por otro libre
+Pregunta (e) - Credenciales del warehouse:
+  La sabe a través del archivo .env que está en la carpeta stack
+Codigo: 0C72E04CD350
+Fecha: 2026-10-08
