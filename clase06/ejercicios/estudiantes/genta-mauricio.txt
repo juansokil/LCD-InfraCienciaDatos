@@ -1,0 +1,27 @@
+Apellido: Genta
+Nombre: Mauricio
+Rama: estudiante/genta-mauricio
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Se entrenó con muy pocos datos y a su vez el conjunto de test es muy pequeño, sin tener más datos para evaluarlo no es confiable, sólo una predicción diferente mueve el acc en 33 puntos.
+Pregunta (b) - El acc_train mas alto:
+  Este modelo (random_forest_3d_deep) tiene un acc_train muy alto (0.98), lo cuál indica que seguramente esté sufriendo de overfitting, en particular al mirar el acc_test vemos que apenas está por arriba de 0.5.
+Pregunta (c) - El acc_test mas bajo:
+  Es consistente entre train y test (muy similar) y tiene datos suficientes, así que el número es confiable. El problema es que el modelo no aprendió nada útil, si la clase está balanceada es como tirar una moneda.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Por más de que su accuracy en train tiene el 3er puesto, es relativamente alto, se entrenó/testeo con bastantes datos (la diferencia entre sus acc es baja, seguramente no hay overfitting) y tiene el 2do acc_test más alto (primero si obviamos el que tiene datos insuficientes).
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Hay varias formas (diferentes criterios de drift vistos en clase) como son: data drift, concept drift y label drift. Podríamos mirar la distribución de las features de entrada (data drift) contra las de train. Comparar el accuracy en prod con el 0.69 de test. Ir vigilando la distribución de las predicciones.
+Codigo: 11E1FEBC6B64
+Fecha: 2026-11-11
