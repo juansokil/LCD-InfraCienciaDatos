@@ -62,16 +62,17 @@ services:
       data_warehouse:
         condition: service_healthy
 
-  # Dashboard Streamlit: se descomenta cuando exista la carpeta dashboard/
-  # dashboard:
-  #   build: ./dashboard
-  #   env_file: .env
-  #   ports:
-  #     - "8501:8501"
-  #   depends_on:
-  #     data_warehouse:
-  #       condition: service_healthy
-
+  # Dashboard Streamlit (lee la capa Gold)
+  dashboard:
+    build: ./dashboard
+    env_file: .env
+    volumes:
+      - ./dashboard:/app
+    ports:
+      - "8501:8501"
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
 volumes:
   data_warehouse_data:
   airflow_db_data:
