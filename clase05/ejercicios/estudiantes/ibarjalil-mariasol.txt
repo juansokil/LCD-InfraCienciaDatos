@@ -1,0 +1,9 @@
+Apellido: Ibar Jalil
+Nombre: Maria Sol
+Rama: estudiante/ibarjalil-mariasol
+Caso: gimnasio
+Hecho: El evento que registra una fila es una visita de un socio a una sede.
+Dimensiones: Socio que va a tener su plan y datos, tiempo con la fecha, mes y franja horaria y sede que va a tener su barrio.
+Metricas: Minutos entrenados y monto consumido en la barra.
+Codigo: 70E7C5CEA149
+Fecha: 2026-11-03
