@@ -3,7 +3,7 @@
 ## Integrantes
 
 - Nombre Apellido (@usuario-github)
-
+- Juan Krizaj (@juankrizaj)
 - Matias Rousso (@Matirou1)
 - ...
 
