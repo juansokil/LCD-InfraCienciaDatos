@@ -1,0 +1,9 @@
+Apellido: Arcondo
+Nombre: Mia
+Rama: tpfinal/G05
+Caso: gimnasio
+Hecho: Una fila del hecho representa una visita de un socio a una sede, con entrada, salida, duración en minutos y consumo en la barra.
+Dimensiones: Una fila del hecho representa una visita de un socio a una sede, con entrada, salida, duración en minutos y consumo en la barra.
+Metricas: Por fila se miden duración_minutos y consumo_barra; luego se agregan minutos_totales, facturación_total, visitas_totales y gasto_promedio_por_visita = suma_consumo / visitas
+Codigo: EE99A0F01BD2
+Fecha: 2026-11-10
