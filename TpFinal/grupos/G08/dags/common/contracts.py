@@ -1,10 +1,13 @@
 """
-Data contract de CityBikes: lectura del YAML + evaluador de `quality_rules`.
+Data contract de CityBikes: lectura del YAML + modelo Pydantic por fila +
+evaluador de `quality_rules`.
 """
 
 from __future__ import annotations
 
 import os
+from datetime import date, datetime
+from typing import Any, Optional
 
 import yaml
 
@@ -13,6 +16,72 @@ def load_contract(path: str | os.PathLike) -> dict:
     """Lee y parsea un contrato YAML."""
     with open(path, "r", encoding="utf-8") as fh:
         return yaml.safe_load(fh)
+
+
+# Tipo del YAML -> tipo de Python. Pydantic convierte al validar: bronze guarda
+# todo como texto y de aca sale tipado ("12" -> 12, "True" -> True).
+_TYPE_MAP = {
+    "integer": int,
+    "string": str,
+    "numeric": float,
+    "float": float,
+    "date": date,
+    "timestamp": datetime,
+    "boolean": bool,
+}
+
+# Regla del YAML (`rules:` de cada columna) -> argumento de pydantic.Field
+_FIELD_RULE_MAP = {
+    "gt": "gt",
+    "ge": "ge",
+    "lt": "lt",
+    "le": "le",
+    "min_length": "min_length",
+    "max_length": "max_length",
+    "regex": "pattern",
+}
+
+
+def build_pydantic_from_contract(contract: dict, model_name: str | None = None):
+    """Arma un modelo Pydantic a partir del `schema` del contrato.
+
+    Cada columna del YAML pasa a ser un campo:
+        type     -> tipo de Python
+        nullable -> Optional[T] con default None; si no, campo obligatorio
+        rules    -> restricciones de pydantic.Field (ge, le, ...)
+
+    Devuelve la CLASE. Silver la usa fila por fila:
+        Contrato = build_pydantic_from_contract(contract)
+        Contrato(**fila)   # lanza ValidationError si la fila no cumple
+
+    Valida UNA fila contra si misma (tipos y rangos). Lo que necesita mirar
+    el lote entero (unique, fresh) va por `evaluar_reglas`.
+    """
+    from pydantic import Field, create_model  # lazy: bronze no lo necesita
+
+    name = model_name or f"{contract.get('dataset', 'Contract').title()}Contract"
+    fields: dict[str, tuple[Any, Any]] = {}
+
+    for col in contract.get("schema", []) or []:
+        col_name = col["name"]
+        yaml_type = col.get("type", "string")
+        if yaml_type not in _TYPE_MAP:
+            raise ValueError(f"tipo '{yaml_type}' desconocido en columna '{col_name}'")
+        py_type = _TYPE_MAP[yaml_type]
+
+        rules = col.get("rules", {}) or {}
+        desconocidas = sorted(set(rules) - set(_FIELD_RULE_MAP))
+        if desconocidas:
+            # Mismo criterio que ReglaDesconocida: nada se ignora en silencio.
+            raise ValueError(f"rules {desconocidas} no soportadas en columna '{col_name}'")
+        field_kwargs = {_FIELD_RULE_MAP[k]: v for k, v in rules.items()}
+
+        if col.get("nullable", False):
+            fields[col_name] = (Optional[py_type], Field(col.get("default"), **field_kwargs))
+        else:
+            fields[col_name] = (py_type, Field(..., **field_kwargs))
+
+    return create_model(name, **fields)
 
 
 class ReglaDesconocida(ValueError):
