@@ -87,6 +87,52 @@ docker compose down            # apaga, conserva datos
 docker compose down -v         # BORRA los volumenes y todos los datos (solo reset intencional)
 ```
 
+## Como comprobar que anda
+
+Después de levantar el stack, en unos 5 minutos:
+
+**1. Airflow** (http://localhost:8080): los 4 DAGs aparecen activos y con su
+última corrida en verde.
+
+| DAG | Qué tiene que pasar |
+|---|---|
+| `00_backfill_sismos_30_dias` | Una sola corrida, la de los 30 días. |
+| `01_bronze_sismos` | Una corrida al arrancar y después una por hora. |
+| `02_silver_sismos` | Una corrida después de cada carga de Bronze. |
+| `03_gold_sismos` | Una corrida después de cada Silver. |
+
+Si alguna tarea queda en rojo, se puede abrir y ver el log. La primera tarea
+de Bronze reintenta sola si falla porque Airflow todavía estaba arrancando.
+
+**2. Dashboard** (http://localhost:8501):
+
+- **Inicio**: total de sismos, días con actividad (alrededor de 30), zonas y
+  eventos marcados con tsunami.
+- **Actividad sísmica**: sismos por mes y las zonas con más actividad.
+- **Mapa de sismos**: dónde ocurrió cada evento.
+- **Sismos marcados con tsunami**: la lista de eventos con `tsunami=1`.
+
+Si el inicio dice que Gold todavía no tiene datos, falta que termine
+`03_gold_sismos`.
+
+**3. Postgres** (opcional, con cualquier cliente SQL):
+
+```sql
+-- Cuántos días y qué período cubre Gold
+SELECT COUNT(DISTINCT fecha), MIN(fecha), MAX(fecha) FROM gold.fact_sismo;
+
+-- Cuántos sismos quedan en cada capa
+SELECT 'bronze', COUNT(*) FROM bronze.sismos_crudo
+UNION ALL SELECT 'silver', COUNT(*) FROM silver.sismos_limpio
+UNION ALL SELECT 'gold', COUNT(*) FROM gold.fact_sismo;
+```
+
+Bronze tiene más filas que Silver porque guarda cada versión que publicó USGS
+de un mismo sismo; Silver se queda con la más reciente.
+
+Los JSON que se guardan en `data/raw/` quedan en cada máquina y no se suben al
+repo (están en el `.gitignore`).
+
 ## Estructura del proyecto
 
 Ver la seccion **"Esqueleto de entrega"** en [`TpFinal/README.md`](../../README.md) — es una estructura sugerida, no obligatoria.
