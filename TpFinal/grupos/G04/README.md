@@ -2,8 +2,8 @@
 
 ## Integrantes
 
-- Juan Krizaj
-- Matías Rousso
+- Juan Krizaj (@juankrizaj)
+- Matías Rousso (@Matirou1)
 - [Completar integrantes restantes y usuarios de GitHub]
 
 ## API elegida
