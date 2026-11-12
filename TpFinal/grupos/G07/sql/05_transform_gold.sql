@@ -1,4 +1,3 @@
--- 1. Calendario completo: cubre rango de Silver ± 7 días
 INSERT INTO gold.dim_fecha (fecha_id, fecha, anio, mes, nombre_mes, dia, dia_semana)
 SELECT
     TO_CHAR(d, 'YYYYMMDD')::INT,
@@ -15,7 +14,9 @@ FROM generate_series(
 ) AS d
 ON CONFLICT (fecha_id) DO NOTHING;
 
--- 2. Región: último segmento del "place"
+--    COALESCE cubre el caso lugar = NULL → 'Desconocido'.
+--    Sin el WHERE lugar IS NOT NULL: si TODOS los lugares son NULL, igual
+--    tiene que existir la fila 'Desconocido' o la FK de la fact falla.
 INSERT INTO gold.dim_region (nombre_region)
 SELECT DISTINCT
     COALESCE(
@@ -23,10 +24,9 @@ SELECT DISTINCT
         'Desconocido'
     ) AS nombre_region
 FROM silver.sismos
-WHERE lugar IS NOT NULL
 ON CONFLICT (nombre_region) DO NOTHING;
 
--- 3. Fact (LEFT JOIN y ON CONFLICT)
+-- Fact: JOIN con dim_region por nombre normalizado + UPSERT por sismo_id.
 INSERT INTO gold.fact_sismos (
     sismo_id, fecha_id, region_id, magnitud, profundidad_km,
     latitud, longitud, es_tsunami, cantidad
