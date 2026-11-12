@@ -1,0 +1,9 @@
+Apellido: Fenley
+Nombre: Uriel
+Rama: estudiante/fenley-uriel
+Caso: gimnasio
+Hecho: Cada fila representa una visita de un socio al gimnasio, desde que entra hasta que sale.
+Dimensiones: Se puede dividir por fecha y hora de la visita, sede y plan del socio. La fecha y hora salen del molinete, y de ahí se sacan el mes y la franja horaria. La sede sale de la visita y el plan de los datos del socio.
+Metricas: Se guarda la duración de la visita en minutos y lo gastado en la barra. Después se suman los minutos y los gastos, y para el promedio se divide el gasto total por la cantidad de visitas.
+Codigo: D7750C144D95
+Fecha: 2026-11-12
