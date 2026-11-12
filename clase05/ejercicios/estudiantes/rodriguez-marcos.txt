@@ -1,0 +1,9 @@
+Apellido: Rodriguez
+Nombre: Marcos
+Rama: estudiante/rodriguez-marcos
+Caso: gimnasio
+Hecho: Una fila registra una visita de un socio a una sede, desde que entra hasta que sale del gimnasio.
+Dimensiones: Fecha o mes y franja horaria, obtenidos de los registros de entrada y salida; sede, del molinete; y plan, de los datos del socio.
+Metricas: En cada visita se mide la duración en minutos y el importe consumido en la barra. Después se calculan los minutos totales, la facturación, la cantidad de visitas y el gasto promedio agrupando por las dimensiones correspondientes.
+Codigo: 0F7F0311A620
+Fecha: 2026-11-04

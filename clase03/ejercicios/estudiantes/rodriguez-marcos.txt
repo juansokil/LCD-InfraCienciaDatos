@@ -1,0 +1,19 @@
+Apellido: Rodriguez
+Nombre: Marcos
+Rama: estudiante/rodriguez-marcos
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 84644
+Doble ingesta: SI
+Ultima carga: 2026-10-21 18:02:52.414826
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla, porque los archivos raw permiten reconstruirla y volver a procesar los datos. Sin ellos, perdería la respuesta original de la API
+Pregunta (b) - replace y append:
+  replace borra los datos anteriores y los reemplaza por los nuevos; append agrega las nuevas filas a las existentes. El DAG productivo usa append para conservar las ingestas
+Pregunta (c) - Dos cargas identicas:
+  Pueden ser idénticos porque la API devuelve los mismos datos en ambas consultas. Se guardan igual para mantener un registro de cada ingesta y poder auditarla
+Codigo: 3CB7139B6A17
+Fecha: 2026-10-21
