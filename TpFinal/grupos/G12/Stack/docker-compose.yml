@@ -1,8 +1,8 @@
+name: g12
 services:
   # Airflow Standalone - Orquestador UN-SAM
   airflow:
     build: .
-    container_name: airflow_standalone
     command: standalone
     env_file: .env
     environment:
@@ -10,7 +10,6 @@ services:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
       - AIRFLOW__API__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
-      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/credentials/google_key.json
       - AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=10
       - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=10
       - SOURCE_DB_HOST=data_warehouse
@@ -30,9 +29,6 @@ services:
       - type: bind
         source: ./data
         target: /opt/airflow/data
-      - type: bind
-        source: ./credentials
-        target: /opt/airflow/credentials
     ports:
       # Mapeo HOST:CONTENEDOR — el contenedor SIEMPRE escucha en 8080 internamente.
       # Solo cambia el puerto del HOST (la URL de la UI: http://localhost:PUERTO).
@@ -61,7 +57,6 @@ services:
   # PostgreSQL - Metadatos de Airflow (Interno)
   airflow_db:
     image: postgres:17-alpine
-    container_name: airflow_db
     environment:
       - POSTGRES_USER=${AF_DB_USER}
       - POSTGRES_PASSWORD=${AF_DB_PASS}
@@ -88,7 +83,6 @@ services:
       context: .
       dockerfile: Dockerfile.postgres
     image: data_warehouse:custom
-    container_name: data_warehouse
     environment:
       - POSTGRES_USER=${SOURCE_DB_USER}
       - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
@@ -122,7 +116,6 @@ services:
   # Streamlit - Dashboard BI
   dashboard:
     build: ./dashboard
-    container_name: dashboard
     env_file: .env
     environment:
       - SOURCE_DB_HOST=data_warehouse
@@ -151,50 +144,13 @@ services:
           memory: 512M
           cpus: '0.5'
 
-  # MLflow Tracking Server (experimentos + Model Registry)
-  # Reemplaza el MLflow LOCAL (sqlite) que usaba la notebook de clase06 por un
-  # server compartido y persistente. Backend en Postgres (data_warehouse, db
-  # `mlflow`), artifacts en volumen. La notebook loguea contra http://localhost:5000.
-  mlflow:
-    build:
-      context: .
-      dockerfile: Dockerfile.mlflow
-    image: mlflow_server:custom
-    container_name: mlflow
-    command: >
-      mlflow server
-      --host 0.0.0.0 --port 5000
-      --backend-store-uri postgresql://${SOURCE_DB_USER}:${SOURCE_DB_PASS}@data_warehouse:5432/mlflow
-      --artifacts-destination /mlflow/artifacts
-      --serve-artifacts
-    ports:
-      # UI + API de MLflow. Si 5000 está ocupado, cambiá el puerto del HOST (5001:5000).
-      - "5000:5000"
-    volumes:
-      - mlflow_artifacts:/mlflow/artifacts
-    depends_on:
-      data_warehouse:
-        condition: service_healthy
-    restart: "no"
-    networks:
-      - de_stack_network
-    deploy:
-      resources:
-        limits:
-          # 2 GB: con 1 GB el server se queda sin aire al RECIBIR artefactos
-          # (--serve-artifacts hace que el .pkl del modelo pase por aca).
-          # Sintoma tipico: log_model() de un RandomForest corta con
-          # "Read timed out" mientras los modelos chicos loguean bien.
-          memory: 2048M
-
 volumes:
   airflow_db_data:
   airflow_logs:
   airflow_plugins:
   data_warehouse_data:
-  mlflow_artifacts:
 
 networks:
   de_stack_network:
-    name: de_stack_network
+    name: g12_network
     driver: bridge
