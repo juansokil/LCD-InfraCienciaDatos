@@ -34,6 +34,20 @@
 
 `<modelo dimensional: fact_X + dim_Y, y que pregunta de negocio responde el dashboard>`
 
+## Dashboard
+
+Streamlit en `Stack/dashboard/`, en http://localhost:8501. Lee **solo la capa Gold**:
+
+| Página | Pregunta que responde | Tablas |
+|---|---|---|
+| Portada (`app.py`) | ¿Cuánto tembló en el período, y cuáles fueron los días/lugares más fuertes? | `fact_sismos_diarios` ⋈ `dim_region` |
+| Evolución diaria | ¿Cómo cambia la actividad día a día? (sismos, magnitud, energía; filtro por período y región) | `fact_sismos_diarios` ⋈ `dim_region` |
+| Ranking de zonas | ¿Dónde tiembla más y dónde más fuerte? ¿Qué zonas tuvieron alerta de tsunami? | `agg_ranking_zonas` |
+
+- La energía se muestra en **toneladas de TNT equivalentes** (1 t TNT = 4.184e9 J) para que se entienda la escala.
+- Si Gold todavía no tiene datos (el pipeline no corrió), cada página lo avisa en vez de romperse.
+- `db.py` centraliza la conexión (credenciales del `.env`) y cachea las consultas 60 s; el botón **Actualizar datos** de la barra lateral limpia el cache.
+
 ## Como levantar el stack
 
 > ⚠️ **Esta API necesita una key.** Antes de levantar, completa `MI_API_KEY` en el
