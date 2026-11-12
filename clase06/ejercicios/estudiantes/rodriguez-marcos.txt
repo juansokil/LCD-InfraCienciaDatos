@@ -1,0 +1,27 @@
+Apellido: Rodriguez
+Nombre: Marcos
+Rama: estudiante/rodriguez-marcos
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  decision_tree_1d obtuvo el mayor acc_test (0,83), pero se evaluó con solo 3 datos de prueba.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep obtuvo el mayor acc_train (0,98), pero su bajo acc_test (0,54) indica sobreajuste.
+Pregunta (c) - El acc_test mas bajo:
+  svm_3d obtuvo el menor acc_test (0,51), por lo que tuvo el peor rendimiento en las pruebas.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Porque obtuvo el mayor acc_test (0,69) entre los modelos evaluados con 240 datos de entrenamiento y 60 de prueba, y presenta poca diferencia entre entrenamiento y prueba
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Compararía periódicamente sus predicciones con los resultados reales. Si su exactitud baja, investigaría las causas y evaluaría reentrenarlo.
+Codigo: FA36163208C3
+Fecha: 2026-11-12
