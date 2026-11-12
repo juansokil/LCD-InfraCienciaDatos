@@ -10,19 +10,20 @@ CREATE TABLE IF NOT EXISTS gold.dim_fecha (
     dia_semana  VARCHAR(20) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS gold.dim_region (
-    region_id      SERIAL PRIMARY KEY,
-    nombre_region  VARCHAR(255) NOT NULL UNIQUE
+CREATE TABLE IF NOT EXISTS gold.dim_ubicacion (
+    ubicacion_id   SERIAL PRIMARY KEY,
+    latitud        DOUBLE PRECISION NOT NULL,
+    longitud       DOUBLE PRECISION NOT NULL,
+    nombre_region  VARCHAR(255) NOT NULL,
+    UNIQUE (latitud, longitud, nombre_region)
 );
 
 CREATE TABLE IF NOT EXISTS gold.fact_sismos (
     sismo_id       VARCHAR(100) PRIMARY KEY,
     fecha_id       INT NOT NULL REFERENCES gold.dim_fecha(fecha_id),
-    region_id      INT NOT NULL REFERENCES gold.dim_region(region_id),
+    ubicacion_id   INT NOT NULL REFERENCES gold.dim_ubicacion(ubicacion_id),
     magnitud       NUMERIC(4,2),
     profundidad_km NUMERIC(8,2),
-    latitud        NUMERIC(9,6),
-    longitud       NUMERIC(9,6),
     es_tsunami     SMALLINT NOT NULL DEFAULT 0,
     cantidad       INT NOT NULL DEFAULT 1,
     actualizado_en TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

@@ -25,25 +25,27 @@ def cargar_gold() -> pd.DataFrame:
         SELECT f.sismo_id,
                f.magnitud,
                f.profundidad_km,
-               f.latitud,
-               f.longitud,
+               u.latitud,
+               u.longitud,
+               u.nombre_region,
                f.es_tsunami,
                f.cantidad,
                d.fecha,
                d.anio,
                d.mes,
                d.nombre_mes,
-               d.dia_semana,
-               r.nombre_region
+               d.dia_semana
         FROM gold.fact_sismos f
-        JOIN gold.dim_fecha  d ON d.fecha_id  = f.fecha_id
-        JOIN gold.dim_region r ON r.region_id = f.region_id
+        JOIN gold.dim_fecha d ON d.fecha_id = f.fecha_id
+        JOIN gold.dim_ubicacion u ON u.ubicacion_id = f.ubicacion_id
         ORDER BY d.fecha DESC, f.magnitud DESC
     """
     return pd.read_sql(sql, get_engine())
 
 
 df = cargar_gold()
+
+df["fecha"] = pd.to_datetime(df["fecha"])
 
 st.title("🌎 USGS Earthquakes — Grupo G07")
 st.caption(
@@ -98,7 +100,6 @@ if region_sel != "Todas":
 
 dff = df[mask].copy()
 
-# ---------------- KPIs ----------------
 c1, c2, c3, c4 = st.columns(4)
 c1.metric("Sismos", f"{len(dff):,}")
 c2.metric(
@@ -111,7 +112,6 @@ c3.metric(
 )
 c4.metric("Con tsunami", f"{int(dff['es_tsunami'].sum()):,}")
 
-# ---------------- Serie diaria ----------------
 st.subheader("Sismos por día")
 por_dia = (
     dff.groupby("fecha").size().reset_index(name="sismos").sort_values("fecha")
@@ -127,7 +127,6 @@ if not por_dia.empty:
     fig.update_layout(margin=dict(l=10, r=10, t=30, b=10))
     st.plotly_chart(fig, use_container_width=True)
 
-# ---------------- Distribución + top regiones ----------------
 col1, col2 = st.columns(2)
 
 with col1:
@@ -200,6 +199,6 @@ tabla = (
 st.dataframe(tabla, use_container_width=True, hide_index=True)
 
 st.caption(
-    f"Fuente: gold.fact_sismos + dim_fecha + dim_region · "
+    f"Fuente: gold.fact_sismos + dim_fecha + dim_ubicacion · "
     f"{len(df):,} sismos en total · Actualización: cada corrida del pipeline"
 )
