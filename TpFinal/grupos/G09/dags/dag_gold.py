@@ -4,10 +4,14 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from airflow.sdk import dag, task, Asset
 
-# Escuchamos lo que publica Silver para arrancar
-SILVER_ASSET = Asset(name="g09_silver_open_meteo_clean")
-# Publicamos el Asset de Gold (para que el Dashboard sepa que hay datos)
-GOLD_ASSET = Asset(name="g09_gold_open_meteo_star")
+SILVER_ASSET = Asset(
+    name="g09_silver_open_meteo_clean",
+    uri="postgres://data_warehouse:5432/InfraCienciaDatos/silver/clima_diario_clean",
+)
+GOLD_ASSET = Asset(
+    name="g09_gold_open_meteo_star",
+    uri="postgres://data_warehouse:5432/InfraCienciaDatos/gold/fact_clima_diario",
+)
 
 def get_database_engine():
     database_url = URL.create(
