@@ -1,0 +1,27 @@
+Apellido: ramos
+Nombre: lautaro
+Rama: estudiante/ramos-lautaro
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: decision_tree_1d [OK]
+Pregunta (a) - El acc_test mas alto:
+  Podría llegar a ser un buen modelo, pero pareciera que no porque en el test bajo mucho su % de acierto por lo tanto pareciera que fue o sobreentrenado y dio un overfiting.
+Pregunta (b) - El acc_train mas alto:
+  Es el modelo que mejor se adapta a los datos reales, no hubo overfiting.
+Pregunta (c) - El acc_test mas bajo:
+  Es el modelo que peor se adapta a la realidad, pudo ser que se eleigieron malas viarables predicticas o los datos fueron malo.
+Pregunta (d) - Cual pondrias en produccion:
+  decision_tree_1d
+  siento que es un buen por sus metricas de train y test pero tiene poco n_train y n_test, puede empezar a fallar.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Las metricas empiezan a bajar y empiezan a cmabiar mucho las predicciones del modelo con respecto a lo que se encontro en el train.
+Codigo: 2A3D05B788BD
+Fecha: 2026-11-11

@@ -1,0 +1,9 @@
+Apellido: ramos
+Nombre: lautaro
+Rama: estudiante/ramos-lautaro
+Caso: gimnasio
+Hecho: Siento que cada fila de mi tabla tendria que ser cada estadia, ya que marcaria la duracion, que socio fue y si consumio algo
+Dimensiones: Serian la sede, el plan, el tiempo
+Metricas: En cada fila se culcula la duracion del entrenamiento, con una columna extra, y cuanto gasto en la barra.
+Codigo: CF9276C034AF
+Fecha: 2026-11-02
