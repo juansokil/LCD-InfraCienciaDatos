@@ -1,0 +1,27 @@
+Apellido: Simonenco
+Nombre: Agustín
+Rama: estudiante/simonenco-agustin
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Es el decision_tree_1d con 0.83, pero no me lo creo: se entreno con 12 fechas y se midio con 3. Con tan pocas fechas de test ese numero puede ser suerte, y no se puede comparar con los que se midieron sobre 60.
+Pregunta (b) - El acc_train mas alto:
+  Es el random_forest_3d_deep: 0.98 en train y 0.54 en test. Se memorizo los datos de entrenamiento (sobreajuste): la diferencia de 44 puntos dice que no generaliza, y en datos nuevos anda casi como tirar una moneda.
+Pregunta (c) - El acc_test mas bajo:
+  Es el svm_3d con 0.51, y en train da 0.52. No sobreajusta, directamente no aprendio nada: anda como el azar (si las clases estan parejas). No sirve y no hay que darle mas vueltas.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Tiene el mejor acc_test (0.69) entre los que se midieron con 60 fechas, que son los comparables, y la diferencia con train es chica (0.74 contra 0.69), asi que generaliza. Igual la diferencia con random_forest_7d (0.68) y con logistic_3d (0.66) es poca: si me piden algo mas simple de explicar, la logistica es una buena alternativa.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Guardaria cada prediccion y, cuando se conozca lo que paso de verdad, calcularia el accuracy de los ultimos dias y lo compararia con el 0.69 del test, con una alerta si cae por debajo de un umbral. Ademas miraria si los datos de entrada cambian respecto de los de entrenamiento (drift), porque eso suele avisar antes de que caiga el accuracy.
+Codigo: 340F91C755A3
+Fecha: 2026-11-12

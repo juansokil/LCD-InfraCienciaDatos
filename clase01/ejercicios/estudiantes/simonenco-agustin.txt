@@ -1,0 +1,6 @@
+Apellido: Simonenco
+Nombre: Agustín
+Usuario GitHub: AgustinSimonenco
+Rama: estudiante/simonenco-agustin
+Codigo: 76D346BE263C
+Fecha: 2026-10-15

@@ -1,0 +1,9 @@
+Apellido: Simonenco
+Nombre: Agustín
+Rama: estudiante/simonenco-agustin
+Caso: gimnasio
+Hecho: Una fila es una visita: un socio que pasa el molinete en una sede, desde que entra hasta que sale. El grano es una visita (socio + sede + hora de entrada), no el socio ni el dia.
+Dimensiones: Fecha y hora de la entrada (dia, mes y franja horaria), que sale del molinete. Sede (barrio, cantidad de maquinas, horario de apertura), tambien del molinete. Socio (nombre, fecha de alta, sede donde se asocio y plan), del sistema de socios. Ojo que la sede de la visita y la sede donde se asocio son dos cosas distintas: la primera es la dimension sede y la segunda es un atributo del socio. Y si alguien cambia de plan conviene SCD tipo 2, asi sus visitas viejas siguen contando con el plan que tenia.
+Metricas: En cada fila: los minutos entrenados (salida menos entrada), lo que gasto en la barra en esa visita (0 si no compro nada, no nulo) y un 1 para contar visitas. El gasto promedio por visita no se guarda: se calcula al final como suma del gasto dividido cantidad de visitas, asi sirve por plan o para toda la cadena. Las maquinas y el horario de apertura son numeros pero describen la sede, no son metricas.
+Codigo: 5786FC1728B3
+Fecha: 2026-11-12

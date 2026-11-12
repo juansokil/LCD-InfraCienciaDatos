@@ -1,0 +1,19 @@
+Apellido: Simonenco
+Nombre: Agustín
+Rama: estudiante/simonenco-agustin
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80518
+Doble ingesta: SI
+Ultima carga: 2026-10-25 16:55:33.941110
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla. El archivo crudo tiene todo lo que mandó la API tal cual, así que con él puedo volver a armar la tabla cuando quiera sin pedirle nada de nuevo a CoinGecko. Si borrara el crudo perdería eso: si la tabla quedó mal armada o mañana quiero una columna que no guardé, ya no tengo el original, y los precios de esa hora no los puedo volver a pedir. Borrando la tabla lo único que pierdo es poder consultarlo con SQL directo hasta que la vuelva a armar.
+Pregunta (b) - replace y append:
+  Con replace se borra la tabla y queda solo la última carga (50 filas, una por cripto). Con append la carga nueva se suma abajo de lo que ya estaba, así que cada cripto aparece una vez por carga, cada una con su ingested_at. El DAG productivo usa append, porque la idea es ir juntando el historial de todas las fotos de cada 15 minutos.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque las dos cargas guardan la misma respuesta: el Paso 4 no le vuelve a pedir nada a la API, escribe otra vez el mismo response del Paso 1 (y aunque pidiera de nuevo, CoinGecko tiene cache y en pocos segundos te devuelve lo mismo). Igual se guardan los dos porque son dos cargas distintas, hechas en momentos distintos (el nombre del archivo tiene la hora), y en Bronze la idea es guardar todo lo que llegó tal cual sin decidir nada. Deduplicar es laburo de Silver; en la zona raw no se pisa ni se borra nada, cada carga deja su archivo.
+Codigo: 87CA1032FE6E
+Fecha: 2026-10-25
