@@ -5,7 +5,10 @@
 - Uriel Grochowski (ugro2904)
 - Antonella Trinidad Frutos ()
 - Maria Sol Ibar Jalil (solibarjalil)
-- Lucas Patricio Isla (lisla23)
+- Lucas Patricio Isla (Lisla23)
+- ## Credenciales de Acceso (Airflow)
+  **Usuario:** admin
+  **Contraseña:** admin
 
 ## API elegida
 
