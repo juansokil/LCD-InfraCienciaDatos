@@ -4,7 +4,7 @@
 
 - Uriel Grochowski (ugro2904)
 - Antonella Trinidad Frutos ()
-- Maria Sol Ibar Jalil ()
+- Maria Sol Ibar Jalil (solibarjalil)
 - Lucas Patricio Isla (lisla23)
 
 ## API elegida
