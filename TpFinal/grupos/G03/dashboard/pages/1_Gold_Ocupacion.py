@@ -6,21 +6,37 @@ from db import run_query
 
 
 st.set_page_config(
-    page_title="Gold · Ocupación",
-    page_icon="\U0001F947",
+    page_title="Ecobici CABA · Disponibilidad",
+    page_icon="\U0001F6B2",
     layout="wide",
 )
 
-st.title("Gold · Ocupación de estaciones")
 
-st.caption(
+# =========================================================
+# ENCABEZADO
+# =========================================================
+
+st.title(
+    "Ecobici CABA — Disponibilidad y ocupación de estaciones"
+)
+
+st.markdown(
     """
-    Los datos de CityBikes representan snapshots de disponibilidad,
-    no viajes individuales. Por eso el patrón horario se interpreta
-    como **ocupación y disponibilidad observada por hora**.
+    Análisis histórico y territorial construido a partir de snapshots
+    de **CityBikes**, procesados mediante la arquitectura
+    **Bronze → Silver → Gold**.
     """
 )
 
+st.info(
+    "Los datos representan estados observados de las estaciones "
+    "y no viajes individuales."
+)
+
+
+# =========================================================
+# CONSULTA GOLD
+# =========================================================
 
 SQL = """
 SELECT
@@ -30,6 +46,7 @@ SELECT
     f.snapshots_count,
 
     f.avg_capacity,
+
     f.avg_free_bikes,
     f.min_free_bikes,
     f.max_free_bikes,
@@ -45,6 +62,8 @@ SELECT
     f.zero_bikes_pct,
     f.zero_empty_slots_pct,
     f.fully_operational_pct,
+
+    f.last_snapshot_at_utc,
 
     e.station_id,
     e.station_name,
@@ -82,23 +101,114 @@ except Exception as exc:
 
 
 if df.empty:
-    st.warning("La capa Gold todavía no contiene datos.")
+    st.warning(
+        "La capa Gold todavía no contiene datos."
+    )
     st.stop()
+
+
+# =========================================================
+# PREPARACIÓN
+# =========================================================
+
+df["hour_start_local"] = pd.to_datetime(
+    df["hour_start_local"]
+)
+
+df["fecha_local"] = pd.to_datetime(
+    df["fecha_local"]
+).dt.date
+
+df["last_snapshot_local"] = (
+    pd.to_datetime(
+        df["last_snapshot_at_utc"],
+        utc=True,
+        errors="coerce",
+    )
+    .dt.tz_convert(
+        "America/Argentina/Buenos_Aires"
+    )
+)
 
 
 # =========================================================
 # FILTROS
 # =========================================================
 
-st.sidebar.header("Filtros")
+st.sidebar.header(
+    "Filtros"
+)
 
+fecha_min = df[
+    "fecha_local"
+].min()
+
+fecha_max = df[
+    "fecha_local"
+].max()
+
+
+periodo = st.sidebar.date_input(
+    "Período",
+    value=(
+        fecha_min,
+        fecha_max,
+    ),
+    min_value=fecha_min,
+    max_value=fecha_max,
+)
+
+
+df_filtrado = df.copy()
+
+
+if isinstance(
+    periodo,
+    (tuple, list),
+):
+
+    if len(periodo) == 2:
+        desde, hasta = periodo
+
+    elif len(periodo) == 1:
+        desde = periodo[0]
+        hasta = periodo[0]
+
+    else:
+        desde = fecha_min
+        hasta = fecha_max
+
+else:
+    desde = periodo
+    hasta = periodo
+
+
+df_filtrado = df_filtrado[
+    (
+        df_filtrado["fecha_local"]
+        >= desde
+    )
+    &
+    (
+        df_filtrado["fecha_local"]
+        <= hasta
+    )
+]
+
+
+# ---------------------------------------------------------
+# Comuna
+# ---------------------------------------------------------
 
 comunas = sorted(
-    df["comuna"]
+    df_filtrado[
+        "comuna"
+    ]
     .dropna()
     .astype(int)
     .unique()
 )
+
 
 comuna_sel = st.sidebar.multiselect(
     "Comuna",
@@ -106,48 +216,71 @@ comuna_sel = st.sidebar.multiselect(
 )
 
 
-df_filtrado = df.copy()
-
 if comuna_sel:
     df_filtrado = df_filtrado[
-        df_filtrado["comuna"]
-        .isin(comuna_sel)
+        df_filtrado[
+            "comuna"
+        ].isin(
+            comuna_sel
+        )
     ]
 
 
+# ---------------------------------------------------------
+# Barrio dependiente de comuna
+# ---------------------------------------------------------
+
 barrios = sorted(
-    df_filtrado["barrio"]
+    df_filtrado[
+        "barrio"
+    ]
     .dropna()
     .unique()
 )
+
 
 barrio_sel = st.sidebar.multiselect(
     "Barrio",
     barrios,
 )
 
+
 if barrio_sel:
     df_filtrado = df_filtrado[
-        df_filtrado["barrio"]
-        .isin(barrio_sel)
+        df_filtrado[
+            "barrio"
+        ].isin(
+            barrio_sel
+        )
     ]
 
 
+# ---------------------------------------------------------
+# Estación dependiente de barrio
+# ---------------------------------------------------------
+
 estaciones = sorted(
-    df_filtrado["station_name"]
+    df_filtrado[
+        "station_name"
+    ]
     .dropna()
     .unique()
 )
+
 
 estacion_sel = st.sidebar.multiselect(
     "Estación",
     estaciones,
 )
 
+
 if estacion_sel:
     df_filtrado = df_filtrado[
-        df_filtrado["station_name"]
-        .isin(estacion_sel)
+        df_filtrado[
+            "station_name"
+        ].isin(
+            estacion_sel
+        )
     ]
 
 
@@ -159,35 +292,58 @@ if df_filtrado.empty:
 
 
 # =========================================================
-# KPIs
+# ESTADO GENERAL
 # =========================================================
 
 ultima_hora = df_filtrado[
     "hour_start_local"
 ].max()
 
+
 ultimo = df_filtrado[
-    df_filtrado["hour_start_local"]
+    df_filtrado[
+        "hour_start_local"
+    ]
     == ultima_hora
-]
+].copy()
 
 
-c1, c2, c3, c4 = st.columns(4)
+ultima_observacion = (
+    ultimo[
+        "last_snapshot_local"
+    ].max()
+)
+
+
+st.subheader(
+    "Estado general"
+)
+
+
+c1, c2, c3, c4, c5 = st.columns(
+    5
+)
+
 
 c1.metric(
-    "Estaciones",
-    ultimo["station_id"].nunique(),
+    "Estaciones analizadas",
+    ultimo[
+        "station_id"
+    ].nunique(),
 )
+
 
 c2.metric(
     "Bicicletas promedio",
     f"{ultimo['avg_free_bikes'].mean():.1f}",
 )
 
+
 c3.metric(
-    "Slots libres promedio",
+    "Espacios libres promedio",
     f"{ultimo['avg_empty_slots'].mean():.1f}",
 )
+
 
 c4.metric(
     "Ocupación promedio",
@@ -195,165 +351,503 @@ c4.metric(
 )
 
 
-st.caption(
-    f"Última hora disponible: {ultima_hora}"
+if pd.notna(
+    ultima_observacion
+):
+    ultima_texto = (
+        ultima_observacion.strftime(
+            "%d/%m %H:%M"
+        )
+    )
+
+else:
+    ultima_texto = (
+        ultima_hora.strftime(
+            "%d/%m %H:%M"
+        )
+    )
+
+
+c5.metric(
+    "Última observación",
+    ultima_texto,
 )
+
+
+st.divider()
 
 
 # =========================================================
-# ESTACIONES MÁS SATURADAS
+# 1. DISPONIBILIDAD
 # =========================================================
 
-st.subheader(
-    "Estaciones más saturadas para devolución"
+st.header(
+    "1. Disponibilidad"
 )
 
 st.caption(
-    """
-    Una ocupación alta implica muchas bicicletas disponibles
-    y pocos espacios libres para devolver una bicicleta.
-    """
+    "Situaciones observadas durante la última hora "
+    "disponible para los filtros seleccionados."
 )
 
 
-ranking_devolucion = (
-    df_filtrado
-    .groupby(
+col_retiro, col_devolucion = st.columns(
+    2
+)
+
+
+# ---------------------------------------------------------
+# RETIRO
+# ---------------------------------------------------------
+
+with col_retiro:
+
+    st.subheader(
+        "Baja disponibilidad para retiro"
+    )
+
+    st.caption(
+        "Estaciones que durante la última hora presentaron "
+        "una mayor proporción de observaciones sin bicicletas."
+    )
+
+
+    ranking_retiro = (
+        ultimo[
+            [
+                "station_name",
+                "barrio",
+                "comuna",
+                "avg_free_bikes",
+                "zero_bikes_pct",
+            ]
+        ]
+        .sort_values(
+            [
+                "zero_bikes_pct",
+                "avg_free_bikes",
+            ],
+            ascending=[
+                False,
+                True,
+            ],
+        )
+        .head(10)
+    )
+
+
+    fig_retiro = px.bar(
+        ranking_retiro,
+        x="zero_bikes_pct",
+        y="station_name",
+        orientation="h",
+        hover_data={
+            "barrio": True,
+            "comuna": True,
+            "avg_free_bikes": ":.1f",
+        },
+        labels={
+            "station_name":
+                "Estación",
+            "zero_bikes_pct":
+                "% de observaciones sin bicicletas",
+            "avg_free_bikes":
+                "Bicicletas promedio",
+        },
+    )
+
+
+    fig_retiro.update_layout(
+        yaxis={
+            "categoryorder":
+                "total ascending"
+        },
+        xaxis_range=[
+            0,
+            100,
+        ],
+        height=450,
+    )
+
+
+    st.plotly_chart(
+        fig_retiro,
+        use_container_width=True,
+    )
+
+
+# ---------------------------------------------------------
+# DEVOLUCIÓN
+# ---------------------------------------------------------
+
+with col_devolucion:
+
+    st.subheader(
+        "Baja disponibilidad para devolución"
+    )
+
+    st.caption(
+        "Estaciones que durante la última hora presentaron "
+        "una mayor proporción de observaciones sin espacios "
+        "disponibles para devolución."
+    )
+
+
+    ranking_devolucion = (
+        ultimo[
+            [
+                "station_name",
+                "barrio",
+                "comuna",
+                "avg_empty_slots",
+                "zero_empty_slots_pct",
+            ]
+        ]
+        .sort_values(
+            [
+                "zero_empty_slots_pct",
+                "avg_empty_slots",
+            ],
+            ascending=[
+                False,
+                True,
+            ],
+        )
+        .head(10)
+    )
+
+
+    fig_devolucion = px.bar(
+        ranking_devolucion,
+        x="zero_empty_slots_pct",
+        y="station_name",
+        orientation="h",
+        hover_data={
+            "barrio": True,
+            "comuna": True,
+            "avg_empty_slots": ":.1f",
+        },
+        labels={
+            "station_name":
+                "Estación",
+            "zero_empty_slots_pct":
+                "% de observaciones sin espacios",
+            "avg_empty_slots":
+                "Espacios libres promedio",
+        },
+    )
+
+
+    fig_devolucion.update_layout(
+        yaxis={
+            "categoryorder":
+                "total ascending"
+        },
+        xaxis_range=[
+            0,
+            100,
+        ],
+        height=450,
+    )
+
+
+    st.plotly_chart(
+        fig_devolucion,
+        use_container_width=True,
+    )
+
+
+st.divider()
+
+
+# =========================================================
+# 2. ANÁLISIS TERRITORIAL
+# =========================================================
+
+st.header(
+    "2. Análisis territorial"
+)
+
+st.caption(
+    "El enriquecimiento realizado en Silver permite "
+    "analizar la disponibilidad por barrio y comuna."
+)
+
+
+col_territorio, col_mapa = st.columns(
+    [
+        1,
+        1.4,
+    ]
+)
+
+
+# ---------------------------------------------------------
+# OCUPACIÓN POR COMUNA / BARRIO
+# ---------------------------------------------------------
+
+with col_territorio:
+
+    st.subheader(
+        "Ocupación por territorio"
+    )
+
+
+    nivel = st.selectbox(
+        "Agrupar por",
         [
-            "station_id",
+            "Comuna",
+            "Barrio",
+        ],
+        label_visibility="collapsed",
+    )
+
+
+    if nivel == "Comuna":
+
+        territorial = (
+            df_filtrado
+            .dropna(
+                subset=[
+                    "comuna"
+                ]
+            )
+            .assign(
+                territorio=lambda x:
+                    "Comuna "
+                    + x[
+                        "comuna"
+                    ]
+                    .astype(int)
+                    .astype(str)
+            )
+            .groupby(
+                "territorio",
+                as_index=False,
+            )
+            .agg(
+                ocupacion_promedio=(
+                    "avg_occupancy_pct",
+                    "mean",
+                )
+            )
+            .sort_values(
+                "ocupacion_promedio",
+                ascending=True,
+            )
+        )
+
+    else:
+
+        territorial = (
+            df_filtrado
+            .dropna(
+                subset=[
+                    "barrio"
+                ]
+            )
+            .groupby(
+                "barrio",
+                as_index=False,
+            )
+            .agg(
+                ocupacion_promedio=(
+                    "avg_occupancy_pct",
+                    "mean",
+                )
+            )
+            .rename(
+                columns={
+                    "barrio":
+                        "territorio"
+                }
+            )
+            .sort_values(
+                "ocupacion_promedio",
+                ascending=True,
+            )
+        )
+
+
+    fig_territorio = px.bar(
+        territorial,
+        x="ocupacion_promedio",
+        y="territorio",
+        orientation="h",
+        labels={
+            "territorio":
+                nivel,
+            "ocupacion_promedio":
+                "Ocupación promedio (%)",
+        },
+    )
+
+
+    fig_territorio.update_layout(
+        height=600
+    )
+
+
+    st.plotly_chart(
+        fig_territorio,
+        use_container_width=True,
+    )
+
+
+# ---------------------------------------------------------
+# MAPA
+# ---------------------------------------------------------
+
+with col_mapa:
+
+    st.subheader(
+        "Estado territorial de las estaciones"
+    )
+
+
+    mapa = ultimo[
+        [
             "station_name",
             "barrio",
             "comuna",
-        ],
-        dropna=False,
-    )
-    .agg(
-        ocupacion_promedio=(
+            "latitude",
+            "longitude",
+            "avg_capacity",
+            "avg_free_bikes",
+            "avg_empty_slots",
             "avg_occupancy_pct",
-            "mean",
-        ),
-        pct_sin_slots=(
-            "zero_empty_slots_pct",
-            "mean",
-        ),
+        ]
+    ].copy()
+
+
+    mapa = mapa.dropna(
+        subset=[
+            "latitude",
+            "longitude",
+        ]
     )
-    .reset_index()
-    .sort_values(
-        "ocupacion_promedio",
-        ascending=False,
+
+
+    def clasificar_estado(
+        ocupacion
+    ):
+
+        if pd.isna(
+            ocupacion
+        ):
+            return "Sin dato"
+
+        if ocupacion <= 20:
+            return (
+                "Baja disponibilidad para retiro"
+            )
+
+        if ocupacion >= 80:
+            return (
+                "Pocos espacios para devolución"
+            )
+
+        return "Equilibrada"
+
+
+    mapa[
+        "estado_disponibilidad"
+    ] = (
+        mapa[
+            "avg_occupancy_pct"
+        ]
+        .apply(
+            clasificar_estado
+        )
     )
-    .head(15)
+
+
+    fig_mapa = px.scatter_map(
+        mapa,
+        lat="latitude",
+        lon="longitude",
+        color="estado_disponibilidad",
+        size="avg_capacity",
+        hover_name="station_name",
+        hover_data={
+            "barrio": True,
+            "comuna": True,
+            "avg_free_bikes": ":.1f",
+            "avg_empty_slots": ":.1f",
+            "avg_occupancy_pct": ":.1f",
+            "avg_capacity": False,
+            "latitude": False,
+            "longitude": False,
+        },
+        zoom=11,
+        map_style="open-street-map",
+        labels={
+            "estado_disponibilidad":
+                "Estado",
+            "avg_free_bikes":
+                "Bicicletas",
+            "avg_empty_slots":
+                "Espacios libres",
+            "avg_occupancy_pct":
+                "Ocupación (%)",
+        },
+    )
+
+
+    fig_mapa.update_layout(
+        height=600
+    )
+
+
+    st.plotly_chart(
+        fig_mapa,
+        use_container_width=True,
+    )
+
+
+st.caption(
+    "Los umbrales del mapa (≤20 % y ≥80 %) se utilizan "
+    "como criterio visual de clasificación y no representan "
+    "una definición oficial de Ecobici."
 )
 
 
-fig = px.bar(
-    ranking_devolucion,
-    x="ocupacion_promedio",
-    y="station_name",
-    orientation="h",
-    labels={
-        "ocupacion_promedio":
-            "Ocupación promedio (%)",
-        "station_name":
-            "Estación",
-    },
-)
-
-fig.update_layout(
-    yaxis={
-        "categoryorder": "total ascending"
-    }
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-)
+st.divider()
 
 
 # =========================================================
-# ESTACIONES CRÍTICAS PARA RETIRO
+# 3. ANÁLISIS TEMPORAL
 # =========================================================
 
-st.subheader(
-    "Estaciones críticas para retiro"
+st.header(
+    "3. Análisis temporal"
 )
 
 st.caption(
-    """
-    Una ocupación baja implica pocas bicicletas disponibles.
-    """
+    "Gold tiene granularidad estación × hora. "
+    "Esto permite observar cómo cambia la ocupación "
+    "a lo largo del tiempo."
 )
 
 
-ranking_retiro = (
-    df_filtrado
-    .groupby(
-        [
-            "station_id",
-            "station_name",
-            "barrio",
-            "comuna",
-        ],
-        dropna=False,
-    )
-    .agg(
-        ocupacion_promedio=(
-            "avg_occupancy_pct",
-            "mean",
-        ),
-        pct_sin_bicicletas=(
-            "zero_bikes_pct",
-            "mean",
-        ),
-    )
-    .reset_index()
-    .sort_values(
-        "ocupacion_promedio",
-        ascending=True,
-    )
-    .head(15)
-)
-
-
-fig = px.bar(
-    ranking_retiro,
-    x="ocupacion_promedio",
-    y="station_name",
-    orientation="h",
-    labels={
-        "ocupacion_promedio":
-            "Ocupación promedio (%)",
-        "station_name":
-            "Estación",
-    },
-)
-
-fig.update_layout(
-    yaxis={
-        "categoryorder": "total descending"
-    }
-)
-
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-)
-
-
-# =========================================================
-# PATRÓN POR HORA
-# =========================================================
+# ---------------------------------------------------------
+# EVOLUCIÓN CRONOLÓGICA
+# ---------------------------------------------------------
 
 st.subheader(
-    "Patrón de ocupación por hora"
+    "Evolución horaria de la ocupación"
+)
+
+st.caption(
+    "Cada punto representa una hora con observaciones disponibles. "
+    "La línea conecta únicamente los períodos registrados."
 )
 
 
-patron = (
+evolucion = (
     df_filtrado
     .groupby(
-        "hora_local",
+        "hour_start_local",
         as_index=False,
     )
     .agg(
@@ -365,117 +859,173 @@ patron = (
             "avg_free_bikes",
             "mean",
         ),
-        slots_promedio=(
+        espacios_promedio=(
             "avg_empty_slots",
             "mean",
         ),
     )
     .sort_values(
-        "hora_local"
+        "hour_start_local"
     )
 )
 
 
-fig = px.line(
-    patron,
-    x="hora_local",
+fig_evolucion = px.line(
+    evolucion,
+    x="hour_start_local",
     y="ocupacion_promedio",
     markers=True,
+    hover_data={
+        "bicicletas_promedio":
+            ":.1f",
+        "espacios_promedio":
+            ":.1f",
+    },
     labels={
-        "hora_local":
-            "Hora del día",
+        "hour_start_local":
+            "Fecha y hora",
         "ocupacion_promedio":
             "Ocupación promedio (%)",
+        "bicicletas_promedio":
+            "Bicicletas promedio",
+        "espacios_promedio":
+            "Espacios promedio",
     },
 )
 
+
+fig_evolucion.update_layout(
+    height=420
+)
+
+
 st.plotly_chart(
-    fig,
+    fig_evolucion,
     use_container_width=True,
 )
 
 
 # =========================================================
-# MAPA
+# HEATMAP
 # =========================================================
 
 st.subheader(
-    "Mapa de disponibilidad"
+    "Ocupación por hora y comuna"
 )
 
 st.caption(
-    """
-    Estado correspondiente a la última hora disponible
-    para los filtros seleccionados.
-    """
+    "Esta vista combina el enriquecimiento territorial "
+    "de Silver con la agregación horaria de Gold."
 )
 
 
-mapa = (
-    ultimo[
-        [
-            "station_name",
-            "barrio",
-            "comuna",
-            "latitude",
-            "longitude",
-            "avg_free_bikes",
-            "avg_empty_slots",
-            "avg_occupancy_pct",
-        ]
-    ]
+heatmap_df = (
+    df_filtrado
     .dropna(
         subset=[
-            "latitude",
-            "longitude",
+            "comuna"
         ]
+    )
+    .assign(
+        comuna_label=lambda x:
+            "Comuna "
+            + x[
+                "comuna"
+            ]
+            .astype(int)
+            .astype(str)
+    )
+    .groupby(
+        [
+            "comuna_label",
+            "hora_local",
+        ],
+        as_index=False,
+    )
+    .agg(
+        ocupacion_promedio=(
+            "avg_occupancy_pct",
+            "mean",
+        )
     )
 )
 
 
-fig = px.scatter_map(
-    mapa,
-    lat="latitude",
-    lon="longitude",
-    color="avg_occupancy_pct",
-    size="avg_free_bikes",
-    hover_name="station_name",
-    hover_data={
-        "barrio": True,
-        "comuna": True,
-        "avg_free_bikes": ":.1f",
-        "avg_empty_slots": ":.1f",
-        "avg_occupancy_pct": ":.1f",
-        "latitude": False,
-        "longitude": False,
-    },
-    zoom=10,
-    map_style="open-street-map",
-    labels={
-        "avg_occupancy_pct":
-            "Ocupación (%)",
-        "avg_free_bikes":
-            "Bicicletas",
-        "avg_empty_slots":
-            "Slots libres",
-    },
-)
+if (
+    heatmap_df[
+        "hora_local"
+    ].nunique() > 1
+    and
+    heatmap_df[
+        "comuna_label"
+    ].nunique() > 1
+):
 
-st.plotly_chart(
-    fig,
-    use_container_width=True,
-)
+    fig_heatmap = px.density_heatmap(
+        heatmap_df,
+        x="hora_local",
+        y="comuna_label",
+        z="ocupacion_promedio",
+        histfunc="avg",
+        labels={
+            "hora_local":
+                "Hora",
+            "comuna_label":
+                "Comuna",
+            "ocupacion_promedio":
+                "Ocupación promedio (%)",
+        },
+    )
+
+
+    fig_heatmap.update_layout(
+        height=500
+    )
+
+
+    st.plotly_chart(
+        fig_heatmap,
+        use_container_width=True,
+    )
+
+else:
+
+    st.info(
+        "Todavía no hay suficientes horas o comunas "
+        "para construir una visualización comparativa."
+    )
+
+
+st.divider()
 
 
 # =========================================================
-# DATOS
+# DATOS GOLD
 # =========================================================
 
 with st.expander(
     "Ver datos Gold utilizados"
 ):
+
+    columnas_detalle = [
+        "hour_start_local",
+        "station_name",
+        "barrio",
+        "comuna",
+        "avg_capacity",
+        "avg_free_bikes",
+        "avg_empty_slots",
+        "avg_occupancy_pct",
+        "zero_bikes_pct",
+        "zero_empty_slots_pct",
+        "snapshots_count",
+    ]
+
+
     st.dataframe(
-        df_filtrado,
+        df_filtrado[
+            columnas_detalle
+        ],
         use_container_width=True,
         hide_index=True,
     )
