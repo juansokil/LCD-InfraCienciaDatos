@@ -1,0 +1,19 @@
+Apellido: bravo
+Nombre: agostina
+Rama: estudiante/bravo-agostina
+Motor: postgres
+Archivos crudos: 6
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 73824
+Doble ingesta: SI
+Ultima carga: 2026-11-11 20:09:40.039245
+Pregunta (a) - La zona raw y la tabla:
+  borraria la tabla bronze.crypto_markets_demo, dado que al conservar el archivo crudo original (stack/data/raw/) mantengo la fuente de verdad inmutable, permitiendome reconstruir la tabla o re-procesar los datos. Dejaria de poder hacer consultas SQL analiticas de forma inmediata.
+Pregunta (b) - replace y append:
+  replace borra la tabla existente y guarda unicamente los datos de la ejecucion actual, en tanto que append acumula los registros nuevos sumandolos al historico previo. El DAG productivo usa append.
+Pregunta (c) - Dos cargas identicas:
+  esto sucede porque si el intervalo de ejecucion es corto y la API no cambio sus datos, se obtiene el mismo payload. El pipeline lo guarda igual sin deduplicar para perservar la fidelidad temporal estrica de la ingesta cruda en la capa de Bronze.
+Codigo: 9EF849A54485
+Fecha: 2026-11-11
