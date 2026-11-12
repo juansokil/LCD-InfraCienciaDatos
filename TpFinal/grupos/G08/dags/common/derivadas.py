@@ -14,6 +14,10 @@ las del contrato para que gold no repita la cuenta.
                           capacidad OPERATIVA, no sobre `slots`.
     snapshot_local        snapshot_ts en hora de Argentina (sin zona), para
                           agrupar por hora del dia y dia de la semana.
+
+station_number y station_name salen de una regex: se calculan en Python, fila a
+fila, al validar. Las otras tres son aritmetica sobre la fila y las calcula
+Postgres con un UPDATE despues de cargar (DERIVADAS_SQL), sin pandas.
 """
 
 from __future__ import annotations
@@ -71,29 +75,24 @@ def nombre_estacion(nombre):
     return numero, nombre or None
 
 
-def agregar_derivadas(df):
-    """Suma las columnas de DERIVADAS a un DataFrame de silver ya tipado."""
-    import pandas as pd
+DERIVADAS_SQL = {
+    "docks_fuera_servicio": """CASE WHEN "slots" IS NOT NULL
+             THEN GREATEST("slots" - ("free_bikes" + "empty_slots"), 0) END""",
+    "ocupacion": """CASE WHEN "free_bikes" + "empty_slots" > 0
+             THEN "free_bikes"::double precision / ("free_bikes" + "empty_slots") END""",
+    # timestamptz AT TIME ZONE zona -> timestamp sin zona, en hora local.
+    "snapshot_local": '"snapshot_ts" AT TIME ZONE :tz_local',
+}
 
-    if df.empty:
-        for col in DERIVADAS:
-            df[col] = pd.Series(dtype=object)
-        return df
 
-    partes = df["name"].map(nombre_estacion)
-    df["station_number"] = pd.array([p[0] for p in partes], dtype="Int64")
-    df["station_name"] = [p[1] for p in partes]
+def sql_derivadas(tabla: str, filtro: str) -> str:
+    """UPDATE que completa las columnas de DERIVADAS_SQL en las filas del filtro.
 
-    libres = pd.to_numeric(df["free_bikes"]).astype("Int64")
-    vacios = pd.to_numeric(df["empty_slots"]).astype("Int64")
-    slots = pd.to_numeric(df["slots"]).astype("Int64")
-    operativa = libres + vacios
-    df["docks_fuera_servicio"] = (slots - operativa).clip(lower=0)
-    df["ocupacion"] = (libres / operativa.where(operativa > 0)).astype("Float64")
-
-    df["snapshot_local"] = (
-        pd.to_datetime(df["snapshot_ts"], utc=True)
-        .dt.tz_convert(TZ_LOCAL)
-        .dt.tz_localize(None)
-    )
-    return df
+    Necesita el parametro `tz_local` (TZ_LOCAL) ademas de los del filtro.
+    """
+    asignaciones = ",\n            ".join(f'"{c}" = {e}' for c, e in DERIVADAS_SQL.items())
+    return f"""
+        UPDATE {tabla}
+        SET {asignaciones}
+        WHERE {filtro}
+    """

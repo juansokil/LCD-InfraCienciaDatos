@@ -15,7 +15,6 @@ psycopg2-binary==2.9.11
 # --- Advanced Transformation ---
 duckdb==1.1.3
 duckdb-engine>=0.13,<0.15                              # SQL analitico ultra rapido e in-memory
-polars==1.21.0                      # Siguiente generacion de DataFrames (Rust-backed)
 pyarrow>=18.0.0                     # Lectura/escritura de .parquet (DAGs de clase03)
 
 # --- Contratos de datos (clase04: validacion en Silver) ---
@@ -48,7 +47,6 @@ apache-airflow-providers-postgres==6.5.0
 # --- Cloud & dbt (se instalan pero solo se usan en clases avanzadas) ---
 # No requieren credenciales para instalar, solo para ejecutar DAGs de cloud.
 gcsfs                                # Acceso a GCS como sistema de archivos
-pandas-gbq                           # Integracion Pandas <-> BigQuery
 
 # --- ML & Tracking (clase06) ---
 scikit-learn==1.5.2                  # Modelos clásicos (KMeans, RandomForest)

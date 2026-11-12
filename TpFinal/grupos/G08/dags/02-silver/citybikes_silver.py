@@ -54,7 +54,7 @@ from common.contracts import (  # noqa: E402
     load_contract,
     motivo_rechazo,
 )
-from common.derivadas import DERIVADAS, agregar_derivadas  # noqa: E402
+from common.derivadas import DERIVADAS, TZ_LOCAL, nombre_estacion, sql_derivadas  # noqa: E402
 from common.zonas import cargar_capas, zona_de  # noqa: E402
 
 
@@ -662,9 +662,15 @@ def citybikes_silver():
             except ValidationError as error:
                 rechazadas.append({**fila, "quarantine_reason": motivo_rechazo(error)})
                 continue
+            valores = {c: _a_utc(v) for c, v in modelo.model_dump().items()}
+            numero, nombre = nombre_estacion(valores["name"])
             tipadas.append({
-                **{c: _a_utc(v) for c, v in modelo.model_dump().items()},
+                **valores,
                 "ingested_at": fila["ingested_at"],
+                # Derivadas que necesitan Python (regex). El resto las calcula
+                # Postgres despues de cargar (paso 4).
+                "station_number": numero,
+                "station_name": nombre,
             })
             origen.append(fila)  # misma posicion que en `tipadas`
         rechazos_contrato = len(rechazadas)
@@ -673,7 +679,8 @@ def citybikes_silver():
         # Se evaluan sobre el lote YA TIPADO: sobre texto, in_set [true]
         # marcaria todas las filas. dtype=object evita que un entero con nulos
         # se convierta en float con NaN.
-        df = pd.DataFrame(tipadas, columns=campos + ["ingested_at"], dtype=object)
+        df = pd.DataFrame(tipadas, columns=campos + ["ingested_at", "station_number",
+                                                     "station_name"], dtype=object)
         resultados = evaluar_reglas(df, contract)
 
         rechaza = pd.Series(False, index=df.index, dtype=bool)
@@ -698,7 +705,6 @@ def citybikes_silver():
 
         df_silver = df[~rechaza].copy()
         df_silver["_quality_flags"] = flags[~rechaza].str.rstrip(";")
-        df_silver = agregar_derivadas(df_silver)
         df_cuarentena = pd.DataFrame(
             rechazadas, columns=campos + ["ingested_at", "quarantine_reason"], dtype=object
         )
@@ -723,6 +729,11 @@ def citybikes_silver():
             if not df_silver.empty:
                 df_silver.to_sql("citybikes_stations", conn, schema="silver",
                                  if_exists="append", index=False, method="multi", chunksize=1000)
+                # Derivadas aritmeticas: las calcula Postgres sobre lo recien
+                # cargado, en la misma transaccion (nunca quedan filas sin ellas).
+                conn.execute(sqlalchemy.text(sql_derivadas("silver.citybikes_stations",
+                                                           EN_SNAPSHOTS)),
+                             {"snaps": snapshots, "tz_local": TZ_LOCAL})
             if not df_cuarentena.empty:
                 df_cuarentena.to_sql("quarantine_citybikes_stations", conn, schema="silver",
                                      if_exists="append", index=False, method="multi", chunksize=1000)
