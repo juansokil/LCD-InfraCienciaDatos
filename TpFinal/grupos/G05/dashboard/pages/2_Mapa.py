@@ -32,6 +32,9 @@ limite = st.slider(
     step=500,
 )
 mapa = mapa.head(limite)
+total_eventos = len(mapa)
+magnitud_maxima = mapa["magnitud"].max()
+profundidad_promedio = mapa["profundidad_km"].mean()
 mapa["profundidad_km"] = mapa["profundidad_km"].fillna(0)
 mapa["magnitud_marcador"] = mapa["magnitud"].clip(lower=0.1)
 
@@ -61,8 +64,16 @@ fig.update_geos(showland=True, landcolor="rgb(243, 243, 243)")
 fig.update_layout(margin={"r": 0, "t": 50, "l": 0, "b": 0})
 st.plotly_chart(fig, use_container_width=True)
 
-st.caption(
-    "Conclusión: la distribución espacial muestra dónde se concentraron los "
-    "eventos recientes; los eventos de magnitud menor que 0 se dibujan con "
-    "el tamaño mínimo. El mapa no representa riesgo ni predice sismos."
+st.subheader("Conclusión")
+
+st.markdown(
+    f"""
+    Se muestran **{total_eventos:,} eventos sísmicos**.
+    La magnitud máxima registrada entre los eventos visualizados fue
+    **{magnitud_maxima:.1f}** y la profundidad promedio fue de
+    **{profundidad_promedio:.1f} km**.
+
+    El mapa permite observar la distribución geográfica de los eventos,
+    pero no representa riesgo ni predice futuros sismos.
+    """
 )
