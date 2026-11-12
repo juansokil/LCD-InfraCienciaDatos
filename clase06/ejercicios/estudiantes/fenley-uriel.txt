@@ -1,0 +1,27 @@
+Apellido: Fenley
+Nombre: Uriel
+Rama: estudiante/fenley-uriel
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  decision_tree_1d tiene el mejor acierto en prueba (0,83), pero lo midieron con solo 3 fechas, así que no alcanza para confiar del todo en ese resultado.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep parece haber memorizado los datos: acierta 0,98 entrenando, pero baja a 0,54 cuando prueba con datos nuevos.
+Pregunta (c) - El acc_test mas bajo:
+  svm_3d es el que peor funciona, con 0,51 de acierto, casi lo mismo que tirar una moneda.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Elegiría random_forest_7d_v2, porque tiene buen acierto en prueba (0,69), fue probado con 60 fechas y la diferencia entre entrenamiento y prueba es chica.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Mediría el porcentaje de aciertos con los datos nuevos cada semana y lo compararía con el resultado inicial. Si empieza a bajar mucho, sabría que el modelo está perdiendo rendimiento.
+Codigo: 1A8C42E26908
+Fecha: 2026-11-12
