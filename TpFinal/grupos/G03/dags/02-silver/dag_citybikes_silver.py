@@ -179,8 +179,79 @@ def citybikes_silver():
                 )
             )
 
+            # ---------------------------------------------
+            # Función auxiliar SQL: conversión segura a
+            # timestamp con zona horaria
+            # ---------------------------------------------
+            #
+            # Reemplaza al pd.to_datetime(errors="coerce")
+            # que se hacía en pandas:
+            #
+            #  - saca la 'Z' sobrante cuando ya hay offset
+            #    (2026-11-10T02:25:30+00:00Z)
+            #  - si no trae zona, asume UTC
+            #  - si no se puede interpretar -> NULL
+            #    (el registro irá luego a cuarentena)
+            # ---------------------------------------------
+
+            conn.execute(
+                sqlalchemy.text(
+                    r"""
+                    CREATE OR REPLACE FUNCTION
+                    silver.safe_timestamptz(raw TEXT)
+                    RETURNS TIMESTAMPTZ
+                    LANGUAGE plpgsql
+                    STABLE
+                    AS $$
+                    DECLARE
+                        cleaned TEXT;
+                    BEGIN
+                        cleaned := REGEXP_REPLACE(
+                            BTRIM(raw),
+                            '([+-][0-9]{2}:[0-9]{2})Z$',
+                            '\1'
+                        );
+
+                        IF cleaned IS NULL OR cleaned = '' THEN
+                            RETURN NULL;
+                        END IF;
+
+                        IF cleaned !~
+                            '(Z|[+-][0-9]{2}(:?[0-9]{2})?)$'
+                        THEN
+                            cleaned := cleaned || '+00';
+                        END IF;
+
+                        RETURN cleaned::TIMESTAMPTZ;
+
+                    EXCEPTION WHEN OTHERS THEN
+                        RETURN NULL;
+                    END;
+                    $$;
+                    """
+                )
+            )
+
         # -------------------------------------------------
-        # 3. Leer solamente snapshots nuevos desde Bronze
+        # 3. Leer snapshots nuevos y transformarlos EN SQL
+        # -------------------------------------------------
+        #
+        # SQL PUSHDOWN: la transformación se hace dentro de
+        # Postgres, no en pandas. A Python llegan filas ya
+        # normalizadas, deduplicadas y con las variables
+        # derivadas calculadas. Pasos de la consulta:
+        #
+        #   source      snapshots de Bronze de la red
+        #   pending     solo los snapshots no procesados
+        #   normalized  trim, ''->NULL y tipado de fechas
+        #   deduped     1 fila por (estación, snapshot)
+        #   enriched    accounted_slots y capacity
+        #   metrics     unaccounted_slots, porcentajes y
+        #               estado operativo
+        #
+        # En Python quedan solamente: el enriquecimiento
+        # geográfico (shapely), las validaciones de calidad,
+        # la separación en cuarentena y la escritura.
         # -------------------------------------------------
 
         query = sqlalchemy.text(
@@ -249,30 +320,201 @@ def citybikes_silver():
                                 IS NOT NULL
                         )
                     )
+            ),
+
+            -- Solo snapshots que todavía no se procesaron
+            pending AS (
+
+                SELECT
+                    s.*
+
+                FROM source s
+
+                WHERE
+                    s.snapshot_id IS NOT NULL
+
+                    AND NOT EXISTS (
+
+                        SELECT 1
+
+                        FROM
+                            silver.citybikes_processed_snapshots p
+
+                        WHERE
+                            p.snapshot_id = s.snapshot_id
+                    )
+            ),
+
+            -- Normalización: trim, blancos -> NULL y fechas
+            normalized AS (
+
+                SELECT
+
+                    NULLIF(BTRIM(network_id), '')
+                        AS network_id,
+                    NULLIF(BTRIM(network_name), '')
+                        AS network_name,
+                    NULLIF(BTRIM(network_city), '')
+                        AS network_city,
+                    NULLIF(BTRIM(network_country), '')
+                        AS network_country,
+
+                    NULLIF(BTRIM(station_id), '')
+                        AS station_id,
+                    NULLIF(BTRIM(station_uid), '')
+                        AS station_uid,
+                    NULLIF(BTRIM(station_name), '')
+                        AS station_name,
+
+                    latitude,
+                    longitude,
+                    altitude,
+
+                    NULLIF(BTRIM(address), '')
+                        AS address,
+                    NULLIF(BTRIM(post_code), '')
+                        AS post_code,
+
+                    silver.safe_timestamptz(
+                        station_timestamp::TEXT
+                    ) AS station_timestamp,
+
+                    silver.safe_timestamptz(
+                        provider_last_updated::TEXT
+                    ) AS provider_last_updated,
+
+                    free_bikes,
+                    empty_slots,
+                    slots,
+                    normal_bikes,
+
+                    renting,
+                    returning_allowed,
+
+                    virtual,
+                    payment_terminal,
+
+                    snapshot_id,
+                    raw_file_path,
+                    source_url,
+
+                    ingested_at::TIMESTAMPTZ
+                        AS ingested_at
+
+                FROM pending
+            ),
+
+            -- GRANO SILVER:
+            -- 1 fila = 1 estación x 1 snapshot del pipeline.
+            -- Si hay repetidas, se queda la última ingestada.
+            -- station_timestamp no forma parte de la clave
+            -- porque el proveedor puede mantenerlo entre
+            -- consultas consecutivas.
+            deduped AS (
+
+                SELECT DISTINCT ON (
+                    station_id,
+                    snapshot_id
+                )
+                    n.*
+
+                FROM normalized n
+
+                ORDER BY
+                    n.station_id,
+                    n.snapshot_id,
+                    n.ingested_at DESC NULLS LAST
+            ),
+
+            -- Slots contabilizados y capacidad nominal.
+            -- Capacidad: 1) slots informado por EcoBici,
+            -- 2) free_bikes + empty_slots como fallback.
+            enriched AS (
+
+                SELECT
+                    d.*,
+
+                    d.free_bikes + d.empty_slots
+                        AS accounted_slots,
+
+                    COALESCE(
+                        d.slots,
+                        d.free_bikes + d.empty_slots
+                    ) AS capacity
+
+                FROM deduped d
+            ),
+
+            -- Slots no explicados, porcentajes y estado
+            -- operativo.
+            --
+            -- Porcentajes: solo con capacidad > 0
+            -- (NULLIF evita la división por cero).
+            --
+            -- Estado operativo (renting / returning):
+            --   1 / 1 -> operativa
+            --   0 / 1 -> solo devolución
+            --   1 / 0 -> solo retiro
+            --   0 / 0 -> fuera de servicio
+            metrics AS (
+
+                SELECT
+                    e.*,
+
+                    e.capacity - e.accounted_slots
+                        AS unaccounted_slots,
+
+                    CASE WHEN e.capacity > 0 THEN
+                        e.free_bikes::DOUBLE PRECISION
+                        / NULLIF(e.capacity, 0) * 100
+                    END AS occupancy_pct,
+
+                    CASE WHEN e.capacity > 0 THEN
+                        e.empty_slots::DOUBLE PRECISION
+                        / NULLIF(e.capacity, 0) * 100
+                    END AS empty_slots_pct,
+
+                    CASE WHEN e.capacity > 0 THEN
+                        e.accounted_slots::DOUBLE PRECISION
+                        / NULLIF(e.capacity, 0) * 100
+                    END AS accounted_slots_pct,
+
+                    CASE WHEN e.capacity > 0 THEN
+                        (e.capacity - e.accounted_slots)
+                            ::DOUBLE PRECISION
+                        / NULLIF(e.capacity, 0) * 100
+                    END AS unaccounted_slots_pct,
+
+                    CASE
+                        WHEN e.renting = 1
+                            AND e.returning_allowed = 1
+                            THEN 'operativa'
+                        WHEN e.renting = 0
+                            AND e.returning_allowed = 1
+                            THEN 'solo_devolucion'
+                        WHEN e.renting = 1
+                            AND e.returning_allowed = 0
+                            THEN 'solo_retiro'
+                        WHEN e.renting = 0
+                            AND e.returning_allowed = 0
+                            THEN 'fuera_servicio'
+                        ELSE 'desconocido'
+                    END AS operational_status
+
+                FROM enriched e
             )
 
             SELECT
-                s.*
+                m.*,
 
-            FROM source s
+                (m.operational_status = 'operativa')
+                    AS is_fully_operational
 
-            WHERE
-                s.snapshot_id IS NOT NULL
-
-                AND NOT EXISTS (
-
-                    SELECT 1
-
-                    FROM
-                        silver.citybikes_processed_snapshots p
-
-                    WHERE
-                        p.snapshot_id = s.snapshot_id
-                )
+            FROM metrics m
 
             ORDER BY
-                s.ingested_at,
-                s.station_id
+                m.ingested_at,
+                m.station_id
             """
         )
 
@@ -299,7 +541,8 @@ def citybikes_silver():
             return
 
         print(
-            f"Filas nuevas leídas desde Bronze: "
+            f"Filas nuevas leídas desde Bronze "
+            f"(ya normalizadas y deduplicadas en SQL): "
             f"{len(df)}"
         )
 
@@ -309,302 +552,13 @@ def citybikes_silver():
         )
 
         # -------------------------------------------------
-        # 5. Normalización técnica
-        # -------------------------------------------------
-
-        # ---------------------------
-        # Strings
-        # ---------------------------
-
-        string_columns = [
-
-            "network_id",
-            "network_name",
-            "network_city",
-            "network_country",
-
-            "station_id",
-            "station_uid",
-            "station_name",
-
-            "address",
-            "post_code",
-
-            "snapshot_id",
-        ]
-
-        for column in string_columns:
-
-            df[column] = (
-                df[column]
-                .astype("string")
-                .str.strip()
-            )
-
-        # ---------------------------
-        # Timestamp CityBikes
-        # ---------------------------
-        #
-        # Puede llegar como:
-        #
-        # 2026-11-10T02:25:30.108532+00:00Z
-        #
-        # Si ya existe offset +00:00,
-        # eliminamos la Z final.
-        # ---------------------------
-
-        df["station_timestamp"] = (
-
-            df["station_timestamp"]
-            .astype("string")
-            .str.replace(
-                r"([+-]\d{2}:\d{2})Z$",
-                r"\1",
-                regex=True,
-            )
-        )
-
-        df["station_timestamp"] = (
-            pd.to_datetime(
-                df["station_timestamp"],
-                errors="coerce",
-                utc=True,
-            )
-        )
-
-        # ---------------------------
-        # Timestamp de ingesta
-        # ---------------------------
-
-        df["ingested_at"] = (
-            pd.to_datetime(
-                df["ingested_at"],
-                errors="coerce",
-                utc=True,
-            )
-        )
-
-        # ---------------------------
-        # last_updated del proveedor
-        # ---------------------------
-
-        df["provider_last_updated"] = (
-            pd.to_datetime(
-                df["provider_last_updated"],
-                errors="coerce",
-                utc=True,
-            )
-        )
-
-        # ---------------------------
-        # Numéricos
-        # ---------------------------
-
-        numeric_columns = [
-
-            "latitude",
-            "longitude",
-            "altitude",
-
-            "free_bikes",
-            "empty_slots",
-            "slots",
-            "normal_bikes",
-
-            "renting",
-            "returning_allowed",
-        ]
-
-        for column in numeric_columns:
-
-            df[column] = (
-                pd.to_numeric(
-                    df[column],
-                    errors="coerce",
-                )
-            )
-
-        # -------------------------------------------------
-        # 6. Deduplicación técnica
+        # 5, 6 y 7. Normalización, deduplicación y
+        #           variables derivadas
         # -------------------------------------------------
         #
-        # GRANO SILVER:
-        #
-        # 1 fila =
-        # 1 estación
-        # x
-        # 1 snapshot del pipeline
-        #
-        # station_timestamp no forma parte de la clave
-        # porque el proveedor puede mantenerlo entre
-        # consultas consecutivas.
+        # Ya se resolvieron en SQL en el paso 3 (pushdown).
+        # No se repiten en pandas.
         # -------------------------------------------------
-
-        df = (
-
-            df.sort_values(
-                "ingested_at"
-            )
-
-            .drop_duplicates(
-                subset=[
-                    "station_id",
-                    "snapshot_id",
-                ],
-                keep="last",
-            )
-        )
-
-        print(
-            f"Filas luego de deduplicar: "
-            f"{len(df)}"
-        )
-
-        # -------------------------------------------------
-        # 7. Variables derivadas de disponibilidad
-        # -------------------------------------------------
-
-        # ---------------------------
-        # Slots contabilizados
-        # ---------------------------
-
-        df["accounted_slots"] = (
-
-            df["free_bikes"]
-            + df["empty_slots"]
-        )
-
-        # ---------------------------
-        # Capacidad nominal
-        # ---------------------------
-        #
-        # Prioridad:
-        #
-        # 1. slots informado por EcoBici
-        # 2. free_bikes + empty_slots
-        #    como fallback
-        # ---------------------------
-
-        df["capacity"] = (
-
-            df["slots"]
-            .fillna(
-                df["accounted_slots"]
-            )
-        )
-
-        # ---------------------------
-        # Slots no explicados
-        # ---------------------------
-        #
-        # No suponemos que la diferencia
-        # represente necesariamente docks
-        # fuera de servicio.
-        # ---------------------------
-
-        df["unaccounted_slots"] = (
-
-            df["capacity"]
-            - df["accounted_slots"]
-        )
-
-        # ---------------------------
-        # Porcentajes
-        # ---------------------------
-
-        df["occupancy_pct"] = float("nan")
-
-        df["empty_slots_pct"] = float("nan")
-
-        df["accounted_slots_pct"] = float("nan")
-
-        df["unaccounted_slots_pct"] = float("nan")
-
-        valid_capacity = (
-
-            df["capacity"].notna()
-            & (df["capacity"] > 0)
-        )
-
-        # Bicicletas disponibles / capacidad
-
-        df.loc[
-            valid_capacity,
-            "occupancy_pct",
-        ] = (
-
-            df.loc[
-                valid_capacity,
-                "free_bikes",
-            ]
-
-            / df.loc[
-                valid_capacity,
-                "capacity",
-            ]
-
-            * 100
-        )
-
-        # Slots vacíos / capacidad
-
-        df.loc[
-            valid_capacity,
-            "empty_slots_pct",
-        ] = (
-
-            df.loc[
-                valid_capacity,
-                "empty_slots",
-            ]
-
-            / df.loc[
-                valid_capacity,
-                "capacity",
-            ]
-
-            * 100
-        )
-
-        # Slots contabilizados / capacidad
-
-        df.loc[
-            valid_capacity,
-            "accounted_slots_pct",
-        ] = (
-
-            df.loc[
-                valid_capacity,
-                "accounted_slots",
-            ]
-
-            / df.loc[
-                valid_capacity,
-                "capacity",
-            ]
-
-            * 100
-        )
-
-        # Slots no explicados / capacidad
-
-        df.loc[
-            valid_capacity,
-            "unaccounted_slots_pct",
-        ] = (
-
-            df.loc[
-                valid_capacity,
-                "unaccounted_slots",
-            ]
-
-            / df.loc[
-                valid_capacity,
-                "capacity",
-            ]
-
-            * 100
-        )
 
         # -------------------------------------------------
         # 8. Enriquecimiento geográfico
@@ -1322,70 +1276,17 @@ def citybikes_silver():
         # 11. Estado operacional
         # -------------------------------------------------
         #
-        # 1 / 1 -> operativa
-        # 0 / 1 -> solo devolución
-        # 1 / 0 -> solo retiro
-        # 0 / 0 -> fuera de servicio
+        # operational_status e is_fully_operational ya se
+        # calcularon en SQL (paso 3). La tabla de cuarentena
+        # nunca tuvo esas dos columnas, así que se quitan de
+        # ese DataFrame para no cambiar su esquema.
         # -------------------------------------------------
 
-        def operational_status(row):
-
-            if (
-                row["renting"] == 1
-                and row[
-                    "returning_allowed"
-                ] == 1
-            ):
-
-                return "operativa"
-
-            if (
-                row["renting"] == 0
-                and row[
-                    "returning_allowed"
-                ] == 1
-            ):
-
-                return "solo_devolucion"
-
-            if (
-                row["renting"] == 1
-                and row[
-                    "returning_allowed"
-                ] == 0
-            ):
-
-                return "solo_retiro"
-
-            if (
-                row["renting"] == 0
-                and row[
-                    "returning_allowed"
-                ] == 0
-            ):
-
-                return "fuera_servicio"
-
-            return "desconocido"
-
-        valid[
-            "operational_status"
-        ] = (
-
-            valid.apply(
-                operational_status,
-                axis=1,
-            )
-        )
-
-        valid[
-            "is_fully_operational"
-        ] = (
-
-            valid[
-                "operational_status"
+        quarantine = quarantine.drop(
+            columns=[
+                "operational_status",
+                "is_fully_operational",
             ]
-            == "operativa"
         )
 
         # -------------------------------------------------
