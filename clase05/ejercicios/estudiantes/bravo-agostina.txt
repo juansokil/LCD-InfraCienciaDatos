@@ -1,0 +1,9 @@
+Apellido: bravo
+Nombre: agostina
+Rama: estudiante/bravo-agostina
+Caso: gimnasio
+Hecho: una visita completa de un socio, desde que ingresa por el molinete hasta su salida por el mismo incluyendo lo que compra en la barra
+Dimensiones: dim_sede, dim_socio
+Metricas: duracion_minutos, consumo_barra, visitas_conteo
+Codigo: FD1B0CC27C7B
+Fecha: 2026-11-12
