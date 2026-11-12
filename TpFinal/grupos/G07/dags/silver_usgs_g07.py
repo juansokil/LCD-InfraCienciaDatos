@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
-
 import psycopg2
 from airflow.sdk import dag, task
-
+from airflow.providers.standard.operators.trigger_dagrun import TriggerDagRunOperator
 
 @dag(
     dag_id="silver_usgs_g07",
@@ -37,7 +36,14 @@ def silver_usgs_g07():
         finally:
             conexion.close()
 
-    transformar_sismos()
 
+    iniciar_gold = TriggerDagRunOperator(
+        task_id="iniciar_gold",
+        trigger_dag_id="gold_usgs_g07",
+        wait_for_completion=True,
+        poke_interval=10
+    )
+
+    transformar_sismos() >> iniciar_gold
 
 silver_usgs_g07()
