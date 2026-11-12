@@ -1,0 +1,6 @@
+Apellido: Valdez
+Nombre: Javier Gonzalo
+Usuario GitHub: JavierGValdez
+Rama: estudiante/valdez-javiergonzalo
+Codigo: 4E6D75CDD639
+Fecha: 2026-10-02

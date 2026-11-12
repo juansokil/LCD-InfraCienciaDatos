@@ -1,0 +1,16 @@
+Apellido: Valdez
+Nombre: Javier Gonzalo
+Rama: estudiante/valdez-javiergonzalo
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  Airflow guarda los datos en su propio estado (no los del negocio), historial de errores,
+Pregunta (b) - Datos despues del down:
+  docker compose down lo que hace es eliminar los contenedores y la red, y el datawarehouse se guardan en el volumen
+Pregunta (c) - DAGs en el contenedor:
+  hay carpetas reales de la maquina que se conectan adentro del contenedor y los cambios se ven reflejados
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaría el puerto del 8080 (el número de la izquierda que es la puerta de entrada a mi maquina),
+Pregunta (e) - Credenciales del warehouse:
+  El compose no tiene la contraseña escrita sino la variable de entorno {SOURCE_DB_PASS}, y Compose toma su valor del archivo .env. Esto se hace para configurar por fuera del codigo,
+Codigo: 5D5496E74044
+Fecha: 2026-10-17
