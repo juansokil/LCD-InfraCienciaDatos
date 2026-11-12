@@ -1,0 +1,9 @@
+Apellido: Wolman
+Nombre: Tomas
+Rama: estudiante/wolman-tomas
+Caso: gimnasio
+Hecho: una visita de un socio al gimnassio (desde que pasa el molinete cuando entra hasta que sale)
+Dimensiones: sede (barrio), socio (nombre, fecha de alta, plan), fecha, hora
+Metricas: duracion de la visita en minutos y monto gastado en la visita
+Codigo: 1B654E4648CA
+Fecha: 2026-10-29
