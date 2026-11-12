@@ -1,76 +1,83 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.operators.trigger_dagrun import TriggerDagRunOperator
-from datetime import datetime
-import pandas as pd
-import sqlalchemy
+from datetime import datetime, timezone
 import json
+import os
+import pandas as pd
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
+from airflow.sdk import dag, task, Asset
 
-def limpiar_datos():
-    # 1. Conectamos a la base de datos
-    engine = sqlalchemy.create_engine('postgresql://admin:admin@data_warehouse:5432/InfraCienciaDatos')
-    
-    # 2. Leemos los datos crudos de Bronze
-    print("Leyendo datos de Bronze...")
-    query = "SELECT ciudad, raw_json FROM bronze.clima_raw"
-    df_raw = pd.read_sql(query, engine)
-    
-    # 3. Procesamos el JSON de cada ciudad
-    registros = []
-    for index, row in df_raw.iterrows():
-        ciudad = row['ciudad']
-        # El raw_json de Postgres viene como string o dict, nos aseguramos de leerlo bien
-        datos = row['raw_json'] if isinstance(row['raw_json'], dict) else json.loads(row['raw_json'])
-        
-        # Open-Meteo devuelve los datos por hora dentro de 'hourly'
-        horas = datos.get('hourly', {})
-        tiempos = horas.get('time', [])
-        temps = horas.get('temperature_2m', [])
-        lluvias = horas.get('precipitation', [])
-        vientos = horas.get('wind_speed_10m', [])
-        
-        # Armamos una tabla plana (una fila por cada hora)
-        for i in range(len(tiempos)):
-            registros.append({
-                'ciudad': ciudad,
-                'fecha_hora': tiempos[i],
-                'temperatura_c': temps[i],
-                'lluvia_mm': lluvias[i],
-                'viento_kmh': vientos[i]
-            })
-            
-    df_clean = pd.DataFrame(registros)
-    
-    # 4. Convertimos la fecha a tipo DATE / TIMESTAMP
-    df_clean['fecha_hora'] = pd.to_datetime(df_clean['fecha_hora'])
-    
-    # 5. Guardamos en la capa Silver (sobrescribimos para que no se dupliquen los datos al re-ejecutar)
-    print(f"Guardando {len(df_clean)} registros en Silver...")
-    with engine.begin() as conn:
-        conn.execute(sqlalchemy.text("CREATE SCHEMA IF NOT EXISTS silver;"))
-    
-    # Usamos el método to_sql de pandas para guardar la tabla limpia
-    df_clean.to_sql('clima_clean', engine, schema='silver', if_exists='replace', index=False)
-    print("¡Capa Silver completada!")
+# El Asset que publica Bronze (lo escucha para arrancar)
+BRONZE_ASSET = Asset(name="g09_bronze_open_meteo_raw")
+# El Asset que va a publicar Silver (para que arranque Gold)
+SILVER_ASSET = Asset(name="g09_silver_open_meteo_clean")
 
-with DAG(
-    dag_id='02_silver_clima',
-    start_date=datetime(2023, 1, 1),
-    schedule_interval=None,
+def get_database_engine():
+    database_url = URL.create(
+        drivername="postgresql+psycopg2",
+        username=os.environ.get("SOURCE_DB_USER", "admin"),
+        password=os.environ.get("SOURCE_DB_PASS", "admin"),
+        host=os.getenv("SOURCE_DB_HOST", "data_warehouse"),
+        port=int(os.getenv("SOURCE_DB_PORT", "5432")),
+        database=os.environ.get("SOURCE_DB_NAME", "InfraCienciaDatos"),
+    )
+    return create_engine(database_url, pool_pre_ping=True)
+
+@dag(
+    dag_id="g09_silver_open_meteo",
+    description="Limpieza y aplanado de datos Open-Meteo",
+    start_date=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    schedule=[BRONZE_ASSET], # <-- Se despierta solo cuando Bronze termina
     catchup=False,
-    tags=['tp_final']
-) as dag:
+    tags=["g09", "silver"],
+)
+def g09_silver_open_meteo():
 
-    tarea_limpiar = PythonOperator(
-        task_id='limpiar_json_a_tabla',
-        python_callable=limpiar_datos
-    )
+    @task(outlets=[SILVER_ASSET]) # <-- Al terminar, dispara Gold
+    def clean_daily_data():
+        engine = get_database_engine()
 
-    # Disparamos el DAG de Gold
-    disparar_gold = TriggerDagRunOperator(
-        task_id='disparar_gold',
-        trigger_dag_id='03_gold_clima', # Nombre del DAG que va a hacer tu compañero
-        wait_for_completion=False
-    )
+        # 1. Leer Bronze
+        print("Leyendo datos crudos de Bronze...")
+        query = "SELECT city, region_type, response_payload FROM bronze.open_meteo_raw"
+        df_raw = pd.read_sql(query, engine)
 
-    tarea_limpiar >> disparar_gold
+        registros = []
+        for _, row in df_raw.iterrows():
+            payload = row['response_payload'] if isinstance(row['response_payload'], dict) else json.loads(row['response_payload'])
+            
+            # Tu compañero guarda datos diarios en el JSON
+            daily = payload.get('daily', {})
+            times = daily.get('time', [])
+
+            # Armamos una fila por cada día
+            for i in range(len(times)):
+                registros.append({
+                    'ciudad': row['city'],
+                    'region': row['region_type'],
+                    'fecha': times[i],
+                    'temp_media_c': daily.get('temperature_2m_mean', [None]*len(times))[i],
+                    'temp_max_c': daily.get('temperature_2m_max', [None]*len(times))[i],
+                    'temp_min_c': daily.get('temperature_2m_min', [None]*len(times))[i],
+                    'lluvia_mm': daily.get('precipitation_sum', [None]*len(times))[i],
+                    'viento_kmh': daily.get('wind_speed_10m_mean', [None]*len(times))[i],
+                })
+
+        df_clean = pd.DataFrame(registros)
+        
+        # Convertimos a fecha real de SQL
+        if not df_clean.empty:
+            df_clean['fecha'] = pd.to_datetime(df_clean['fecha']).dt.date
+
+            # 2. Guardar en Silver
+            print(f"Guardando {len(df_clean)} registros en Silver...")
+            with engine.begin() as conn:
+                conn.execute(text("CREATE SCHEMA IF NOT EXISTS silver;"))
+                # Usamos if_exists='replace' para no duplicar si corremos de nuevo
+                df_clean.to_sql('clima_diario_clean', engine, schema='silver', if_exists='replace', index=False)
+
+        engine.dispose()
+        print("¡Capa Silver completada!")
+
+    clean_daily_data()
+
+g09_silver_open_meteo()
