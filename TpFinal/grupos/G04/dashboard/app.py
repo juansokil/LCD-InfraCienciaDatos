@@ -60,6 +60,10 @@ def _mostrar_pronosticos(
     comparacion: pd.DataFrame,
 ) -> None:    
     datos = pronostico.copy()
+    datos = datos.rename(columns={
+    "fecha_pronostico": "fecha",
+    "ciudad_nombre": "nombre",
+    })
     datos["fecha"] = pd.to_datetime(datos["fecha"]).dt.date
 
     ciudades = sorted(datos["nombre"].unique())
@@ -105,7 +109,21 @@ def _mostrar_pronosticos(
     st.caption("Umbrales del proyecto · máxima de 35 °C o más y precipitación de 20 mm o más.")
 
     alertas = comparacion.copy()
+    alertas = alertas.rename(columns={
+        "fecha_pronostico": "fecha",
+        "ciudad_nombre": "nombre",
+    })
     alertas["fecha"] = pd.to_datetime(alertas["fecha"]).dt.date
+
+    if "alerta_calor" not in alertas.columns:
+        alertas["alerta_calor"] = alertas["alerta_temperatura"].eq(
+            "ALERTA: Calor Extremo"
+    )
+
+    if "alerta_lluvia" not in alertas.columns:
+        alertas["alerta_lluvia"] = alertas["alerta_precipitacion"].eq(
+            "ALERTA: Lluvias Intensas"
+    )
     alertas = alertas.loc[
         alertas["nombre"].isin(ciudades_elegidas)
         & alertas["fecha"].between(inicio, fin)

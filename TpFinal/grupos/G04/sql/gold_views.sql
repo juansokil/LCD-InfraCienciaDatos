@@ -21,8 +21,8 @@ WITH pronosticos_ordenados AS (
         f.precipitacion_mm,
         f.viento_max_kmh,
         ROW_NUMBER() OVER (
-            PARTITION BY f.ciudad_id, t.fecha 
-            RELATED ORDER BY f.fecha_consulta_utc DESC
+            PARTITION BY f.ciudad_id, t.fecha
+            ORDER BY f.fecha_consulta_utc DESC
         ) AS rn
     FROM gold.fact_clima_diario f
     JOIN gold.dim_ciudad c ON f.ciudad_id = c.ciudad_id

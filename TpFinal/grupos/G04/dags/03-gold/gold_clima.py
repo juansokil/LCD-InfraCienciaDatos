@@ -1,43 +1,68 @@
-from datetime import datetime
-from airflow import DAG
-from airflow.datasets import Dataset
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 
-# Definición de los Assets de la arquitectura Medallion
-silver_clima_dataset = Dataset("s3://medallion/silver/clima")
-gold_clima_dataset = Dataset("s3://medallion/gold/clima")
+import os
+from pathlib import Path
+from datetime import datetime, timezone
 
-default_args = {
-    'owner': 'G04-integrante3',
-    'depends_on_past': False,
-    'email_on_failure': False,
-    'retries': 1,
-}
+from airflow.sdk import dag, task
 
-with DAG(
-    dag_id='g04_gold_clima_pipeline',
-    default_args=default_args,
-    description='Pipeline de Capa Gold para Open-Meteo (Dimensiones, Hechos y Vistas)',
-    schedule=[silver_clima_dataset], # Se dispara automáticamente al actualizarse Silver
-    start_date=datetime(2026, 1, 1),
+from common.db import get_warehouse_engine
+from common.assets import SILVER_CLIMA, GOLD_CLIMA
+
+
+def ejecutar_sql_gold(nombre_archivo):
+    """Ejecuta un archivo SQL sobre el warehouse PostgreSQL."""
+
+    ruta = (
+        Path(os.environ["PROJECT_ROOT"])
+        / "sql"
+        / nombre_archivo
+    )
+
+    if not ruta.is_file():
+        raise FileNotFoundError(f"No existe: {ruta}")
+
+    contenido_sql = ruta.read_text(encoding="utf-8")
+
+    engine = get_warehouse_engine()
+    conexion = engine.raw_connection()
+
+    try:
+        with conexion.cursor() as cursor:
+            cursor.execute(contenido_sql, prepare=False)
+
+        conexion.commit()
+
+    except Exception:
+        conexion.rollback()
+        raise
+
+    finally:
+        conexion.close()
+        engine.dispose()
+
+
+@dag(
+    dag_id="gold_clima",
+    schedule=[SILVER_CLIMA],
+    start_date=datetime(2026, 11, 4, tzinfo=timezone.utc),
     catchup=False,
-    tags=['g04', 'gold', 'open-meteo', 'medallion']
-) as dag:
+    max_active_runs=1,
+    tags=["tpfinal", "open-meteo", "G04", "gold"],
+)
+def gold_clima():
 
-    # Tarea 1: Ejecutar el script DDL y carga de Dimensiones + Hechos
-    crear_y_poblar_gold = PostgresOperator(
-        task_id='crear_y_poblar_gold_tables',
-        postgres_conn_id='postgres_default', # Conexión estándar configurada en el stack
-        sql='sql/gold_clima.sql',
-        outlets=[gold_clima_dataset] # Emite el asset al terminar con éxito
+    @task(task_id="cargar_gold")
+    def cargar_gold():
+        ejecutar_sql_gold("gold_clima.sql")
+
+    @task(
+        task_id="actualizar_vistas",
+        outlets=[GOLD_CLIMA],
     )
+    def actualizar_vistas():
+        ejecutar_sql_gold("gold_views.sql")
 
-    # Tarea 2: Crear / Actualizar las vistas analíticas para el Dashboard
-    crear_vistas_analiticas = PostgresOperator(
-        task_id='crear_vistas_analiticas',
-        postgres_conn_id='postgres_default',
-        sql='sql/gold_views.sql'
-    )
+    cargar_gold() >> actualizar_vistas()
 
-    # Orden de ejecución secuencial
-    crear_y_poblar_gold >> crear_vistas_analiticas
+
+gold_clima_dag = gold_clima()

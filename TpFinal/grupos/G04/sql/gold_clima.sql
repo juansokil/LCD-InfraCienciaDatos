@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS gold.dim_ciudad (
 -- Poblar / Upsert dim_ciudad directamente desde silver.clima_actual (o valores canónicos)
 INSERT INTO gold.dim_ciudad (ciudad_id, nombre, latitud, longitud)
 SELECT DISTINCT ciudad_id, ciudad_nombre, latitud, longitud
-FROM silver.clime_actual -- (o silver.clima_actual según corresponda)
+FROM silver.clima_actual -- (o silver.clima_actual según corresponda)
 ON CONFLICT (ciudad_id) DO UPDATE 
 SET nombre = EXCLUDED.nombre,
     latitud = EXCLUDED.latitud,
