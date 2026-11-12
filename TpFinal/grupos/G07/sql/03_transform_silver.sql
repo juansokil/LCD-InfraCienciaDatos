@@ -21,6 +21,7 @@ INSERT INTO silver.sismos (
     latitud,
     longitud,
     profundidad_km,
+    es_tsunami,
     source_updated_ms
 )
 
@@ -34,6 +35,7 @@ SELECT
     (payload->'geometry'->'coordinates'->>1)::DOUBLE PRECISION,
     (payload->'geometry'->'coordinates'->>0)::DOUBLE PRECISION,
     (payload->'geometry'->'coordinates'->>2)::DOUBLE PRECISION,
+    COALESCE((payload->'properties'->>'tsunami')::SMALLINT, 0),
     source_updated_ms
 
 FROM ultimos_sismos
@@ -46,6 +48,7 @@ DO UPDATE SET
     latitud = EXCLUDED.latitud,
     longitud = EXCLUDED.longitud,
     profundidad_km = EXCLUDED.profundidad_km,
+    es_tsunami = EXCLUDED.es_tsunami,
     source_updated_ms = EXCLUDED.source_updated_ms,
     processed_at = CURRENT_TIMESTAMP
 
