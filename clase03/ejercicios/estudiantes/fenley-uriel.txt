@@ -1,0 +1,19 @@
+Apellido: Fenley
+Nombre: Uriel
+Rama: estudiante/fenley-uriel
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 77750
+Doble ingesta: SI
+Ultima carga: 2026-11-03 19:18:52.602432
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla y dejaría el archivo crudo, porque desde el archivo puedo volver a armar la tabla, pero no necesariamente puedo recuperar el archivo original desde la tabla. Si borro el archivo, pierdo los datos originales y la posibilidad de reconstruir todo desde cero.
+Pregunta (b) - replace y append:
+  Con replace, la tabla queda con 50 filas porque se reemplazan los datos anteriores. Con append, se agregan las 50 nuevas a las anteriores y quedan 100. El proceso que corre cada 15 minutos usa append, así se va armando la historia de los precios.
+Pregunta (c) - Dos cargas identicas:
+  Los archivos salieron idénticos porque se descargaron con pocos segundos de diferencia y los precios no llegaron a cambiar. Se guardan los dos porque es importante conservar todo lo que llegó como registro histórico. Los repetidos se eliminan o controlan más adelante, en Silver.
+Codigo: 19AF79464083
+Fecha: 2026-11-12
