@@ -1,0 +1,16 @@
+Apellido: Rivarola
+Nombre: Maximo
+Rama: estudiante/rivarola-maximo
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda el estado interno de Airflow y no esta expuesto al host. data_warehouse guarda los datos del curso, en los esquemas bronze/silver/gold, y se expone en 5432. Estan separados por que cumplen responsabilidades distintas, asi los datos de negocio no se mezclan con la metada de orquestacion, y se puede reiniciar o recrear uno sin afectuar al otro
+Pregunta (b) - Datos despues del down:
+  Los son como pasajeros, pero el warehouse guarda sus datos en un volumen con nombre (data_warehouse_data), que Docker gestiona fuera del contenedor. docker compose down borra los contenedores pero no los volumenes.
+Pregunta (c) - DAGs en el contenedor:
+  Con un bind mount: la carpeta local esta conectada a /opt/airflow/dags dentro del contenedor. Lo que se guarda en el host se va al instante adentro, y el dag-processor lo detecta en unos segundos
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria solo el lado izquierdo del mapeo, por ejemplo "8081:8080". El formato es PUERTO_HOST:PUERTO_CONTENEDOR, el de la izquierda es el puerto de mi maquina y el de la derecha es donde Airflow escucha dentro del contenedor, que no cambia. Asi evito el conflicto en mi maquina y entro por localhost:8081
+Pregunta (e) - Credenciales del warehouse:
+  El servicio data_warehouse define POSTGRES_PASSWORD=${SOURCE_DB_PASS}, o sea una referencia a una variable. Docker Compose la resuelve leyendo el archivo .env que esta en la carpeta stack/ (junto al docker-compose.yml) y le pasa el valor al contenedor al levantarlo. Asi las credenciales quedan fuera del YAML y se pueden cambiar sin tocar el compose
+Codigo: 57F40B3C90EA
+Fecha: 2026-11-04

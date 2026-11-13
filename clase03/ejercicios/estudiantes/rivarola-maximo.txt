@@ -1,0 +1,19 @@
+Apellido: Rivarola
+Nombre: Maximo
+Rama: estudiante/rivarola-maximo
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 75643
+Doble ingesta: SI
+Ultima carga: 2026-11-05 19:54:13.918443
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla de Postgres y dejaría los archivos en la zona raw. Si borro la tabla, la puedo volver a armar leyendo los archivos crudos; pero si borro los archivos crudos, pierdo el respaldo original y tendría que salir a pegarle a la API de nuevo.
+Pregunta (b) - replace y append:
+  Con replace la tabla se borra y se reescribe de cero con lo último (quedan solo 50 filas). Con append se van acumulando los registros de cada corrida. El DAG productivo usa append porque necesita guardar el histórico de cómo van cambiando los precios.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque en pocos segundos el precio en la API no se movió y devolvió exactamente lo mismo. El pipeline los guarda igual porque la zona raw es inmutable y tiene que registrar tal cual cada request que llega como una foto del momento, sin meterse a filtrar nada.
+Codigo: E9FB4B2A0ED5
+Fecha: 2026-11-05
