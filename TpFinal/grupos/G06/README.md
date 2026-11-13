@@ -23,23 +23,26 @@
 
 Para nuestro trabajo utilizaremos una estructura Medallion (Bronze, Silver y Gold) para recopilar, transformar y analizar la información meteorológica de tres destinos turisticos de Argentina.
 
-Decisiones:
-período de tiempo: 5 años (definir fecha exacta)
+**Decisiones:**
 
-Destinos elegidos: 
--Purmamarca (Cerro de los siete colores, Jujuy)
--Bariloche (Río Negro)
--Puerto Iguazu (Misiones)
+- **Período de tiempo:** 5 años (definir fecha exacta)
+
+**Destinos elegidos:**
+
+- Purmamarca (Cerro de los siete colores, Jujuy)
+- Bariloche (Río Negro)
+- Puerto Iguazu (Misiones)
 
 Vamos a utilizar la información diaria para poder comparar los mismos meses entre distintos años.
 
-Selección de variables:
--temperature_2m_min: temperatura mínima del día.
--temperature_2m_mean: temperatura media del día.
--temperature_2m_max: temperatura máxima del día.
--precipitation_sum: cantidad de precipitaciones acumuladas durante el día.
--daylight_duration: duración de la luz natural durante el día.
--wind_gusts_10m_max: ráfagas máximas de viento durante el día.
+**Selección de variables:**
+
+- temperature_2m_min: temperatura mínima del día.
+- temperature_2m_mean: temperatura media del día.
+- temperature_2m_max: temperatura máxima del día.
+- precipitation_sum: cantidad de precipitaciones acumuladas durante el día.
+- daylight_duration: duración de la luz natural durante el día.
+- wind_gusts_10m_max: ráfagas máximas de viento durante el día.
 
 ### Bronze
 
