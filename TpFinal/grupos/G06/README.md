@@ -27,7 +27,7 @@ Para nuestro trabajo utilizaremos una estructura Medallion (Bronze, Silver y Gol
 
 - **Período de analisis historico:** 
 
-- Fecha de inicio: 7/11/2021
+- Fecha de inicio: 12/11/2021
 - Fecha de finalizacion: 7/11/2026
 - 5 años de datos historicos
 
