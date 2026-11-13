@@ -13,7 +13,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 
 try:  # Airflow 3.x
     from airflow.sdk import get_current_context

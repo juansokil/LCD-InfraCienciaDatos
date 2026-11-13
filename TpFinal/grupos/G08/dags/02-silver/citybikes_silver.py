@@ -38,7 +38,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from airflow.decorators import dag, task
+from airflow.sdk import dag, task
 from airflow.exceptions import AirflowFailException, AirflowSkipException
 
 try:  # Airflow 3.x

@@ -2,166 +2,194 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from db import run_query
-
+from comun import columna_zona, formato_entero, selector_red, tasa
+from db import requiere_gold, run_query
 
 UMBRAL_SNAPSHOT_MINUTOS = 15  # Tres ciclos del pipeline, que corre cada 5 minutos.
 
 st.title("Capacidad realmente disponible")
 st.caption(
-    "Estado más reciente por estación: capacidad física, servicio de alquiler/devolución "
-    "y frescura de los datos."
+    "Anclajes fuera de servicio, estaciones que no alquilan y estaciones que no "
+    "reportan hace rato, por red y zona."
 )
+requiere_gold()
 
-sql_estado = """
-    WITH ultima_estacion AS (
-        SELECT DISTINCT ON (s.network_id, s.station_id)
-            s.network_id,
-            s.station_id,
-            COALESCE(s.station_name, s.name) AS station_name,
-            s.snapshot_ts,
-            s.source_last_updated,
-            s.free_bikes,
-            s.empty_slots,
-            s.slots,
-            s.docks_fuera_servicio,
-            s.renting,
-            s."returning",
-            s._quality_flags,
-            EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - s.snapshot_ts)) / 60.0
-                AS minutos_sin_snapshot
-        FROM silver.citybikes_stations s
-        ORDER BY s.network_id, s.station_id, s.snapshot_ts DESC
-    )
+# Estado actual: la ultima foto de cada estacion. La antiguedad se mide contra
+# el reloj de ahora, por eso se calcula al consultar y no en gold.
+actual = run_query("""
     SELECT
-        u.network_id,
-        u.station_id,
-        u.station_name,
-        z.ciudad,
-        z.zona,
-        z.zona_padre,
-        z.zona_nivel,
-        u.snapshot_ts,
-        u.source_last_updated,
-        u.free_bikes,
-        u.empty_slots,
-        u.slots,
-        u.docks_fuera_servicio,
-        u.renting,
-        u."returning",
-        u._quality_flags,
-        u.minutos_sin_snapshot
-    FROM ultima_estacion u
-    LEFT JOIN silver.citybikes_station_zone z
-      ON z.network_id = u.network_id
-     AND z.station_id = u.station_id
-    ORDER BY u.network_id, z.zona, u.station_name
-"""
-
-df = run_query(sql_estado)
-if df.empty:
-    st.info("Todavía no hay observaciones Silver para analizar.")
-    st.stop()
-
-df["minutos_sin_snapshot"] = pd.to_numeric(
-    df["minutos_sin_snapshot"], errors="coerce"
-).astype(float)
-
-# Los flags vienen de las reglas de calidad Silver. Un source_last_updated nulo
-# también se considera dato de operador no verificable.
-df["operador_viejo_o_sin_dato"] = (
-    df["_quality_flags"].fillna("").str.contains("operador_fresco", regex=False)
-    | df["source_last_updated"].isna()
+        c.network_id,
+        d.red_nombre,
+        c.station_id,
+        COALESCE(d.station_name, c.station_id) AS station_name,
+        d.ciudad, d.zona, d.zona_padre, d.zona_nivel,
+        c.free_bikes, c.empty_slots, c.slots, c.docks_fuera_servicio,
+        c.alquila, c.recibe, c.operador_viejo, c.sin_dato_operador,
+        EXTRACT(EPOCH FROM (now() - c.snapshot_ts)) / 60.0 AS minutos_sin_snapshot
+    FROM gold.fact_capacidad_actual c
+    JOIN gold.dim_estacion d USING (network_id, station_id)
+""")
+actual["minutos_sin_snapshot"] = pd.to_numeric(actual["minutos_sin_snapshot"]).astype(float)
+# Estaciones dadas de baja: no aparecen hace mas de un dia respecto del ultimo
+# snapshot de SU red (no del reloj: si el stack estuvo apagado, no son bajas).
+atraso_red = (
+    actual["minutos_sin_snapshot"]
+    - actual.groupby("network_id")["minutos_sin_snapshot"].transform("min")
 )
-df["snapshot_reciente"] = (
-    df["minutos_sin_snapshot"] <= UMBRAL_SNAPSHOT_MINUTOS
-)
-df["datos_confiables"] = df["snapshot_reciente"] & ~df["operador_viejo_o_sin_dato"]
+bajas = actual[atraso_red > 24 * 60]
+actual = actual[atraso_red <= 24 * 60].copy()
+actual["reporta"] = actual["minutos_sin_snapshot"] <= UMBRAL_SNAPSHOT_MINUTOS
+actual["no_alquila"] = actual["alquila"].eq(False)
+actual["no_recibe"] = actual["recibe"].eq(False)
+actual["alquiler_desconocido"] = actual["alquila"].isna()
+# Capacidad confiable: la estacion reporto hace poco y el operador no esta
+# atrasado. Si el operador no manda fecha (sin_dato_operador) no se puede
+# saber si esta atrasado: se usa, pero se cuenta aparte.
+actual["confiable"] = actual["reporta"] & ~actual["operador_viejo"] & actual["slots"].notna()
+actual["slots_confiables"] = actual["slots"].where(actual["confiable"], 0).fillna(0)
+actual["bicis_retirables"] = actual["free_bikes"].where(
+    actual["confiable"] & actual["alquila"].eq(True), 0).fillna(0)
+actual["anclajes_devolucion"] = actual["empty_slots"].where(
+    actual["confiable"] & actual["recibe"].ne(False), 0).fillna(0)
+actual["anclajes_fuera_servicio"] = actual["docks_fuera_servicio"].where(
+    actual["confiable"], 0).fillna(0)
 
-redes = sorted(df["network_id"].dropna().unique())
-red = st.selectbox("Red", redes, key="red_capacidad_disponible")
-df_red = df[df["network_id"] == red].copy()
+conteos = ["slots_confiables", "bicis_retirables", "anclajes_devolucion", "anclajes_fuera_servicio"]
 
-if red == "ecobici-buenos-aires":
-    nivel = st.selectbox(
-        "Desglosar CABA por",
-        ["Barrio", "Comuna"],
-        key="nivel_zona_capacidad",
-    )
-    if nivel == "Barrio":
-        df_red["zona_grafico"] = df_red["zona"].where(
-            df_red["zona_nivel"] == "barrio", "Sin barrio asignado"
-        ).fillna("Sin barrio asignado")
-    else:
-        df_red["zona_grafico"] = df_red["zona_padre"].where(
-            df_red["zona_nivel"] == "barrio", "Sin comuna asignada"
-        ).fillna("Sin comuna asignada")
-else:
-    nivel = "Ciudad"
-    df_red["zona_grafico"] = (
-        df_red["ciudad"].fillna(df_red["zona"]).fillna("Sin ciudad asignada")
+def problemas_por(columna: str) -> pd.DataFrame:
+    return actual.groupby(columna, as_index=False).agg(
+        estaciones=("station_id", "size"),
+        no_alquilan=("no_alquila", "sum"),
+        no_reciben=("no_recibe", "sum"),
+        alquiler_desconocido=("alquiler_desconocido", "sum"),
+        sin_reportar=("reporta", lambda valores: int((~valores).sum())),
+        operador_viejo=("operador_viejo", "sum"),
+        sin_dato_operador=("sin_dato_operador", "sum"),
     )
 
-# Las filas viejas siguen apareciendo en los indicadores, pero no se usan para
-# afirmar que la capacidad esté disponible ahora.
-capacidad_conocida = df_red["datos_confiables"] & df_red["slots"].notna()
-df_red["slots_confiables"] = df_red["slots"].where(capacidad_conocida, 0).fillna(0)
-df_red["bicis_retirables"] = df_red["free_bikes"].where(
-    capacidad_conocida & df_red["renting"].eq(True), 0
-).fillna(0)
-df_red["anclajes_devolucion"] = df_red["empty_slots"].where(
-    capacidad_conocida & df_red["returning"].eq(True), 0
-).fillna(0)
-df_red["anclajes_fuera_servicio"] = df_red["docks_fuera_servicio"].where(
-    capacidad_conocida, 0
-).fillna(0)
 
-sin_alquiler = int(df_red["renting"].eq(False).sum())
-alquiler_desconocido = int(df_red["renting"].isna().sum())
-sin_snapshot = int((~df_red["snapshot_reciente"]).sum())
-operador_viejo = int(df_red["operador_viejo_o_sin_dato"].sum())
-anclajes_fuera = int(df_red["anclajes_fuera_servicio"].sum())
+# 1. Comparacion entre redes, ahora.
+st.subheader("Estado actual por red")
+redes = problemas_por("red_nombre")
+redes_largo = redes.melt(
+    id_vars=["red_nombre", "estaciones"],
+    value_vars=["no_alquilan", "no_reciben", "sin_reportar", "operador_viejo"],
+    var_name="problema",
+    value_name="cantidad",
+)
+redes_largo["porcentaje"] = tasa(redes_largo["cantidad"], redes_largo["estaciones"])
+redes_largo["problema"] = redes_largo["problema"].map({
+    "no_alquilan": "No alquilan",
+    "no_reciben": "No reciben devoluciones",
+    "sin_reportar": f"Sin snapshot hace > {UMBRAL_SNAPSHOT_MINUTOS} min",
+    "operador_viejo": "Dato del operador viejo (> 60 min)",
+})
+fig_redes = px.bar(
+    redes_largo,
+    x="porcentaje",
+    y="red_nombre",
+    color="problema",
+    barmode="group",
+    orientation="h",
+    hover_data=["cantidad", "estaciones"],
+    labels={"porcentaje": "Estaciones (%)", "red_nombre": "Red", "problema": "",
+            "cantidad": "Estaciones con el problema", "estaciones": "Estaciones"},
+)
+fig_redes.update_xaxes(rangemode="tozero", ticksuffix="%")
+st.plotly_chart(fig_redes, use_container_width=True)
+if not bajas.empty:
+    st.caption(
+        f"No se cuentan {len(bajas)} estación(es) que la API dejó de informar hace más "
+        "de un día (probablemente dadas de baja): "
+        + ", ".join(sorted(bajas["station_name"].astype(str))[:10])
+        + ("…" if len(bajas) > 10 else "")
+    )
+
+capacidad_red = actual.groupby("red_nombre", as_index=False)[conteos].sum()
+capacidad_red["% anclajes fuera de servicio"] = tasa(
+    capacidad_red["anclajes_fuera_servicio"], capacidad_red["slots_confiables"]
+)
+st.dataframe(
+    capacidad_red.rename(columns={
+        "red_nombre": "Red",
+        "slots_confiables": "Anclajes instalados (datos confiables)",
+        "bicis_retirables": "Bicis para retirar",
+        "anclajes_devolucion": "Anclajes para devolver",
+        "anclajes_fuera_servicio": "Anclajes fuera de servicio",
+    }),
+    use_container_width=True,
+    hide_index=True,
+)
+
+# 2. Evolucion diaria por red (historico de fact_estacion_hora).
+historia = run_query("""
+    SELECT
+        d.red_nombre,
+        f.fecha,
+        sum(f.snapshots_total)          AS total,
+        sum(f.snapshots_no_alquila)     AS no_alquila,
+        sum(f.snapshots_no_recibe)      AS no_recibe,
+        sum(f.snapshots_operador_viejo) AS operador_viejo
+    FROM gold.fact_estacion_hora f
+    JOIN gold.dim_estacion d USING (network_id, station_id)
+    GROUP BY d.red_nombre, f.fecha
+    ORDER BY f.fecha
+""")
+if historia["fecha"].nunique() > 1:
+    for col in ["no_alquila", "no_recibe", "operador_viejo"]:
+        historia[col] = tasa(historia[col], historia["total"])
+    historia_larga = historia.melt(
+        id_vars=["red_nombre", "fecha"],
+        value_vars=["no_alquila", "no_recibe", "operador_viejo"],
+        var_name="problema",
+        value_name="porcentaje",
+    )
+    historia_larga["problema"] = historia_larga["problema"].map({
+        "no_alquila": "No alquila",
+        "no_recibe": "No recibe devoluciones",
+        "operador_viejo": "Dato del operador viejo",
+    })
+    fig_historia = px.line(
+        historia_larga,
+        x="fecha",
+        y="porcentaje",
+        color="red_nombre",
+        facet_row="problema",
+        markers=True,
+        labels={"porcentaje": "% de snapshots", "fecha": "Fecha", "red_nombre": "Red"},
+    )
+    fig_historia.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig_historia.update_layout(height=650)
+    st.subheader("Evolución diaria por red")
+    st.plotly_chart(fig_historia, use_container_width=True)
+
+# 3. Por zona dentro de una red.
+st.subheader("Detalle por zona")
+red, red_nombre, tiene_barrios = selector_red("red_capacidad_disponible")
+df_red, nivel = columna_zona(actual[actual["network_id"] == red], tiene_barrios,
+                             "nivel_zona_capacidad")
 
 k1, k2, k3, k4, k5 = st.columns(5)
-k1.metric("Estaciones", f"{len(df_red):,}".replace(",", "."))
-k2.metric("No alquilan", f"{sin_alquiler:,}".replace(",", "."))
-k3.metric("Estado de alquiler desconocido", f"{alquiler_desconocido:,}".replace(",", "."))
-k4.metric(
-    f"Sin snapshot > {UMBRAL_SNAPSHOT_MINUTOS} min",
-    f"{sin_snapshot:,}".replace(",", "."),
-)
-k5.metric("Anclajes fuera de servicio¹", f"{anclajes_fuera:,}".replace(",", "."))
+k1.metric("Estaciones", formato_entero(len(df_red)))
+k2.metric("No alquilan", formato_entero(df_red["no_alquila"].sum()))
+k3.metric(f"Sin snapshot > {UMBRAL_SNAPSHOT_MINUTOS} min", formato_entero((~df_red["reporta"]).sum()))
+k4.metric("Operador viejo", formato_entero(df_red["operador_viejo"].sum()))
+k5.metric("Anclajes fuera de servicio¹", formato_entero(df_red["anclajes_fuera_servicio"].sum()))
 st.caption(
-    f"Dato de operador viejo o ausente (>60 min según Silver): "
-    f"{operador_viejo:,} estación(es). ¹Se cuentan anclajes reportados en estaciones "
-    "con snapshot reciente, dato de operador fresco y capacidad conocida."
+    f"{formato_entero(df_red['sin_dato_operador'].sum())} estación(es) sin fecha del "
+    f"operador y {formato_entero(df_red['alquiler_desconocido'].sum())} con estado de "
+    "alquiler desconocido. ¹Solo estaciones con datos confiables (snapshot reciente y "
+    "operador al día)."
 )
 
-conteos_capacidad = [
-    "slots_confiables",
-    "bicis_retirables",
-    "anclajes_devolucion",
-    "anclajes_fuera_servicio",
-]
-por_zona = df_red.groupby("zona_grafico", as_index=False)[conteos_capacidad].sum()
-denominador = por_zona["slots_confiables"].where(por_zona["slots_confiables"] > 0)
-por_zona["pct_bicis_retirables"] = (
-    100 * por_zona["bicis_retirables"] / denominador
-)
-por_zona["pct_anclajes_devolucion"] = (
-    100 * por_zona["anclajes_devolucion"] / denominador
-)
-por_zona["pct_anclajes_fuera"] = (
-    100 * por_zona["anclajes_fuera_servicio"] / denominador
-)
+por_zona = df_red.groupby("zona_grafico", as_index=False)[conteos].sum()
+por_zona["pct_bicis_retirables"] = tasa(por_zona["bicis_retirables"], por_zona["slots_confiables"])
+por_zona["pct_anclajes_devolucion"] = tasa(por_zona["anclajes_devolucion"], por_zona["slots_confiables"])
+por_zona["pct_anclajes_fuera"] = tasa(por_zona["anclajes_fuera_servicio"], por_zona["slots_confiables"])
 
 capacidad_larga = por_zona.melt(
-    id_vars=["zona_grafico", *conteos_capacidad],
-    value_vars=[
-        "pct_bicis_retirables",
-        "pct_anclajes_devolucion",
-        "pct_anclajes_fuera",
-    ],
+    id_vars=["zona_grafico", *conteos],
+    value_vars=["pct_bicis_retirables", "pct_anclajes_devolucion", "pct_anclajes_fuera"],
     var_name="tipo_capacidad",
     value_name="porcentaje",
 ).dropna(subset=["porcentaje"])
@@ -174,9 +202,7 @@ capacidad_larga["tipo_capacidad"] = capacidad_larga["tipo_capacidad"].map({
 if capacidad_larga.empty:
     st.info("No hay capacidad instalada conocida con datos suficientemente recientes.")
 else:
-    orden_zonas = (
-        por_zona.sort_values("slots_confiables", ascending=True)["zona_grafico"].tolist()
-    )
+    orden_zonas = por_zona.sort_values("slots_confiables")["zona_grafico"].tolist()
     fig_capacidad = px.bar(
         capacidad_larga,
         x="porcentaje",
@@ -184,68 +210,52 @@ else:
         color="tipo_capacidad",
         barmode="group",
         orientation="h",
-        hover_data=conteos_capacidad,
+        hover_data=conteos,
         color_discrete_map={
             "Bicis disponibles para retirar": "#2a9d8f",
             "Anclajes disponibles para devolver": "#277da1",
             "Anclajes fuera de servicio": "#d62828",
         },
         labels={
-            "porcentaje": "Parte de anclajes instalados (%)",
+            "porcentaje": "Parte de los anclajes instalados (%)",
             "zona_grafico": nivel,
-            "tipo_capacidad": "Medida",
+            "tipo_capacidad": "",
             "slots_confiables": "Anclajes instalados (datos confiables)",
-            "bicis_retirables": "Bicis disponibles para retirar",
-            "anclajes_devolucion": "Anclajes disponibles para devolver",
+            "bicis_retirables": "Bicis para retirar",
+            "anclajes_devolucion": "Anclajes para devolver",
             "anclajes_fuera_servicio": "Anclajes fuera de servicio",
         },
     )
     fig_capacidad.update_xaxes(range=[0, 100], ticksuffix="%")
     fig_capacidad.update_yaxes(categoryorder="array", categoryarray=orden_zonas)
-    fig_capacidad.update_layout(
-        height=max(450, min(950, 32 * len(orden_zonas))),
-        legend_title_text="",
-    )
-    st.subheader(f"Capacidad reportada por {nivel.lower()}")
+    fig_capacidad.update_layout(height=max(300, min(950, 32 * len(orden_zonas))))
     st.plotly_chart(fig_capacidad, use_container_width=True)
 
-# La tabla separa disponibilidad física de los problemas de servicio y frescura.
-tabla = por_zona.merge(
-    df_red.groupby("zona_grafico", as_index=False)
-    .agg(
-        estaciones=("station_id", "nunique"),
-        estaciones_no_alquilan=("renting", lambda valores: valores.eq(False).sum()),
-        estaciones_alquiler_desconocido=("renting", lambda valores: valores.isna().sum()),
-        estaciones_sin_snapshot_reciente=(
-            "snapshot_reciente", lambda valores: (~valores).sum()
-        ),
-        estaciones_operador_viejo=("operador_viejo_o_sin_dato", "sum"),
+tabla = por_zona[["zona_grafico", *conteos, "pct_anclajes_fuera"]].merge(
+    df_red.groupby("zona_grafico", as_index=False).agg(
+        estaciones=("station_id", "size"),
+        no_alquilan=("no_alquila", "sum"),
+        sin_reportar=("reporta", lambda valores: int((~valores).sum())),
+        operador_viejo=("operador_viejo", "sum"),
     ),
     on="zona_grafico",
     how="left",
-)
-tabla = tabla.rename(columns={
+).rename(columns={
     "zona_grafico": nivel,
-    "slots_confiables": "Anclajes instalados con datos confiables",
+    "slots_confiables": "Anclajes instalados (datos confiables)",
     "bicis_retirables": "Bicis para retirar",
     "anclajes_devolucion": "Anclajes para devolver",
     "anclajes_fuera_servicio": "Anclajes fuera de servicio",
-    "pct_bicis_retirables": "% de capacidad con bicis para retirar",
-    "pct_anclajes_devolucion": "% de capacidad con anclajes para devolver",
-    "pct_anclajes_fuera": "% de anclajes fuera de servicio",
+    "pct_anclajes_fuera": "% fuera de servicio",
     "estaciones": "Estaciones",
-    "estaciones_no_alquilan": "No alquilan",
-    "estaciones_alquiler_desconocido": "Alquiler desconocido",
-    "estaciones_sin_snapshot_reciente": "Sin snapshot reciente",
-    "estaciones_operador_viejo": "Operador viejo/sin dato",
+    "no_alquilan": "No alquilan",
+    "sin_reportar": "Sin snapshot reciente",
+    "operador_viejo": "Operador viejo",
 })
-st.subheader("Detalle por zona")
 st.dataframe(tabla, use_container_width=True, hide_index=True)
 
 st.caption(
-    "La capacidad se calcula con estaciones que reportaron en los últimos "
-    f"{UMBRAL_SNAPSHOT_MINUTOS} minutos y cuyo dato de operador tiene menos de 60 minutos. "
-    "El porcentaje de bicis retirables y el de anclajes para devolver son medidas "
-    "independientes; no deben sumarse. Las estaciones desactualizadas se muestran aparte "
-    "porque su capacidad actual es desconocida."
+    f"La capacidad usa estaciones que reportaron en los últimos {UMBRAL_SNAPSHOT_MINUTOS} "
+    "minutos y cuyo dato del operador no tiene más de 60 minutos. Bicis para retirar y "
+    "anclajes para devolver son medidas independientes: no se suman."
 )

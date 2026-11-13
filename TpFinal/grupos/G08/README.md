@@ -13,7 +13,7 @@
 
 - **Nombre**: `Citybikes — Bicicletas públicas`
 - **URL**: `api.citybik.es/v2`
-- **Descripcion**: `<breve explicación de que devuelve la API>`
+- **Descripcion**: estado en tiempo real de los sistemas de bicicletas públicas del mundo. Por cada red (`/networks/{id}`) devuelve sus estaciones con bicis disponibles, anclajes libres, coordenadas y un bloque `extra` propio de cada operador (capacidad, si alquila/recibe, última actualización).
 - **Auth**: `sin auth`
 - **API key**: `no necesita`
 - **Refresh**: `2-5 minutos`
@@ -160,7 +160,65 @@ WHERE run_ts = (SELECT max(run_ts) FROM silver.quality_runs);
 
 ### Gold
 
-`<modelo dimensional: fact_X + dim_Y, y que pregunta de negocio responde el dashboard>`
+DAG `citybikes_gold` (`dags/03-gold/citybikes_gold.py`). No tiene cron: arranca cuando silver emite `silver_citybikes` y, al terminar, emite `gold_citybikes`. Todo el cálculo es SQL dentro de Postgres; el dashboard lee **solo** el schema `gold`.
+
+**Modelo dimensional**
+
+```
+                dim_fecha (fecha)
+                     │
+dim_estacion ──┬── fact_estacion_hora        estación × día × hora   → P1, P2, P4, P5, P6
+(network_id,   ├── fact_episodio_sin_bicis   episodio cerrado        → P3
+ station_id)   └── fact_capacidad_actual     estación (última foto)  → P6
+```
+
+| Tabla | Grano / PK | Contenido |
+|---|---|---|
+| `gold.dim_estacion` | estación. PK `(network_id, station_id)` | Nombre limpio, red (`red_nombre`), ciudad, `zona` / `zona_padre` / `zona_nivel` (de `silver.citybikes_station_zone`), coordenadas, `slots`, primera y última observación |
+| `gold.dim_fecha` | día local con datos. PK `fecha` | Día de la semana (ISO, 1 = lunes), nombre y `tipo_dia` (`Hábil` / `Fin de semana`) |
+| `gold.fact_estacion_hora` | estación × día × hora local. PK `(network_id, station_id, fecha, hora)` | **Conteos** de snapshots: totales, válidos, sin bicis, sin anclajes, que no alquilan, que no reciben, con operador viejo; promedios de bicis, ocupación y anclajes fuera de servicio; pares comparados, retiros, devoluciones y bicis movidas por el operador |
+| `gold.fact_episodio_sin_bicis` | episodio. PK `(network_id, station_id, inicio_ts)` | Inicio (UTC y local), fin, hora de inicio, snapshots vacíos y duración en minutos |
+| `gold.fact_capacidad_actual` | estación. PK `(network_id, station_id)` | Último snapshot de cada estación: bicis, anclajes libres, `slots`, anclajes fuera de servicio, `alquila`, `recibe`, `operador_viejo`, `sin_dato_operador` |
+| `gold._modelo` | — | Versión del modelo (ver abajo) |
+
+**Reglas de cálculo**
+
+- **Snapshot válido** (base de P1 a P5): `renting = true`, `returning` distinto de `false` y `_quality_flags` vacío. Una estación caída no es una estación saturada; esas filas se cuentan aparte para P6.
+- Los hechos guardan **conteos**, no porcentajes: el dashboard suma numerador y denominador al nivel que muestra (zona, red, día) y recién ahí divide. Así los porcentajes son sobre los snapshots que efectivamente llegaron.
+- **Episodio sin bicis** (P3): empieza en el primer snapshot con `free_bikes = 0` precedido por uno con bicis y termina en el primer snapshot con bicis. Los dos bordes tienen que estar a ≤ 10 minutos (dos ciclos); si hay un hueco en el medio, el episodio no se cuenta. Los episodios abiertos se cargan cuando la estación se repone (se identifican por su fin); se miden episodios de hasta 7 días (`MAX_EPISODIO_DIAS`).
+- **Uso** (P5): diferencia de `free_bikes` entre snapshots válidos consecutivos a ≤ 10 minutos. Las bajas son retiros y las subas, devoluciones. Es un mínimo: lo que entra y sale dentro del mismo intervalo no se ve. Un cambio de 5 o más bicis de golpe se toma como reposición del operador (`rebalanceo_bicis`) y no como uso (heurística, constante `UMBRAL_REBALANCEO`). El dashboard normaliza por **tiempo observado**: cada par de snapshots cubre 5 minutos de una estación, así que la tasa es cambios ÷ (pares × 5 min). Por estación se muestra el uso por hora observada; para la red, la tasa de cada hora del día × estaciones, sumada sobre las horas con datos (sin extrapolar la tarde a la madrugada). Un día con una sola hora de datos no cuenta como un día entero.
+- **Capacidad actual** (P6): la antigüedad del último snapshot se calcula al consultar (contra `now()`), no en gold. Las estaciones que la API dejó de informar hace más de un día respecto del último snapshot de su red se listan aparte como probables bajas.
+
+**Carga incremental e idempotente**
+
+- Cada corrida recalcula los días locales desde hace 2 días (silver procesa snapshots atrasados hasta 48 h), o desde el último día cargado si gold estuvo parado más tiempo, con `DELETE` + `INSERT` en una transacción por tabla. Se lee un día extra de silver para que la comparación con el snapshot anterior funcione en el borde.
+- Si gold está vacío, recalcula todo el histórico de silver.
+- `dim_estacion` se actualiza por upsert (nunca la pisa un snapshot más viejo); `dim_fecha` y `fact_capacidad_actual` se reconstruyen enteras (son chicas).
+- Si cambia el modelo, se sube `VERSION_MODELO` en el DAG: la corrida siguiente borra las tablas gold y las reconstruye.
+
+**Qué responde cada página del dashboard**
+
+| Página | Pregunta | Fuente |
+|---|---|---|
+| 1 · Saturación por estación | P1: mapa de calor día × hora de la red y de cada estación, ranking con mínimo de snapshots | `fact_estacion_hora` |
+| 2 · Saturación por zona | P2: comparación entre ciudades y desglose por barrio / comuna en CABA | `fact_estacion_hora` |
+| 3 · Duración de episodios | P3: mediana y percentil 90 por zona, estación y hora de inicio | `fact_episodio_sin_bicis` |
+| 4 · Vaciamiento y llenado | P4: sin bicis vs sin anclajes por zona, y balance por hora | `fact_estacion_hora` |
+| 5 · Uso por estación | P5: perfil horario, ranking y cruce uso × saturación (vacía por uso o por falta de reposición) | `fact_estacion_hora` |
+| 6 · Capacidad disponible | P6: estado actual por red y zona, y evolución diaria | `fact_capacidad_actual`, `fact_estacion_hora` |
+
+```sql
+-- estaciones mas saturadas de EcoBici entre 8 y 10 hs de dias habiles
+SELECT d.station_name,
+       round(100.0 * sum(f.snapshots_sin_bicis) / nullif(sum(f.snapshots_validos), 0), 1) AS pct
+FROM gold.fact_estacion_hora f
+JOIN gold.dim_estacion d USING (network_id, station_id)
+JOIN gold.dim_fecha df USING (fecha)
+WHERE f.network_id = 'ecobici-buenos-aires' AND f.hora BETWEEN 8 AND 9 AND df.tipo_dia = 'Hábil'
+GROUP BY d.station_name
+ORDER BY pct DESC NULLS LAST
+LIMIT 10;
+```
 
 ## Como levantar el stack
 
@@ -175,7 +233,7 @@ docker compose up -d --build   # el .env ya viene en el repo
 **Accesos**:
 - Airflow UI: http://localhost:8081 (`admin` / `admin`)
 - Dashboard (Gold): http://localhost:8501
-- Postgres: `localhost:5432` (user/pass en `.env`)
+- Postgres: `localhost:5434` (user/pass en `.env`; se publica en 5434 para no chocar con un Postgres local)
 
 **Apagar**:
 ```bash
@@ -190,7 +248,7 @@ Sigue el **"Esqueleto de entrega"** de [`TpFinal/README.md`](../../README.md), c
 ```
 TpFinal/grupos/G08/
 ├── README.md
-├── docker-compose.yml              # warehouse + airflow_db + airflow (falta el servicio del dashboard)
+├── docker-compose.yml              # warehouse + airflow_db + airflow + dashboard
 ├── Dockerfile                      # imagen Airflow custom (apache/airflow:3.1.5)
 ├── Dockerfile.postgres             # Postgres 17 con init.sql adentro
 ├── init.sql                        # CREATE SCHEMA bronze, silver, gold
@@ -203,10 +261,13 @@ TpFinal/grupos/G08/
 │   │   └── citybikes_bronze.py     # API -> zona raw -> bronze
 │   ├── 02-silver/
 │   │   └── citybikes_silver.py     # limpieza, tipado, contrato, cuarentena, zonas
-│   ├── 03-gold/                    # pendiente: modelo dimensional
+│   ├── 03-gold/
+│   │   └── citybikes_gold.py       # modelo dimensional (dim_* + fact_*)
 │   └── common/                     # codigo compartido (fuera del parseo de Airflow por .airflowignore)
 │       ├── assets.py               # assets que encadenan bronze -> silver -> gold
-│       └── contracts.py            # lectura del contrato, modelo Pydantic y quality_rules
+│       ├── contracts.py            # lectura del contrato, modelo Pydantic y quality_rules
+│       ├── derivadas.py            # columnas derivadas de silver
+│       └── zonas.py                # asignacion de zona por coordenadas
 ├── data/                           # montado en /opt/airflow/data
 │   ├── contracts/
 │   │   └── citybikes_stations.yaml # data contract: schema, reglas y redes a consultar
@@ -215,6 +276,10 @@ TpFinal/grupos/G08/
 │   ├── raw/                        # payloads de la API (.json.gz), no se versionan
 │   └── quarantine/                 # payloads rechazados por bronze, no se versionan
 ├── credentials/                    # vacia; no se versiona
-└── dashboard/                      # pendiente: Streamlit sobre gold
-    └── pages/
+└── dashboard/                      # Streamlit sobre gold (http://localhost:8501)
+    ├── Dockerfile
+    ├── app.py                      # portada: preguntas, paginas y resumen
+    ├── db.py                       # conexion, consultas cacheadas y espera de gold
+    ├── comun.py                    # selectores y helpers compartidos por las paginas
+    └── pages/                      # una pagina por pregunta de negocio (1 a 6)
 ```

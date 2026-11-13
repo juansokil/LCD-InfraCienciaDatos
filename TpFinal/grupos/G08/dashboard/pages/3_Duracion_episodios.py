@@ -1,197 +1,56 @@
 import plotly.express as px
-import pandas as pd
 import streamlit as st
 
-from db import run_query
-
-
-GAP_MAX_MINUTOS = 10  # Dos ciclos de muestreo; gaps mayores vuelven incierto el episodio.
+from comun import columna_zona, formato_entero, selector_red
+from db import requiere_gold, run_query
 
 st.title("Duración de episodios sin bicicletas")
 st.caption(
-    "Un episodio comienza cuando una estación pasa a cero bicicletas y termina "
-    "en el primer snapshot posterior con bicicletas disponibles."
+    "Un episodio empieza en el primer snapshot con cero bicicletas y termina en el "
+    "primer snapshot posterior con bicicletas: ¿se repone en 5 minutos o en 2 horas?"
 )
+requiere_gold()
 
-sql_episodios = f"""
-    WITH ordenados AS (
-        SELECT
-            network_id,
-            station_id,
-            station_name,
-            ciudad,
-            zona,
-            zona_padre,
-            zona_nivel,
-            snapshot_ts,
-            snapshot_local,
-            free_bikes,
-            LAG(free_bikes) OVER (
-                PARTITION BY network_id, station_id
-                ORDER BY snapshot_ts
-            ) AS bicis_previas,
-            LAG(snapshot_ts) OVER (
-                PARTITION BY network_id, station_id
-                ORDER BY snapshot_ts
-            ) AS snapshot_previo
-        FROM gold.vw_citybikes_saturacion
-    ),
-    marcados AS (
-        SELECT
-            *,
-            CASE
-                WHEN free_bikes = 0 AND (
-                    bicis_previas IS DISTINCT FROM 0
-                    OR snapshot_ts - snapshot_previo > INTERVAL '{GAP_MAX_MINUTOS} minutes'
-                ) THEN 1
-                ELSE 0
-            END AS nuevo_episodio,
-            (
-                free_bikes = 0
-                AND bicis_previas > 0
-                AND snapshot_ts - snapshot_previo <= INTERVAL '{GAP_MAX_MINUTOS} minutes'
-            ) AS inicio_confirmado
-        FROM ordenados
-    ),
-    numerados AS (
-        SELECT
-            *,
-            SUM(nuevo_episodio) OVER (
-                PARTITION BY network_id, station_id
-                ORDER BY snapshot_ts
-                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-            ) AS episodio_numero
-        FROM marcados
-    ),
-    episodios_vacios AS (
-        SELECT
-            network_id,
-            station_id,
-            station_name,
-            ciudad,
-            zona,
-            zona_padre,
-            zona_nivel,
-            episodio_numero,
-            MIN(snapshot_ts) AS inicio_ts,
-            MIN(snapshot_local) AS inicio_local,
-            MAX(snapshot_ts) AS ultimo_vacio_ts,
-            BOOL_OR(inicio_confirmado) AS inicio_confirmado,
-            COUNT(*) AS snapshots_vacios
-        FROM numerados
-        WHERE free_bikes = 0
-        GROUP BY
-            network_id,
-            station_id,
-            station_name,
-            ciudad,
-            zona,
-            zona_padre,
-            zona_nivel,
-            episodio_numero
-    ),
-    episodios_con_reposicion AS (
-        SELECT
-            e.*,
-            reposicion.snapshot_ts AS reposicion_ts
-        FROM episodios_vacios e
-        LEFT JOIN LATERAL (
-            SELECT s.snapshot_ts
-            FROM gold.vw_citybikes_saturacion s
-            WHERE s.network_id = e.network_id
-              AND s.station_id = e.station_id
-              AND s.snapshot_ts > e.ultimo_vacio_ts
-              AND s.free_bikes > 0
-            ORDER BY s.snapshot_ts
-            LIMIT 1
-        ) reposicion ON TRUE
-    )
+red, red_nombre, tiene_barrios = selector_red("red_duracion_episodios")
+df = run_query("""
     SELECT
-        network_id,
-        station_id,
-        station_name,
-        ciudad,
-        zona,
-        zona_padre,
-        zona_nivel,
-        inicio_ts,
-        inicio_local,
-        EXTRACT(ISODOW FROM inicio_local)::integer AS dia_semana_inicio,
-        EXTRACT(HOUR FROM inicio_local)::integer AS hora_inicio,
-        snapshots_vacios,
-        EXTRACT(EPOCH FROM (reposicion_ts - inicio_ts)) / 60.0 AS duracion_minutos
-    FROM episodios_con_reposicion
-    WHERE inicio_confirmado IS TRUE
-      AND reposicion_ts IS NOT NULL
-      AND reposicion_ts <= ultimo_vacio_ts + INTERVAL '{GAP_MAX_MINUTOS} minutes'
-    ORDER BY inicio_local DESC
-"""
-
-df = run_query(sql_episodios)
+        e.station_id,
+        COALESCE(d.station_name, e.station_id) AS station_name,
+        d.ciudad, d.zona, d.zona_padre, d.zona_nivel,
+        e.inicio_local,
+        e.hora_inicio,
+        e.snapshots_vacios,
+        e.duracion_minutos
+    FROM gold.fact_episodio_sin_bicis e
+    JOIN gold.dim_estacion d USING (network_id, station_id)
+    WHERE e.network_id = :red
+""", {"red": red})
 if df.empty:
     st.info(
-        "Todavía no hay episodios completos con observaciones suficientes "
-        "para medir su duración."
-    )
-    st.caption(
-        f"Se requieren snapshots antes y después del episodio, sin huecos mayores "
-        f"a {GAP_MAX_MINUTOS} minutos."
+        "Todavía no hay episodios completos para esta red: hace falta ver la estación "
+        "con bicis, después vacía y después repuesta, sin huecos de más de 10 minutos."
     )
     st.stop()
 
-# PostgreSQL EXTRACT devuelve NUMERIC, que SQLAlchemy expone como Decimal.
-# Plotly y el cálculo del percentil 90 necesitan valores float consistentes.
-df["duracion_minutos"] = pd.to_numeric(
-    df["duracion_minutos"], errors="coerce"
-).astype(float)
-df = df.dropna(subset=["duracion_minutos"])
-if df.empty:
-    st.info("No hay duraciones numéricas para graficar.")
-    st.stop()
+df["duracion_minutos"] = df["duracion_minutos"].astype(float)
+df, nivel = columna_zona(df, tiene_barrios, "nivel_zona_duracion")
 
-redes = sorted(df["network_id"].dropna().unique())
-red = st.selectbox("Red", redes, key="red_duracion_episodios")
-df_red = df[df["network_id"] == red].copy()
+c1, c2, c3 = st.columns(3)
+c1.metric("Episodios completos", formato_entero(len(df)))
+c2.metric("Duración mediana", f"{df['duracion_minutos'].median():.0f} min")
+c3.metric("Percentil 90", f"{df['duracion_minutos'].quantile(0.9):.0f} min")
 
-if red == "ecobici-buenos-aires":
-    nivel = st.selectbox(
-        "Agrupar zonas por",
-        ["Barrio", "Comuna"],
-        key="nivel_zona_duracion",
-    )
-    if nivel == "Barrio":
-        df_red["zona_grafico"] = df_red["zona"].where(
-            df_red["zona_nivel"] == "barrio", "Sin barrio asignado"
-        ).fillna("Sin barrio asignado")
-    else:
-        df_red["zona_grafico"] = df_red["zona_padre"].where(
-            df_red["zona_nivel"] == "barrio", "Sin comuna asignada"
-        ).fillna("Sin comuna asignada")
-else:
-    nivel = "Ciudad"
-    df_red["zona_grafico"] = (
-        df_red["ciudad"].fillna(df_red["zona"]).fillna("Sin ciudad asignada")
-    )
-
-episodios, mediana = st.columns(2)
-episodios.metric("Episodios completos", f"{len(df_red):,}".replace(",", "."))
-mediana.metric(
-    "Duración mediana",
-    f"{df_red['duracion_minutos'].median():.1f} min",
-)
-
-# Mediana por zona: es menos sensible que el promedio a episodios muy largos.
+# Mediana por zona: menos sensible que el promedio a episodios muy largos.
 por_zona = (
-    df_red.groupby("zona_grafico", as_index=False)
+    df.groupby("zona_grafico", as_index=False)
     .agg(
         episodios=("duracion_minutos", "size"),
         mediana_minutos=("duracion_minutos", "median"),
         p90_minutos=("duracion_minutos", lambda valores: valores.quantile(0.90)),
     )
-    .nlargest(10, "mediana_minutos")
+    .nlargest(15, "mediana_minutos")
     .sort_values("mediana_minutos")
 )
-
 fig_zonas = px.bar(
     por_zona,
     x="mediana_minutos",
@@ -208,46 +67,65 @@ fig_zonas = px.bar(
 st.subheader(f"Duración mediana por {nivel.lower()}")
 st.plotly_chart(fig_zonas, use_container_width=True)
 
-# Distribución por hora local de inicio: muestra mediana y dispersión.
-df_red["hora_etiqueta"] = df_red["hora_inicio"].map(lambda hora: f"{hora:02d}:00")
-orden_horas = sorted(df_red["hora_etiqueta"].unique())
+# Por estacion: las que mas tardan en reponerse (con al menos 3 episodios).
+por_estacion = (
+    df.groupby(["station_id", "station_name"], as_index=False)
+    .agg(
+        episodios=("duracion_minutos", "size"),
+        mediana_minutos=("duracion_minutos", "median"),
+        horas_vacia=("duracion_minutos", lambda valores: valores.sum() / 60),
+    )
+)
+top = por_estacion[por_estacion["episodios"] >= 3].nlargest(15, "mediana_minutos")
+if not top.empty:
+    fig_estaciones = px.bar(
+        top.sort_values("mediana_minutos"),
+        x="mediana_minutos",
+        y="station_name",
+        orientation="h",
+        hover_data=["episodios", "horas_vacia"],
+        labels={
+            "mediana_minutos": "Duración mediana (minutos)",
+            "station_name": "Estación",
+            "episodios": "Episodios",
+            "horas_vacia": "Horas vacía en total",
+        },
+    )
+    st.subheader("Estaciones que más tardan en reponerse (≥ 3 episodios)")
+    st.plotly_chart(fig_estaciones, use_container_width=True)
+
+# Por hora local de inicio: mediana y dispersion.
+df["hora_etiqueta"] = df["hora_inicio"].map(lambda hora: f"{int(hora):02d}:00")
 fig_horas = px.box(
-    df_red,
+    df,
     x="hora_etiqueta",
     y="duracion_minutos",
-    points="all",
-    category_orders={"hora_etiqueta": orden_horas},
-    hover_data=["station_name", "zona_grafico", "snapshots_vacios"],
+    points="outliers",
+    category_orders={"hora_etiqueta": [f"{h:02d}:00" for h in range(24)]},
     labels={
         "hora_etiqueta": "Hora local de inicio",
         "duracion_minutos": "Duración (minutos)",
-        "station_name": "Estación",
-        "zona_grafico": nivel,
-        "snapshots_vacios": "Snapshots sin bicicletas",
     },
 )
 st.subheader("Duración según la hora en que empieza el episodio")
 st.plotly_chart(fig_horas, use_container_width=True)
 
-# Tabla de detalle para poder revisar cada episodio y su estación.
-st.subheader("Episodios completos observados")
+st.subheader("Episodios más largos")
 st.dataframe(
-    df_red[
-        [
-            "station_name",
-            "zona_grafico",
-            "inicio_local",
-            "hora_inicio",
-            "duracion_minutos",
-            "snapshots_vacios",
-        ]
-    ].sort_values("duracion_minutos", ascending=False),
+    df.nlargest(200, "duracion_minutos")[
+        ["station_name", "zona_grafico", "inicio_local", "duracion_minutos", "snapshots_vacios"]
+    ].rename(columns={
+        "station_name": "Estación",
+        "zona_grafico": nivel,
+        "inicio_local": "Inicio (hora local)",
+        "duracion_minutos": "Duración (min)",
+        "snapshots_vacios": "Snapshots vacíos",
+    }),
     use_container_width=True,
     hide_index=True,
 )
-
 st.caption(
-    f"Se incluyen episodios cerrados con inicio confirmado y una reposición observada "
-    f"dentro de {GAP_MAX_MINUTOS} minutos del último snapshot vacío. "
-    "Los episodios aún abiertos y los afectados por huecos largos no entran en estas estadísticas."
+    "Solo episodios cerrados: con un snapshot con bicis antes y otro después, sin huecos "
+    "de más de 10 minutos. La resolución es de 5 minutos (un snapshot). Los episodios "
+    "abiertos aparecen cuando la estación se repone."
 )

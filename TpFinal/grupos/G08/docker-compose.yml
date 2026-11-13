@@ -42,6 +42,8 @@ services:
     depends_on:
       airflow_db:
         condition: service_healthy
+      data_warehouse:
+        condition: service_healthy
     restart: "no"
     networks:
       - de_stack_network
@@ -120,15 +122,9 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      # Las paginas viven en dashboard/pages/: llegan con cada clase.
-      # Este bind-mount hace que el contenedor vea esa carpeta en vivo: agregas o cambias una
-      # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
+      # Bind-mount de las paginas: un cambio aparece al refrescar Streamlit, sin
+      # rebuild. app.py, db.py y comun.py van dentro de la imagen (requieren --build).
       - ./dashboard/pages:/app/pages
-      # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
-      # quien produce y quien consume: que el consumidor pueda leerlo es el
-      # punto. La pagina de Silver muestra las reglas VIGENTES desde el YAML,
-      # en vez de una copia pegada en el HTML que se desactualiza en silencio.
-      - ./data/contracts:/app/contracts:ro
     depends_on:
       data_warehouse:
         condition: service_healthy

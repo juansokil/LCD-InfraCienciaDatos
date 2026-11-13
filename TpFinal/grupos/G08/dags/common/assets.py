@@ -12,5 +12,5 @@ BRONZE_CITYBIKES = Asset(name="bronze_citybikes")
 # Producido por citybikes_silver (tarea limpiar_y_cargar).
 SILVER_CITYBIKES = Asset(name="silver_citybikes")
 
-# Producido por citybikes_gold (pendiente): star schema que mira el dashboard.
+# Producido por citybikes_gold (tarea resumen): modelo dimensional que mira el dashboard.
 GOLD_CITYBIKES = Asset(name="gold_citybikes")
