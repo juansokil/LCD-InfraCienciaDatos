@@ -17,15 +17,16 @@ dimensiones (gold). Todas las páginas leen solo el schema `gold`.
 
 | Página | Pregunta de negocio | Tabla gold |
 |---|---|---|
-| 1 · Saturación por estación | ¿Qué estaciones se quedan sin bicis y cuándo? | `fact_estacion_hora` |
-| 2 · Saturación por zona | ¿Cómo varía la saturación por barrio, comuna o ciudad? | `fact_estacion_hora` |
+| 1 · Sin bicis por estación | ¿Qué estaciones se quedan sin bicis y cuándo? | `fact_estacion_hora` |
+| 2 · Sin bicis por zona | ¿Cómo varía el tiempo sin bicis por barrio, comuna o ciudad? | `fact_estacion_hora` |
 | 3 · Duración de episodios | ¿Cuánto tarda en reponerse una estación vacía? | `fact_episodio_sin_bicis` |
 | 4 · Vaciamiento y llenado | ¿Qué zonas se vacían y cuáles se llenan, y en qué horario? | `fact_estacion_hora` |
 | 5 · Uso por estación | ¿Cuánto uso tiene cada estación y en qué horario? | `fact_estacion_hora` |
 | 6 · Capacidad disponible | ¿Qué parte de la capacidad está realmente disponible? | `fact_capacidad_actual` |
 
-Una estación **saturada** es una que no tiene bicis para retirar
-(`free_bikes = 0`). Las estaciones que no alquilan o con dato del operador
+Una estación **saturada** (o **sin bicis**) es una que no tiene bicis para
+retirar (`free_bikes = 0`). La otra cara, estación llena sin anclajes libres
+(`empty_slots = 0`), se ve en la página 4. Las estaciones que no alquilan o con dato del operador
 viejo no cuentan como saturadas (página 6). Horarios en hora de Argentina.
 """
 )

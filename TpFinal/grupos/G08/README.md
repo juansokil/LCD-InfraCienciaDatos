@@ -200,8 +200,8 @@ dim_estacion ──┬── fact_estacion_hora        estación × día × hora
 
 | Página | Pregunta | Fuente |
 |---|---|---|
-| 1 · Saturación por estación | P1: mapa de calor día × hora de la red y de cada estación, ranking con mínimo de snapshots | `fact_estacion_hora` |
-| 2 · Saturación por zona | P2: comparación entre ciudades y desglose por barrio / comuna en CABA | `fact_estacion_hora` |
+| 1 · Sin bicis por estación | P1: mapa de calor día × hora de la red y de cada estación, ranking con mínimo de snapshots | `fact_estacion_hora` |
+| 2 · Sin bicis por zona | P2: comparación entre ciudades y desglose por barrio / comuna en CABA | `fact_estacion_hora` |
 | 3 · Duración de episodios | P3: mediana y percentil 90 por zona, estación y hora de inicio | `fact_episodio_sin_bicis` |
 | 4 · Vaciamiento y llenado | P4: sin bicis vs sin anclajes por zona, y balance por hora | `fact_estacion_hora` |
 | 5 · Uso por estación | P5: perfil horario, ranking y cruce uso × saturación (vacía por uso o por falta de reposición) | `fact_estacion_hora` |

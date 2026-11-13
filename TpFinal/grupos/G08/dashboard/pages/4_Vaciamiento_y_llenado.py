@@ -1,3 +1,4 @@
+import numpy as np
 import plotly.express as px
 import streamlit as st
 
@@ -85,10 +86,16 @@ por_hora["balance"] = tasa(
     por_hora["snapshots_sin_bicis"] - por_hora["snapshots_sin_anclajes"],
     por_hora["snapshots_observados"],
 )
-matriz = (
-    por_hora.pivot(index="zona_grafico", columns="hora", values="balance")
-    .reindex(index=orden_zonas[::-1], columns=range(24))
-)
+
+
+def a_matriz(columna):
+    return (
+        por_hora.pivot(index="zona_grafico", columns="hora", values=columna)
+        .reindex(index=orden_zonas[::-1], columns=range(24))
+    )
+
+
+matriz = a_matriz("balance")
 limite = max(5.0, float(matriz.abs().max().max() or 0))
 fig_balance = px.imshow(
     matriz,
@@ -97,6 +104,16 @@ fig_balance = px.imshow(
     zmin=-limite,
     zmax=limite,
     labels={"x": "Hora local", "y": nivel, "color": "Balance (pp)"},
+)
+# Hover con la muestra de cada celda, igual que en las paginas 1 y 2.
+fig_balance.update_traces(
+    hoverongaps=False,
+    customdata=np.dstack([a_matriz(c).values for c in conteos]),
+    hovertemplate=(
+        f"{nivel}: %{{y}}<br>Hora local: %{{x}}<br>Balance: %{{z:+.1f}} pp<br>"
+        "Sin bicis: %{customdata[1]:.0f} de %{customdata[0]:.0f} snapshots<br>"
+        "Sin anclajes: %{customdata[2]:.0f} de %{customdata[0]:.0f} snapshots<extra></extra>"
+    ),
 )
 fig_balance.update_xaxes(tickmode="linear", tick0=0, dtick=1, tickangle=-45)
 fig_balance.update_layout(height=max(300, min(900, 30 * len(orden_zonas))))
