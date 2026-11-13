@@ -6,7 +6,7 @@ from db import run_query
 
 st.title("🗺️ Mapa de sismos")
 st.markdown(
-    "Cada punto representa un evento sísmico de Silver. El tamaño indica la "
+    "Cada punto representa un evento sísmico de Gold. El tamaño indica la "
     "magnitud y el color la profundidad en kilómetros."
 )
 
