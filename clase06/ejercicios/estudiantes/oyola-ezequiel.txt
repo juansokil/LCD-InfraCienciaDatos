@@ -1,0 +1,27 @@
+Apellido: Oyola
+Nombre: Ezequiel
+Rama: estudiante/oyola-ezequiel
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El modelo es capaz de predecir que no se utilizaron para entrenar, lo que lo hace confiable cuando se utilize contra nuevos datos.
+Pregunta (b) - El acc_train mas alto:
+  El modelo predice muy exactamente los datos de entrenamiento, sin embargo no le va muy bien con datos nuevos, el modelo no es capaz de comprender informacion nueva y no es confiable.
+Pregunta (c) - El acc_test mas bajo:
+  El modelo no es confiable porque no predice bien con nuevos datos.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  La cantidad de aciertos que tiene es aceptable ya que puede predecir en un 70% los datos, ademas esta siendo entrenado y testeado con una mayor cantidad de datos que el modelo decision_tree_1d que esta entrenado con pocos datos.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Mediante el monitoreo del mismo, fijarse si cayo la performance, si hay cambios en los datos que puedan perjudicar al modelo, si se cambian las variables del mismo, si las predicciones cambian drasticamente con el tiempo.
+Codigo: 8F0CE1C45F1F
+Fecha: 2026-11-08
