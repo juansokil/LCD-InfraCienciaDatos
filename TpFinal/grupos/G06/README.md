@@ -25,7 +25,11 @@ Para nuestro trabajo utilizaremos una estructura Medallion (Bronze, Silver y Gol
 
 **Decisiones:**
 
-- **Período de tiempo:** 5 años (definir fecha exacta)
+- **Período de analisis historico:** 
+
+- Fecha de inicio: 7/11/2021
+- Fecha de finalizacion: 7/11/2026
+- 5 años de datos historicos
 
 **Destinos elegidos:**
 
