@@ -55,6 +55,44 @@ else:
     ) / 'data' / 'raw' / 'usgs_earthquakes'
 
 
+def filtrar_nuevos(df):
+    df['earthquake_id'] = df['id'].astype(str)
+    df['version_updated'] = (
+        pd.to_datetime(
+            df['properties'].apply(lambda p: p.get('updated') or p.get('time')),
+            unit='ms',
+            utc=True,
+        )
+        .dt.tz_localize(None)
+        .dt.floor('s')
+    )
+    df = df.drop_duplicates(subset=['earthquake_id', 'version_updated'])
+
+    with engine.connect() as conn:
+        existentes = pd.read_sql(
+            'SELECT earthquake_id, version_updated FROM bronze.raw_earthquakes;',
+            con=conn,
+        )
+
+    if existentes.empty:
+        return df
+
+    existentes['earthquake_id'] = existentes['earthquake_id'].astype(str)
+    existentes['version_updated'] = (
+        pd.to_datetime(existentes['version_updated'], utc=True)
+        .dt.tz_localize(None)
+        .dt.floor('s')
+    )
+
+    df = df.merge(
+        existentes,
+        on=['earthquake_id', 'version_updated'],
+        how='left',
+        indicator=True,
+    )
+    return df[df['_merge'] == 'left_only'].drop(columns='_merge')
+
+
 # ==========================================
 # FUNCIÓN 1: INGESTA DIARIA (La que usa Airflow)
 # ==========================================
@@ -83,6 +121,11 @@ def ingestar_usgs_bronze(modo='append'):
     return
 
   df = pd.DataFrame(features)
+  df = filtrar_nuevos(df)
+
+  if df.empty:
+    print('ℹ️ Nada nuevo: todos los eventos ya estaban ingestados.')
+    return
 
   # Serializar estructuras internas (properties, geometry) a string JSON
   for col in df.columns:
@@ -145,6 +188,11 @@ def ingestar_historico_30dias():
     return
 
   df = pd.DataFrame(features)
+  df = filtrar_nuevos(df)
+
+  if df.empty:
+    print('ℹ️ Nada nuevo: todos los eventos ya estaban ingestados.')
+    return
 
   for col in df.columns:
     if df[col].apply(lambda x: isinstance(x, (dict, list))).any():
@@ -170,9 +218,9 @@ def ingestar_historico_30dias():
 # EJECUCIÓN PRINCIPAL
 # ==========================================
 if __name__ == '__main__':
-  # Airflow ejecutará la función de arriba por defecto. 
+  # Airflow ejecutará la función de arriba por defecto.
   # Si querés correr la histórica a mano, descomentá la línea de abajo.
-  
+
   ingestar_usgs_bronze(modo='append')
-  
+
   # ingestar_historico_30dias()
