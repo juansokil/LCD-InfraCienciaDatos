@@ -220,6 +220,11 @@ ORDER BY pct DESC NULLS LAST
 LIMIT 10;
 ```
 
+## Puntos a revisar
+
+- **La ocupación por zona pondera igual a todas las estaciones, sin importar su tamaño** (P4, página 4). Gold guarda `ocupacion_promedio` (promedio de `free_bikes / (free_bikes + empty_slots)` por estación y hora), y el dashboard lo promedia por zona ponderando por snapshots, no por capacidad. Una estación de 10 anclajes al 0% y una de 40 al 100% dan 50%, aunque en la zona hay 40 bicis sobre 50 anclajes (80%). El gráfico responde "cómo está en promedio una estación de la zona", no "qué parte de los anclajes de la zona tiene bici". Para lo segundo, `fact_estacion_hora` tendría que guardar bicis y capacidad operativa sumadas (`sum(free_bikes)` y `sum(free_bikes + empty_slots)`) y el dashboard dividir una suma por la otra. Requiere subir `VERSION_MODELO` y reconstruir gold.
+- **El ranking de uso por estación mezcla horarios distintos según la estación** (P5, página 5). La tasa de cada estación es Σ (retiros + devoluciones) ÷ horas observadas, sumando todos los días y horas con datos. Si una estación se observó sobre todo de madrugada y otra sobre todo en hora pico, la segunda sale con más uso aunque no lo tenga: el ranking compara mezclas horarias distintas. Con pocos días y huecos de cobertura puede pesar. Alternativa: calcular la tasa por hora del día de cada estación y combinarlas con el mismo peso horario para todas, como ya hace la estimación de la red en esa página.
+
 ## Como levantar el stack
 
 La API de CityBikes no necesita key: el stack levanta sin completar nada.

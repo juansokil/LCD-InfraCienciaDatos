@@ -84,18 +84,43 @@ redes_largo["problema"] = redes_largo["problema"].map({
     "sin_reportar": f"Sin snapshot hace > {UMBRAL_SNAPSHOT_MINUTOS} min",
     "operador_viejo": "Dato del operador viejo (> 60 min)",
 })
+# Un panel por problema: cada uno compara las redes en un solo problema, y un
+# cero se lee como "0%" escrito en vez de como un hueco entre barras agrupadas.
+redes_largo["etiqueta"] = (
+    redes_largo["porcentaje"].round(0).astype("Int64").astype(str) + "% · "
+    + redes_largo["cantidad"].astype(int).astype(str) + " de "
+    + redes_largo["estaciones"].astype(int).astype(str)
+)
+tope_x = max(10.0, float(redes_largo["porcentaje"].max() or 0) * 1.6)
 fig_redes = px.bar(
     redes_largo,
     x="porcentaje",
     y="red_nombre",
-    color="problema",
-    barmode="group",
+    facet_col="problema",
+    facet_col_wrap=2,
+    facet_row_spacing=0.16,
+    facet_col_spacing=0.06,
     orientation="h",
+    text="etiqueta",
     hover_data=["cantidad", "estaciones"],
-    labels={"porcentaje": "Estaciones (%)", "red_nombre": "Red", "problema": "",
+    labels={"porcentaje": "Estaciones (%)", "red_nombre": "", "problema": "",
             "cantidad": "Estaciones con el problema", "estaciones": "Estaciones"},
 )
-fig_redes.update_xaxes(rangemode="tozero", ticksuffix="%")
+# Titulo de cada panel en negrita, pegado al recuadro.
+fig_redes.for_each_annotation(
+    lambda a: a.update(text=f"<b>{a.text.split('=')[-1]}</b>", yshift=-6, font_size=14)
+)
+# Un solo color: el titulo del panel ya dice que problema es.
+fig_redes.update_traces(marker_color="#e76f51", textposition="outside", cliponaxis=False)
+# Recuadro y grilla vertical en cada panel, para que se lean como tarjetas.
+BORDE = "rgba(128, 128, 128, 0.45)"
+fig_redes.update_xaxes(
+    range=[0, tope_x], ticksuffix="%",
+    showline=True, mirror=True, linecolor=BORDE,
+    showgrid=True, gridcolor="rgba(128, 128, 128, 0.15)",
+)
+fig_redes.update_yaxes(showline=True, mirror=True, linecolor=BORDE, ticksuffix="  ")
+fig_redes.update_layout(height=460, margin=dict(t=40, b=20, l=10, r=10), bargap=0.35)
 st.plotly_chart(fig_redes, use_container_width=True)
 if not bajas.empty:
     st.caption(
