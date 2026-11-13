@@ -97,12 +97,10 @@ services:
       # OPCION A (default): host 5432 -> contenedor 5432
       #   Si tenés un Postgres instalado en Windows o algun otro contenedor usando 5432,
       #   este mapeo va a fallar con "failed to set up container networking".
-      - "5432:5432"
+      # - "5432:5432"
       #
-      # OPCION B: host 5433 -> contenedor 5432
-      #   Descomentá esta linea y comentá la de arriba si el puerto 5432 esta ocupado.
-      #   IMPORTANTE: si cambiás a 5433, también hay que actualizar las conexiones  que usen `localhost:5432`.
-      # - "5433:5432"
+      # Puerto local para evitar conflictos con PostgreSQL instalado en Windows.
+      - "5434:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}" ]
       interval: 10s
@@ -112,37 +110,36 @@ services:
     networks:
       - de_stack_network
 
-#   # Streamlit - Dashboard BI
-#   dashboard:
-#     build: ./dashboard
-#     container_name: dashboard
-#     env_file: .env
-#     environment:
-#       - SOURCE_DB_HOST=data_warehouse
-#     ports:
-#       - "8501:8501"
-#     volumes:
-#       # Las paginas viven en stack/dashboard/pages/: llegan con cada clase
-#       # (y la del G10 del ejercicio 05 se copia aca). Este bind-mount hace
-#       # que el contenedor vea esa carpeta en vivo: agregas o cambias una
-#       # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
-#       - ./dashboard/pages:/app/pages
-#       # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
-#       # quien produce y quien consume: que el consumidor pueda leerlo es el
-#       # punto. La pagina de Silver muestra las reglas VIGENTES desde el YAML,
-#       # en vez de una copia pegada en el HTML que se desactualiza en silencio.
-#       - ./data/contracts:/app/contracts:ro
-#     depends_on:
-#       data_warehouse:
-#         condition: service_healthy
-#     restart: "no"
-#     networks:
-#       - de_stack_network
-#     deploy:
-#       resources:
-#         limits:
-#           memory: 512M
-#           cpus: '0.5'
+  # Streamlit - Dashboard BI
+  dashboard:
+    build: ./dashboard
+    container_name: dashboard_G08
+    env_file: .env
+    environment:
+      - SOURCE_DB_HOST=data_warehouse
+    ports:
+      - "8501:8501"
+    volumes:
+      # Las paginas viven en dashboard/pages/: llegan con cada clase.
+      # Este bind-mount hace que el contenedor vea esa carpeta en vivo: agregas o cambias una
+      # pagina y aparece al refrescar Streamlit, sin rebuild de la imagen.
+      - ./dashboard/pages:/app/pages
+      # El contrato de datos, en SOLO LECTURA. Un contrato es el acuerdo entre
+      # quien produce y quien consume: que el consumidor pueda leerlo es el
+      # punto. La pagina de Silver muestra las reglas VIGENTES desde el YAML,
+      # en vez de una copia pegada en el HTML que se desactualiza en silencio.
+      - ./data/contracts:/app/contracts:ro
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - de_stack_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
 
 volumes:
   airflow_db_data:
@@ -152,5 +149,4 @@ volumes:
 
 networks:
   de_stack_network:
-    name: de_stack_network
     driver: bridge
