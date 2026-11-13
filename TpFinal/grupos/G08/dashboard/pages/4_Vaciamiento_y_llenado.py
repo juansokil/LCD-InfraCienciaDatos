@@ -21,7 +21,13 @@ df = run_query("""
         f.hora,
         sum(f.snapshots_validos)      AS snapshots_observados,
         sum(f.snapshots_sin_bicis)    AS snapshots_sin_bicis,
-        sum(f.snapshots_sin_anclajes) AS snapshots_sin_anclajes
+        sum(f.snapshots_sin_anclajes) AS snapshots_sin_anclajes,
+        -- Ocupacion ponderada por snapshots: se guardan numerador y base para
+        -- poder reagregar por zona y hora sin promediar promedios.
+        sum(f.ocupacion_promedio * f.snapshots_validos)
+            FILTER (WHERE f.ocupacion_promedio IS NOT NULL) AS ocupacion_ponderada,
+        sum(f.snapshots_validos)
+            FILTER (WHERE f.ocupacion_promedio IS NOT NULL) AS snapshots_con_ocupacion
     FROM gold.fact_estacion_hora f
     JOIN gold.dim_estacion d USING (network_id, station_id)
     JOIN gold.dim_fecha df USING (fecha)
@@ -35,14 +41,25 @@ if df.empty or df["snapshots_observados"].sum() == 0:
 
 df, nivel = columna_zona(df, tiene_barrios, "nivel_zona_vaciado_llenado")
 conteos = ["snapshots_observados", "snapshots_sin_bicis", "snapshots_sin_anclajes"]
+ocupacion = ["ocupacion_ponderada", "snapshots_con_ocupacion"]
+
+
+def ocupacion_pct(datos):
+    """% de anclajes operativos con bici, ponderado por snapshots."""
+    return tasa(datos["ocupacion_ponderada"], datos["snapshots_con_ocupacion"])
+
 
 # Comparacion general por zona: se suman los conteos antes de calcular tasas.
-por_zona = df.groupby("zona_grafico", as_index=False)[conteos].sum()
+por_zona = df.groupby("zona_grafico", as_index=False)[conteos + ocupacion].sum()
 por_zona["pct_sin_bicis"] = tasa(por_zona["snapshots_sin_bicis"], por_zona["snapshots_observados"])
 por_zona["pct_sin_anclajes"] = tasa(por_zona["snapshots_sin_anclajes"], por_zona["snapshots_observados"])
-# Balance: positivo = la zona se vacia mas de lo que se llena (origen de viajes).
-por_zona["balance"] = por_zona["pct_sin_bicis"] - por_zona["pct_sin_anclajes"]
-orden_zonas = por_zona.sort_values("balance")["zona_grafico"].tolist()
+por_zona["ocupacion"] = ocupacion_pct(por_zona)
+# Plotly dibuja el primer elemento abajo: ocupacion descendente deja arriba las
+# zonas mas vacias, en las barras y (invertido) en el heatmap.
+# Zonas sin ocupacion (NaN) van primero para que queden abajo de todo.
+orden_zonas = por_zona.sort_values(
+    "ocupacion", ascending=False, na_position="first"
+)["zona_grafico"].tolist()
 
 por_zona_largo = por_zona.melt(
     id_vars=["zona_grafico", *conteos],
@@ -77,15 +94,13 @@ fig_comparacion.update_yaxes(categoryorder="array", categoryarray=orden_zonas)
 fig_comparacion.update_layout(height=max(300, min(900, 30 * len(orden_zonas))))
 st.subheader(f"Las dos caras de la saturación por {nivel.lower()}")
 st.plotly_chart(fig_comparacion, use_container_width=True)
-st.caption("Ordenado por balance: arriba las zonas que más se vacían respecto de lo que se llenan.")
+st.caption("Ordenado por ocupación promedio: arriba las zonas con menos bicis.")
 
-# Balance por hora: muestra el ida y vuelta (a la manana se vacian unas zonas
-# y se llenan otras; a la tarde, al reves).
-por_hora = df.groupby(["zona_grafico", "hora"], as_index=False)[conteos].sum()
-por_hora["balance"] = tasa(
-    por_hora["snapshots_sin_bicis"] - por_hora["snapshots_sin_anclajes"],
-    por_hora["snapshots_observados"],
-)
+# Ocupacion por hora: muestra el ida y vuelta (a la manana se vacian unas zonas
+# y se llenan otras; a la tarde, al reves). A diferencia de contar estaciones
+# vacias o llenas, ve la tendencia aunque la zona no llegue a los extremos.
+por_hora = df.groupby(["zona_grafico", "hora"], as_index=False)[conteos + ocupacion].sum()
+por_hora["ocupacion"] = ocupacion_pct(por_hora)
 
 
 def a_matriz(columna):
@@ -95,34 +110,33 @@ def a_matriz(columna):
     )
 
 
-matriz = a_matriz("balance")
-limite = max(5.0, float(matriz.abs().max().max() or 0))
-fig_balance = px.imshow(
+matriz = a_matriz("ocupacion")
+fig_ocupacion = px.imshow(
     matriz,
     aspect="auto",
-    color_continuous_scale=[[0.0, "#277da1"], [0.5, "#f1f1f1"], [1.0, "#d62828"]],
-    zmin=-limite,
-    zmax=limite,
-    labels={"x": "Hora local", "y": nivel, "color": "Balance (pp)"},
+    color_continuous_scale=[[0.0, "#d62828"], [0.5, "#f1f1f1"], [1.0, "#277da1"]],
+    zmin=0,
+    zmax=100,
+    labels={"x": "Hora local", "y": nivel, "color": "Ocupación (%)"},
 )
 # Hover con la muestra de cada celda, igual que en las paginas 1 y 2.
-fig_balance.update_traces(
+fig_ocupacion.update_traces(
     hoverongaps=False,
     customdata=np.dstack([a_matriz(c).values for c in conteos]),
     hovertemplate=(
-        f"{nivel}: %{{y}}<br>Hora local: %{{x}}<br>Balance: %{{z:+.1f}} pp<br>"
+        f"{nivel}: %{{y}}<br>Hora local: %{{x}}<br>Ocupación: %{{z:.0f}}%<br>"
         "Sin bicis: %{customdata[1]:.0f} de %{customdata[0]:.0f} snapshots<br>"
         "Sin anclajes: %{customdata[2]:.0f} de %{customdata[0]:.0f} snapshots<extra></extra>"
     ),
 )
-fig_balance.update_xaxes(tickmode="linear", tick0=0, dtick=1, tickangle=-45)
-fig_balance.update_layout(height=max(300, min(900, 30 * len(orden_zonas))))
+fig_ocupacion.update_xaxes(tickmode="linear", tick0=0, dtick=1, tickangle=-45)
+fig_ocupacion.update_layout(height=max(300, min(900, 30 * len(orden_zonas))))
 st.subheader("¿En qué horario se vacía o se llena cada zona?")
-st.plotly_chart(fig_balance, use_container_width=True)
+st.plotly_chart(fig_ocupacion, use_container_width=True)
 st.caption(
-    "Balance = % de snapshots sin bicis − % sin anclajes. Rojo: la zona se vacía (salen "
-    "más bicis de las que llegan, típico de barrios residenciales a la mañana). Azul: se "
-    "llena (llegan más de las que salen, típico de zonas de oficinas). Las celdas vacías "
-    "no tienen snapshots. Una estación puede contar en las dos condiciones si tiene cero "
-    "bicis y cero anclajes libres a la vez."
+    "Ocupación = % de los anclajes operativos (bicis + anclajes libres) que tiene bici, "
+    "promedio de los snapshots de esa zona y hora. Rojo: la zona está vacía (típico de "
+    "barrios residenciales a la mañana, cuando salen las bicis). Azul: está llena (típico "
+    "de zonas de oficinas). Blanco: mitad y mitad. Las celdas vacías no tienen snapshots. "
+    "El hover muestra además cuántos snapshots estaban sin bicis o sin anclajes."
 )

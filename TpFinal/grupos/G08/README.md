@@ -25,7 +25,7 @@ El pipeline toma un snapshot de las estaciones cada 5 minutos en tres redes arge
 1. **¿Qué estaciones se saturan y cuándo?** Una estación está saturada cuando se usaron todas sus bicis (`free_bikes = 0`). Se mira por estación, hora del día y día de la semana.
 2. **¿Cómo varía la saturación por zona?** Barrio y comuna en CABA; ciudad en el resto (ver [Zonas](#zonas)).
 3. **¿Cuánto dura la saturación?** Cada vez que una estación se queda sin bicis empieza un episodio, que termina cuando vuelve a tener alguna. Se mide cuánto duran los episodios por estación, zona y franja horaria: si una estación vacía se repone en 5 minutos o en 2 horas.
-4. **¿Qué zonas se vacían y qué zonas se llenan, y en qué horario?** Compara las dos caras de la saturación: sin bicis (no se puede retirar) y sin anclajes libres (`empty_slots = 0`, no se puede devolver). Debería mostrar el ida y vuelta diario entre barrios residenciales y zonas de oficinas.
+4. **¿Qué zonas se vacían y qué zonas se llenan, y en qué horario?** Compara las dos caras de la saturación: sin bicis (no se puede retirar) y sin anclajes libres (`empty_slots = 0`, no se puede devolver). El horario se mira con la ocupación promedio por zona y hora (qué parte de los anclajes operativos tiene bici), que muestra la tendencia aunque la zona no llegue a vaciarse o llenarse del todo. Debería mostrar el ida y vuelta diario entre barrios residenciales y zonas de oficinas.
 5. **¿Cuánto uso tiene cada estación y en qué horario?** Se suma cuánto cambia la cantidad de bicis entre un snapshot y el siguiente, como estimación de retiros y devoluciones. Si en 5 minutos sale una bici y entra otra, la cuenta no lo ve, así que el número es un **mínimo**. Sirve para distinguir una estación vacía porque se usa mucho de una vacía porque nadie la repone.
 6. **¿Qué parte de la capacidad está realmente disponible?** Anclajes fuera de servicio, estaciones que no alquilan y estaciones que no reportan hace rato, por red y zona.
 
@@ -203,7 +203,7 @@ dim_estacion ──┬── fact_estacion_hora        estación × día × hora
 | 1 · Sin bicis por estación | P1: mapa de calor día × hora de la red y de cada estación, ranking con mínimo de snapshots | `fact_estacion_hora` |
 | 2 · Sin bicis por zona | P2: comparación entre ciudades y desglose por barrio / comuna en CABA | `fact_estacion_hora` |
 | 3 · Duración de episodios | P3: mediana y percentil 90 por zona, estación y hora de inicio | `fact_episodio_sin_bicis` |
-| 4 · Vaciamiento y llenado | P4: sin bicis vs sin anclajes por zona, y balance por hora | `fact_estacion_hora` |
+| 4 · Vaciamiento y llenado | P4: sin bicis vs sin anclajes por zona, y ocupación por zona y hora | `fact_estacion_hora` |
 | 5 · Uso por estación | P5: perfil horario, ranking y cruce uso × saturación (vacía por uso o por falta de reposición) | `fact_estacion_hora` |
 | 6 · Capacidad disponible | P6: estado actual por red y zona, y evolución diaria | `fact_capacidad_actual`, `fact_estacion_hora` |
 
