@@ -1,15 +1,21 @@
 # TP Final - G05 - USGS Earthquakes
 
+## Pregunta del proyecto
 
+¿En qué zonas y meses se concentra la actividad sísmica a nivel global y
+cuáles de esos eventos tienen el indicador de tsunami publicado por USGS?
 
----
+El pipeline toma los sismos de USGS (Bronze), los limpia y deduplica (Silver)
+y los modela en un esquema dimensional (Gold) que alimenta un dashboard con
+actividad por mes y zona, un mapa animado y la lista de eventos marcados con
+tsunami.
 
 ## Integrantes
 
 - Juan Cruz Goñi (@JuanCruzGoni)
 - Uriel Fenley (@urifen)
 - Mía Arcondo (@michuarcondo)
-- Julián Mesina (@julii00m)
+- Julián Mesina (@juliii00m)
 - Agustín Fiorini (@agustinfiorini06-max)
 
 
