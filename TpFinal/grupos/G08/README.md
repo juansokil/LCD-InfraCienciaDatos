@@ -206,6 +206,7 @@ dim_estacion ──┬── fact_estacion_hora        estación × día × hora
 | 4 · Vaciamiento y llenado | P4: sin bicis vs sin anclajes por zona, y ocupación por zona y hora | `fact_estacion_hora` |
 | 5 · Uso por estación | P5: perfil horario, ranking y cruce uso × saturación (vacía por uso o por falta de reposición) | `fact_estacion_hora` |
 | 6 · Capacidad disponible | P6: estado actual por red y zona, y evolución diaria | `fact_capacidad_actual`, `fact_estacion_hora` |
+| 7 · Mapa | P1, P4 y P5 en el mapa: cada estación coloreada por tiempo sin bicis, sin anclajes, ocupación o uso, con filtro de días y franja horaria | `fact_estacion_hora`, `dim_estacion` |
 
 ```sql
 -- estaciones mas saturadas de EcoBici entre 8 y 10 hs de dias habiles

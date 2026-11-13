@@ -23,6 +23,7 @@ dimensiones (gold). Todas las páginas leen solo el schema `gold`.
 | 4 · Vaciamiento y llenado | ¿Qué zonas se vacían y cuáles se llenan, y en qué horario? | `fact_estacion_hora` |
 | 5 · Uso por estación | ¿Cuánto uso tiene cada estación y en qué horario? | `fact_estacion_hora` |
 | 6 · Capacidad disponible | ¿Qué parte de la capacidad está realmente disponible? | `fact_capacidad_actual` |
+| 7 · Mapa | Dónde están las estaciones sin bicis, llenas o más usadas (P1, P4, P5 en el mapa) | `fact_estacion_hora`, `dim_estacion` |
 
 Una estación **saturada** (o **sin bicis**) es una que no tiene bicis para
 retirar (`free_bikes = 0`). La otra cara, estación llena sin anclajes libres
