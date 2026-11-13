@@ -22,23 +22,9 @@ def get_engine():
 @st.cache_data(ttl=60)
 def cargar_gold() -> pd.DataFrame:
     sql = """
-        SELECT f.sismo_id,
-               f.magnitud,
-               f.profundidad_km,
-               u.latitud,
-               u.longitud,
-               u.nombre_region,
-               f.es_tsunami,
-               f.cantidad,
-               d.fecha,
-               d.anio,
-               d.mes,
-               d.nombre_mes,
-               d.dia_semana
-        FROM gold.fact_sismos f
-        JOIN gold.dim_fecha d ON d.fecha_id = f.fecha_id
-        JOIN gold.dim_ubicacion u ON u.ubicacion_id = f.ubicacion_id
-        ORDER BY d.fecha DESC, f.magnitud DESC
+        SELECT * 
+        FROM gold.v_sismos_dashboard 
+        ORDER BY fecha DESC, magnitud DESC
     """
     return pd.read_sql(sql, get_engine())
 
