@@ -1,0 +1,4 @@
+# Lo que genera el stack cuando corre: queda en cada maquina, no va al repo
+data/raw/**/*.json
+__pycache__/
+*.pyc
