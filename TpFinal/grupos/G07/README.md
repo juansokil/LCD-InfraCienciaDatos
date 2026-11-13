@@ -6,7 +6,8 @@
 - Antonella Trinidad Frutos ()
 - Maria Sol Ibar Jalil (solibarjalil)
 - Lucas Patricio Isla (Lisla23)
-- ## Credenciales de Acceso (Airflow)
+
+## Credenciales de Acceso (Airflow)
   **Usuario:** admin
   **Contraseña:** admin
 
@@ -53,12 +54,15 @@ Los datos de Bronze se procesan con SQL para extraer los campos necesarios y gua
 
 ### Gold (Modelado Dimensional)
 
-Los datos de Silver se estructuran en un **Modelo Estrella** para facilitar el análisis.
+Los datos de Silver se estructuran en un **Modelo Estrella** para facilitar el análisis de la actividad sismica.
 
 **Tablas**:
 - `gold.dim_fecha`: información temporal (fecha, año, mes, día, día de la semana).
 - `gold.dim_region`: ubicación geográfica extraída del campo `place` de USGS.
 - `gold.fact_sismos`: tabla de hechos que registra el evento, magnitud, profundidad, coordenadas, si generó tsunami y su relación con `fecha_id` y `region_id`.
+
+**Vista:**
+- `gold.v_sismos_dashboard`: reúne la información de las tablas Gold para facilitar las consultas del dashboard.
 
 **Proceso**: Las inserciones y actualizaciones usan `INSERT ... ON CONFLICT` para mantener la idempotencia.
 El DAG `gold_usgs_g07` incluye una tarea de validación que asegura la integridad referencial (no haya huérfanos) y la reconciliación (misma cantidad de registros que en Silver).
@@ -98,3 +102,9 @@ Desde la carpeta del grupo:
 ```bash
 cd TpFinal/grupos/G07/
 docker compose up -d --build
+
+### Accesos
+
+ - **Airflow:** http://localhost:8081
+ - **Dashboard:** http://localhost:8501
+ - **PostgreSQL:** localhost:5433 (credenciales en `.env`).
