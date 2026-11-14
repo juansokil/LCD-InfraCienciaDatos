@@ -1,14 +1,16 @@
-"""g06_silver — limpieza y validacion (ESQUELETO).
+"""g06_silver — limpieza y validacion.
 
-No tiene reloj: corre cuando Bronze emite BRONZE_OPENMETEO. Por ahora solo deja
-una marca en silver.esqueleto_ping. El dueno de Silver reemplaza la tarea por el
-SQL real, manteniendo el dag_id y el outlet SILVER_OPENMETEO.
+Se ejecuta cuando Bronze emite BRONZE_OPENMETEO.
+Por ahora ejecuta el SQL inicial de creacion de la tabla Silver.
+La limpieza y carga de datos se completaran cuando este disponible
+la ingesta real de Bronze.
 """
+
 import sys
 from datetime import datetime
+from pathlib import Path
 
 from airflow.sdk import dag, task
-from sqlalchemy import text
 
 sys.path.append("/opt/airflow/dags")
 from common.assets import BRONZE_OPENMETEO, SILVER_OPENMETEO  # noqa: E402
@@ -26,13 +28,14 @@ from common.db import get_engine  # noqa: E402
 def g06_silver():
 
     @task(outlets=[SILVER_OPENMETEO])
-    def ping():
-        with get_engine().begin() as conn:
-            conn.execute(text(
-                "CREATE TABLE IF NOT EXISTS silver.esqueleto_ping (corrida_ts TIMESTAMP DEFAULT now())"))
-            conn.execute(text("INSERT INTO silver.esqueleto_ping DEFAULT VALUES"))
+    def ejecutar_sql():
+        sql_path = Path(__file__).parent / "sql" / "01_modelo.sql"
+        sql = sql_path.read_text(encoding="utf-8")
 
-    ping()
+        with get_engine().begin() as conn:
+            conn.exec_driver_sql(sql)
+
+    ejecutar_sql()
 
 
 g06_silver()
