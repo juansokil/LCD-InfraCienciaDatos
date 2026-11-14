@@ -1,0 +1,99 @@
+# - TP Final G06 — Open-Meteo
+# - Utilizamos un comando para levantar todo:  docker compose up -d --build
+# - Contiene los 4 servicios: warehouse (Postgres con bronze/silver/gold), airflow_db
+# (metadatos de Airflow), airflow (orquestador) y dashboard (Streamlit).
+
+services:
+
+  # Postgres con los datos del pipeline (schemas bronze / silver / gold)
+  warehouse:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres     
+    container_name: g06_warehouse
+    environment:
+      - POSTGRES_USER=${SOURCE_DB_USER}
+      - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
+      - POSTGRES_DB=${SOURCE_DB_NAME}
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"                        # Formato HOST:CONTENEDOR
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [g06_network]
+
+  # Postgres interno de Airflow (su propio estado). No se expone al host.
+  airflow_db:
+    image: postgres:17-alpine
+    container_name: g06_airflow_db
+    environment:
+      - POSTGRES_USER=${AF_DB_USER}
+      - POSTGRES_PASSWORD=${AF_DB_PASS}
+      - POSTGRES_DB=${AF_DB_NAME}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AF_DB_USER} -d ${AF_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [g06_network]
+
+  # Airflow 3.1.5: scheduler + api-server + dag-processor + triggerer
+  airflow:
+    build: .
+    container_name: g06_airflow
+    env_file: .env
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
+      - AIRFLOW__API__SECRET_KEY=${AIRFLOW_SECRET_KEY}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL=10
+      - SOURCE_DB_HOST=warehouse
+    volumes:
+      - type: bind                         
+        source: ./dags
+        target: /opt/airflow/dags
+      - type: bind                         
+        source: ./data
+        target: /opt/airflow/data
+      - airflow_logs:/opt/airflow/logs
+    ports:
+      - "8080:8080"
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      warehouse:
+        condition: service_healthy
+    networks: [g06_network]
+
+  # Dashboard sobre las tablas Gold
+  dashboard:
+    build: ./dashboard
+    container_name: g06_dashboard
+    env_file: .env
+    environment:
+      - SOURCE_DB_HOST=warehouse
+    volumes:
+      - ./dashboard/pages:/app/pages       
+    ports:
+      - "8501:8501"
+    depends_on:
+      warehouse:
+        condition: service_healthy
+    networks: [g06_network]
+
+volumes:
+  warehouse_data:
+  airflow_db_data:
+  airflow_logs:
+
+networks:
+  g06_network:
+    name: g06_network
+    driver: bridge

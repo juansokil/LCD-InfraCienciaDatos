@@ -1,0 +1,7 @@
+# Basura de Python
+__pycache__/
+*.pyc
+
+# Zona raw del lake: los JSON se generan al correr, no se versionan
+data/raw/*
+!data/raw/.gitkeep
