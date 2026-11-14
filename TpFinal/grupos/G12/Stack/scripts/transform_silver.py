@@ -72,7 +72,17 @@ def procesar_silver_usgs():
         CASE
             WHEN position(',' in lugar) > 0 THEN TRIM(regexp_replace(lugar, ',[^,]*$', ''))
         END                                                        AS ubicacion,
-        TRIM(regexp_replace(lugar, '^.*,', ''))                    AS region,
+        
+        regexp_replace(
+            CASE TRIM(regexp_replace(lugar, '^.*,', ''))
+                WHEN 'CA' THEN 'California'
+                WHEN 'NV' THEN 'Nevada'
+                WHEN 'MX' THEN 'Mexico'
+                WHEN 'south of the Fiji Islands' THEN 'Fiji'
+                ELSE TRIM(regexp_replace(lugar, '^.*,', ''))
+            END,
+            ' region$', ''
+        )                                                          AS region,
         latitud,
         longitud,
         profundidad_km,

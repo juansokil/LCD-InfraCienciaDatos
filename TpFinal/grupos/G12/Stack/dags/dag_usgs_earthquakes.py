@@ -21,6 +21,7 @@ default_args = {
     'start_date': datetime(2026, 11, 1),
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
+    'execution_timeout': timedelta(minutes=10),
 }
 
 with DAG(

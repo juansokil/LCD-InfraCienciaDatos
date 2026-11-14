@@ -102,7 +102,7 @@ def ingestar_usgs_bronze(modo='append'):
       'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson'
   )
 
-  response = requests.get(url_api)
+  response = requests.get(url_api, timeout=30)
   response.raise_for_status()
   ahora = datetime.now()
 
@@ -168,7 +168,7 @@ def ingestar_historico_30dias():
   )
 
   print(f"⏳ Consultando sismos desde {fecha_inicio.date()} hasta {fecha_fin.date()}...")
-  response = requests.get(url_api)
+  response = requests.get(url_api, timeout=30)
   response.raise_for_status()
   ahora = datetime.now()
 
