@@ -1,11 +1,11 @@
-
 """
 LogiWeather - DAG Gold
 TP Final - Grupo 10
 
 Modelo dimensional con transformaciones SQL.
-Las reglas de incentivos se incorporarán
-cuando estén acordadas por el grupo.
+Calcula alertas meteorológicas e incentivos
+recomendados por lluvia y calor mediante
+reglas de negocio configurables.
 """
 
 import logging
@@ -16,6 +16,8 @@ import pendulum
 import psycopg2
 from airflow.sdk import dag, task
 
+import json
+from pathlib import Path
 
 def conectar_warehouse():
     return psycopg2.connect(
@@ -83,12 +85,26 @@ def logiweather_gold():
             bronze_id BIGINT NOT NULL,
             ingested_at TIMESTAMPTZ NOT NULL,
 
-            -- Reglas de negocio pendientes de definir
+            -- Alertas meteorológicas e incentivos recomendados
+            nivel_alerta_lluvia VARCHAR(30),
+            incentivo_lluvia NUMERIC(10,2),
+
+            nivel_alerta_calor VARCHAR(30),
+            incentivo_calor NUMERIC(10,2),
+
             nivel_alerta VARCHAR(30),
             incentivo_recomendado NUMERIC(10,2),
 
             PRIMARY KEY (ciudad_id, fecha_pronostico)
         );
+
+
+        ALTER TABLE gold.fact_alertas_incentivos
+            ADD COLUMN IF NOT EXISTS nivel_alerta_lluvia VARCHAR(30),
+            ADD COLUMN IF NOT EXISTS incentivo_lluvia NUMERIC(10,2),
+            ADD COLUMN IF NOT EXISTS nivel_alerta_calor VARCHAR(30),
+            ADD COLUMN IF NOT EXISTS incentivo_calor NUMERIC(10,2);
+
         """
 
         with conectar_warehouse() as conexion:
@@ -99,6 +115,45 @@ def logiweather_gold():
 
     @task
     def actualizar_modelo_gold():
+
+        ruta_config = Path(
+            "/opt/airflow/config/reglas_negocio.json"
+        )
+
+        with ruta_config.open(
+            "r", encoding="utf-8"
+        ) as archivo:
+            reglas = json.load(archivo)
+
+        lluvia = reglas["lluvia"]
+        calor = reglas["calor"]
+
+        parametros = {
+            # Umbrales de lluvia
+            "lluvia_baja_prob": lluvia["baja"]["probabilidad_min"],
+            "lluvia_baja_mm": lluvia["baja"]["precipitacion_mm_min"],
+            "lluvia_media_prob": lluvia["media"]["probabilidad_min"],
+            "lluvia_media_mm": lluvia["media"]["precipitacion_mm_min"],
+            "lluvia_alta_prob": lluvia["alta"]["probabilidad_min"],
+            "lluvia_alta_mm": lluvia["alta"]["precipitacion_mm_min"],
+
+            # Incentivos por lluvia
+            "lluvia_sin_alerta_pct": lluvia["sin_alerta"]["incentivo_pct"],
+            "lluvia_baja_pct": lluvia["baja"]["incentivo_pct"],
+            "lluvia_media_pct": lluvia["media"]["incentivo_pct"],
+            "lluvia_alta_pct": lluvia["alta"]["incentivo_pct"],
+
+            # Umbrales de calor
+            "calor_baja_temp": calor["baja"]["temperatura_max_min"],
+            "calor_media_temp": calor["media"]["temperatura_max_min"],
+            "calor_alta_temp": calor["alta"]["temperatura_max_min"],
+
+            # Incentivos por calor
+            "calor_sin_alerta_pct": calor["sin_alerta"]["incentivo_pct"],
+            "calor_baja_pct": calor["baja"]["incentivo_pct"],
+            "calor_media_pct": calor["media"]["incentivo_pct"],
+            "calor_alta_pct": calor["alta"]["incentivo_pct"],
+        }
 
         sql_ciudades = """
         INSERT INTO gold.dim_ciudad (
@@ -196,18 +251,134 @@ def logiweather_gold():
             );
         """
 
+        sql_alertas = """
+        WITH clasificacion AS (
+            SELECT
+                ciudad_id,
+                fecha_pronostico,
+
+                CASE
+                    WHEN probabilidad_lluvia >= %(lluvia_alta_prob)s
+                         AND precipitacion_mm >= %(lluvia_alta_mm)s
+                    THEN 3
+
+                    WHEN probabilidad_lluvia >= %(lluvia_media_prob)s
+                         AND precipitacion_mm >= %(lluvia_media_mm)s
+                    THEN 2
+
+                    WHEN probabilidad_lluvia >= %(lluvia_baja_prob)s
+                         AND precipitacion_mm >= %(lluvia_baja_mm)s
+                    THEN 1
+
+                    ELSE 0
+                END AS riesgo_lluvia,
+
+                CASE
+                    WHEN temperatura_max >= %(calor_alta_temp)s
+                    THEN 3
+
+                    WHEN temperatura_max >= %(calor_media_temp)s
+                    THEN 2
+
+                    WHEN temperatura_max >= %(calor_baja_temp)s
+                    THEN 1
+
+                    ELSE 0
+                END AS riesgo_calor
+
+            FROM gold.fact_alertas_incentivos
+        ),
+
+        incentivos AS (
+            SELECT
+                ciudad_id,
+                fecha_pronostico,
+                riesgo_lluvia,
+                riesgo_calor,
+
+                CASE riesgo_lluvia
+                    WHEN 3 THEN 'ALTA'
+                    WHEN 2 THEN 'MEDIA'
+                    WHEN 1 THEN 'BAJA'
+                    ELSE 'SIN_ALERTA'
+                END AS nivel_lluvia,
+
+                CASE riesgo_calor
+                    WHEN 3 THEN 'ALTA'
+                    WHEN 2 THEN 'MEDIA'
+                    WHEN 1 THEN 'BAJA'
+                    ELSE 'SIN_ALERTA'
+                END AS nivel_calor,
+
+                CASE riesgo_lluvia
+                    WHEN 3 THEN %(lluvia_alta_pct)s
+                    WHEN 2 THEN %(lluvia_media_pct)s
+                    WHEN 1 THEN %(lluvia_baja_pct)s
+                    ELSE %(lluvia_sin_alerta_pct)s
+                END AS incentivo_lluvia_pct,
+
+                CASE riesgo_calor
+                    WHEN 3 THEN %(calor_alta_pct)s
+                    WHEN 2 THEN %(calor_media_pct)s
+                    WHEN 1 THEN %(calor_baja_pct)s
+                    ELSE %(calor_sin_alerta_pct)s
+                END AS incentivo_calor_pct
+
+            FROM clasificacion
+        )
+
+        UPDATE gold.fact_alertas_incentivos AS f
+        SET
+            nivel_alerta_lluvia = i.nivel_lluvia,
+            incentivo_lluvia = i.incentivo_lluvia_pct,
+
+            nivel_alerta_calor = i.nivel_calor,
+            incentivo_calor = i.incentivo_calor_pct,
+
+            nivel_alerta = CASE
+                GREATEST(i.riesgo_lluvia, i.riesgo_calor)
+                WHEN 3 THEN 'ALTA'
+                WHEN 2 THEN 'MEDIA'
+                WHEN 1 THEN 'BAJA'
+                ELSE 'SIN_ALERTA'
+            END,
+
+            incentivo_recomendado = GREATEST(
+                i.incentivo_lluvia_pct,
+                i.incentivo_calor_pct
+            )
+
+        FROM incentivos AS i
+
+        WHERE f.ciudad_id = i.ciudad_id
+          AND f.fecha_pronostico = i.fecha_pronostico;
+        """
+
+
+        
         with conectar_warehouse() as conexion:
             with conexion.cursor() as cursor:
+
                 cursor.execute(sql_ciudades)
                 cursor.execute(sql_fechas)
                 cursor.execute(sql_hechos)
+
                 hechos_actualizados = cursor.rowcount
 
+                cursor.execute(sql_alertas, parametros)
+
+                alertas_calculadas = cursor.rowcount
+
         logging.info(
-            "Gold actualizado. Hechos insertados "
-            "o actualizados: %s",
+            "Gold: %s pronosticos insertados o actualizados.",
             hechos_actualizados,
         )
+
+        logging.info(
+            "Gold: %s alertas e incentivos calculados.",
+            alertas_calculadas,
+        )
+
 
     creacion = crear_modelo_gold()
     actualizacion = actualizar_modelo_gold()
