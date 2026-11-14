@@ -1,8 +1,8 @@
 -- Capa Silver 
--- Idea inicial de la tabla con los datos metereologicos 
--- Hya que revisarlo y hacer cambios una vez que tengamos el JSON definitivo de Bronze
+-- Creacion de la tabla con los datos meteorologicos diarios 
+-- Hay que revisarlo y hacer cambios una vez que tengamos el JSON definitivo de Bronze
 
-
+CREATE SCHEMA IF NOT EXISTS silver;
 CREATE TABLE IF NOT EXISTS silver.clima_diario (
     destino VARCHAR(100) NOT NULL,
     fecha DATE NOT NULL,
