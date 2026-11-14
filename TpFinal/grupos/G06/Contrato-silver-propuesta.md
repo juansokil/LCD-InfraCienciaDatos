@@ -2,11 +2,11 @@
 
 Propuesta para definir como vamos a organizar los datos en la capa Silver.
 
-La idea se basa en consultas realizadas a la API historica de Open-Mateo para tres destinos de Argentina.
+La idea se basa en consultas realizadas a la API histórica de Open-Meteo para tres destinos de Argentina.
 
-Describimos las variables seleccionadas, sus nombres originales, los nombres mejores , tipos de datos, unidades y algunos chequeos de calidad.
+Describimos las variables seleccionadas, sus nombres originales, los nombres nuevos en español, tipos de datos, unidades y algunos chequeos de calidad.
 
-Queda pendiente chequear esta propuesta con el JSON de ejemplo del grupo y validadrla todos juntos.
+Queda pendiente chequear esta propuesta con el JSON de ejemplo del grupo y validarla todos juntos.
 
 **Destinos y periodo de tiempo usado**
 
@@ -20,8 +20,8 @@ Se obtuvieron 1822 registros diarios para cada destino. En total 5466 registros.
 
 **Variables**
 
-| Nombre original en la API | | Nombre en Silver | | Descripcion | | Unidad| 
-|---| |---| |---| |---|
+| Nombre original en la API | Nombre en Silver | Descripción | Unidad |
+|---|---|---|---|
 | `temperature_2m_min` | `temperatura_minima` | Temperatura mínima diaria a 2 metros | °C |
 | `temperature_2m_mean` | `temperatura_media` | Temperatura media diaria a 2 metros | °C |
 | `temperature_2m_max` | `temperatura_maxima` | Temperatura máxima diaria a 2 metros | °C |
@@ -66,7 +66,7 @@ Estos controles son iniciales y pueden ampliarse al implementar Silver.
 
 **Decisiones importantes**
 - Si falta el destino o la fecha, descartamos el registro porque son valores necesarios para identificarlo.
-- Si encontramos datos faltantes en las variables, vamos a contabilizarlos para ver cuantosregistros estan afectados. Si son pocos los registros con datos faltantes vamos a descartarlos. Si son muchos, completaremos los valores con algun criterio estadistico (media o mediana).
+- Si encontramos datos faltantes en las variables, vamos a contabilizarlos para ver cuántos registros estan afectados. Si son pocos los registros con datos faltantes vamos a descartarlos. Si son muchos, completaremos los valores con algun criterio estadistico (media o mediana).
 - Si hay valores inconsistentes, el registro se excluye de silver hasta revisarlo.
 - Si encontramos registros duplicados (mismo destino y fecha) nos quedamos con uno solo, descartamos el duplicado. Si los dos registros tienen valores diferentes, lo marcamos para revisar.
 - Los registros que descartamos, los datos faltantes, las inconsistencias y los valores NULL los vamos a contabilizar para tener un registro y poder medir la calidad de los datos.
@@ -75,13 +75,13 @@ Estos controles son iniciales y pueden ampliarse al implementar Silver.
 
 **precipitacion_mm:**
 
-- No puede tener valores negativos, sino es considerado invalido y queda como NULL.
+- No puede tener valores negativos, si no, se considera invalido y queda como NULL.
 - Puede valer 0 (no hubo precipitaciones).
 
 **duracion_luz_segundos:**
 
 - No puede tener valores negativos.
-- No puede superara los 86400 segundos (es decir las 24hs del dia)
+- No puede superar los 86400 segundos (es decir, las 24 h del día)
 
 **rafagas_viento_max_kmh:**
 - No puede tener valores negativos.
