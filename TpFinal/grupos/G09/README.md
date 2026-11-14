@@ -139,7 +139,7 @@ G09/
 - [x] Silver: limpieza en SQL, disparada automáticamente por el asset de Bronze.
 - [x] Gold: modelo estrella en SQL, disparado automáticamente por el asset de Silver.
 - [x] Contenedor del dashboard.
-- [ ] Dashboard con gráficos sobre Gold.
+- [x] Dashboard con gráficos sobre Gold.
 ## Cómo levantarlo
 
 **Requisitos:** Docker Desktop abierto, y los puertos `5432`, `8080` y `8501` libres. Si está corriendo el stack de la materia, apagarlo antes (`docker compose down` en la carpeta `stack/`).
