@@ -7,67 +7,66 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from db import leer
+from tema import aplicar_tema
+
+aplicar_tema()
 
 
-# ESTILO VISUAL
+# CONFIGURACIÓN VISUAL DE LOS GRÁFICOS
 
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #EAE5D9;
-        color: #343C32;
-    }
+def configurar_grafico(fig):
+    fig.update_layout(
+        paper_bgcolor="#F6F7F3",
+        plot_bgcolor="#FFFFFF",
+        font=dict(
+            family="DM Sans",
+            color="#343A35",
+            size=13
+        ),
+        title=dict(
+            font=dict(
+                family="DM Sans",
+                color="#344E41",
+                size=19
+            )
+        ),
+        legend=dict(
+            font=dict(color="#343A35", size=12),
+            title_font=dict(color="#343A35")
+        ),
+        xaxis=dict(
+            color="#343A35",
+            tickfont=dict(color="#343A35", size=12),
+            title_font=dict(color="#344E41"),
+            showgrid=False,
+            linecolor="#DCE3DA"
+        ),
+        yaxis=dict(
+            color="#343A35",
+            tickfont=dict(color="#343A35", size=12),
+            title_font=dict(color="#344E41"),
+            gridcolor="#E1E6DE",
+            linecolor="#DCE3DA"
+        )
+    )
 
-    h1, h2, h3 {
-        color: #35513D !important;
-    }
+    fig.update_xaxes(
+        tickfont=dict(color="#343A35", size=12),
+        title_font=dict(color="#344E41")
+    )
 
-    p, label, [data-testid="stCaptionContainer"] {
-        color: #454B42 !important;
-    }
+    fig.update_yaxes(
+        tickfont=dict(color="#343A35", size=12),
+        title_font=dict(color="#344E41")
+    )
 
-    [data-testid="stMetric"] {
-        background-color: #F2EFE7;
-        border: 1px solid #D2CCBD;
-        padding: 18px;
-        border-radius: 12px;
-    }
+    fig.update_traces(
+        selector=dict(type="bar"),
+        textfont=dict(color="#343A35", size=12)
+    )
 
-    [data-testid="stMetricLabel"],
-    [data-testid="stMetricValue"],
-    [data-testid="stMetricDelta"] {
-        color: #35513D !important;
-    }
-
-    div.stButton > button {
-        background-color: #526B50;
-        color: #FFFFFF !important;
-        border: none;
-        border-radius: 9px;
-        font-weight: 600;
-    }
-
-    div.stButton > button:hover {
-        background-color: #35513D;
-        color: #FFFFFF !important;
-    }
-
-    [data-testid="stSelectbox"] label {
-        color: #35513D !important;
-        font-weight: 600;
-    }
-
-    [data-testid="stAlert"] {
-        background-color: #F2EFE7;
-        color: #343C32;
-        border-radius: 10px;
-    }
-
-    hr {
-        border-color: #D2CCBD;
-    }
-</style>
-""", unsafe_allow_html=True)
+    return fig
 
 
 # ENCABEZADO
@@ -83,13 +82,37 @@ st.divider()
 
 # SELECCIÓN DE DESTINO
 
-st.subheader("Seleccioná tu destino")
-
 destinos = {
     "Noroeste": ["Purmamarca"],
     "Patagonia": ["Bariloche"],
     "Noreste": ["Puerto Iguazú"]
 }
+
+meses_por_temporada = {
+    "Verano": ["Diciembre", "Enero", "Febrero"],
+    "Otoño": ["Marzo", "Abril", "Mayo"],
+    "Invierno": ["Junio", "Julio", "Agosto"],
+    "Primavera": ["Septiembre", "Octubre", "Noviembre"]
+}
+
+numero_mes = {
+    "Enero": 1,
+    "Febrero": 2,
+    "Marzo": 3,
+    "Abril": 4,
+    "Mayo": 5,
+    "Junio": 6,
+    "Julio": 7,
+    "Agosto": 8,
+    "Septiembre": 9,
+    "Octubre": 10,
+    "Noviembre": 11,
+    "Diciembre": 12
+}
+
+meses = list(numero_mes.keys())
+
+st.subheader("Seleccioná tu destino")
 
 col1, col2, col3 = st.columns(3)
 
@@ -102,8 +125,13 @@ with col2:
 with col3:
     temporada = st.selectbox(
         "Temporada",
-        ["Verano", "Otoño", "Invierno", "Primavera"]
+        list(meses_por_temporada.keys())
     )
+
+mes = st.selectbox(
+    "Mes de viaje",
+    meses_por_temporada[temporada]
+)
 
 anio = st.selectbox("Año", [2021, 2022, 2023, 2024, 2025])
 
@@ -118,6 +146,7 @@ if consultar:
         "region": region,
         "ciudad": ciudad,
         "temporada": temporada,
+        "mes": mes,
         "anio": anio
     }
 
@@ -126,87 +155,218 @@ st.divider()
 
 # DATOS DE DEMOSTRACIÓN
 
-resultados_demo = {
-    ("Noroeste", "Verano"): ("FAVORABLE", "#477A50", "Las condiciones son favorables según esta demostración.", "Podés planificar actividades al aire libre."),
-    ("Noroeste", "Otoño"): ("FAVORABLE", "#477A50", "Las condiciones son favorables según esta demostración.", "Es una buena oportunidad para recorrer el destino."),
-    ("Noroeste", "Invierno"): ("PRECAUCIÓN", "#B28A36", "Se recomienda revisar las condiciones climáticas.", "Consultá las temperaturas antes de organizar actividades."),
-    ("Noroeste", "Primavera"): ("FAVORABLE", "#477A50", "Las condiciones son favorables según esta demostración.", "Podés planificar actividades al aire libre."),
+def crear_demo_mejor_epoca():
+    valores = {
+        "Purmamarca": {
+            "Noroeste": [65, 68, 72, 78, 82, 88, 90, 88, 85, 80, 72, 66]
+        },
+        "Bariloche": {
+            "Patagonia": [90, 88, 78, 65, 52, 38, 30, 35, 48, 62, 75, 85]
+        },
+        "Puerto Iguazú": {
+            "Noreste": [48, 55, 65, 78, 85, 90, 92, 90, 82, 70, 58, 48]
+        }
+    }
 
-    ("Patagonia", "Verano"): ("FAVORABLE", "#477A50", "Las condiciones son favorables según esta demostración.", "Podés aprovechar la temporada para visitar el destino."),
-    ("Patagonia", "Otoño"): ("PRECAUCIÓN", "#B28A36", "Se recomienda revisar las condiciones climáticas.", "Considerá llevar ropa adecuada para temperaturas variables."),
-    ("Patagonia", "Invierno"): ("DESFAVORABLE", "#B6534B", "Las condiciones podrían ser poco favorables.", "Revisá las condiciones meteorológicas antes de viajar."),
-    ("Patagonia", "Primavera"): ("PRECAUCIÓN", "#B28A36", "Se recomienda revisar las condiciones climáticas.", "Consultá las condiciones antes de realizar actividades."),
+    filas = []
 
-    ("Noreste", "Verano"): ("PRECAUCIÓN", "#B28A36", "Se recomienda revisar las condiciones climáticas.", "Tené en cuenta las temperaturas y las precipitaciones."),
-    ("Noreste", "Otoño"): ("FAVORABLE", "#477A50", "Las condiciones son favorables según esta demostración.", "Podés organizar tu visita con normalidad."),
-    ("Noreste", "Invierno"): ("DESFAVORABLE", "#B6534B", "Las condiciones podrían ser poco favorables.", "Se recomienda evaluar las condiciones antes de viajar."),
-    ("Noreste", "Primavera"): ("FAVORABLE", "#477A50", "Las condiciones son favorables según esta demostración.", "Podés planificar actividades al aire libre.")
-}
+    for destino, regiones in valores.items():
+        region_destino = list(regiones.keys())[0]
 
-indicadores_demo = {
-    ("Noroeste", "Verano"): (25, 32, 120, 8.5),
-    ("Noroeste", "Otoño"): (19, 26, 60, 7.0),
-    ("Noroeste", "Invierno"): (12, 21, 15, 7.5),
-    ("Noroeste", "Primavera"): (21, 29, 80, 8.0),
+        for mes_numero, porcentaje in enumerate(regiones[region_destino], start=1):
+            filas.append({
+                "destino": destino,
+                "nombre_mes": meses[mes_numero - 1],
+                "mes": mes_numero,
+                "dias_observados": 150,
+                "pct_dias_agradables": porcentaje,
+                "pct_dias_lluviosos": max(5, 100 - porcentaje),
+                "temp_media": 12 + mes_numero,
+                "temp_max_promedio": 18 + mes_numero,
+                "temp_min_promedio": 7 + mes_numero,
+                "lluvia_mm_por_mes": 30 + (mes_numero * 8),
+                "rafaga_promedio_kmh": 20 + mes_numero,
+                "horas_luz_promedio": 7 + (mes_numero % 4),
+                "dias_temp_extrema": max(0, 12 - mes_numero),
+                "ranking_en_destino": 1
+            })
 
-    ("Patagonia", "Verano"): (18, 25, 65, 9.0),
-    ("Patagonia", "Otoño"): (12, 18, 45, 6.5),
-    ("Patagonia", "Invierno"): (3, 9, 35, 5.0),
-    ("Patagonia", "Primavera"): (13, 20, 50, 7.5),
+    return pd.DataFrame(filas)
 
-    ("Noreste", "Verano"): (27, 34, 180, 8.0),
-    ("Noreste", "Otoño"): (23, 29, 100, 7.0),
-    ("Noreste", "Invierno"): (17, 24, 70, 7.5),
-    ("Noreste", "Primavera"): (24, 31, 130, 8.0)
-}
 
-precipitaciones_demo = {
-    "Noroeste": [120, 110, 95, 60, 30, 15, 10, 15, 25, 45, 80, 105],
-    "Patagonia": [60, 55, 50, 45, 40, 35, 30, 35, 40, 50, 55, 65],
-    "Noreste": [180, 170, 150, 120, 90, 70, 60, 75, 100, 130, 160, 190]
-}
+def crear_demo_historico(destino):
+    datos = {
+        "Purmamarca": {
+            "temperaturas": [24, 23, 21, 18, 15, 12, 11, 13, 16, 19, 21, 23],
+            "lluvias": [120, 110, 95, 60, 30, 15, 10, 15, 25, 45, 80, 105]
+        },
+        "Bariloche": {
+            "temperaturas": [18, 17, 14, 10, 7, 4, 3, 5, 8, 11, 14, 17],
+            "lluvias": [60, 55, 50, 45, 40, 35, 30, 35, 40, 50, 55, 65]
+        },
+        "Puerto Iguazú": {
+            "temperaturas": [27, 27, 25, 22, 19, 17, 17, 19, 21, 23, 25, 27],
+            "lluvias": [180, 170, 150, 120, 90, 70, 60, 75, 100, 130, 160, 190]
+        }
+    }
+
+    filas = []
+
+    for anio_demo in range(2021, 2026):
+        for mes_numero in range(1, 13):
+            variacion = (anio_demo - 2023) * 0.3
+
+            filas.append({
+                "anio": anio_demo,
+                "mes": mes_numero,
+                "nombre_mes": meses[mes_numero - 1],
+                "temperatura_media": (
+                    datos[destino]["temperaturas"][mes_numero - 1]
+                    + variacion
+                ),
+                "precipitaciones": (
+                    datos[destino]["lluvias"][mes_numero - 1]
+                    + (anio_demo - 2023) * 3
+                )
+            })
+
+    return pd.DataFrame(filas)
+
+
+def obtener_mejor_epoca():
+    datos = leer(
+        """
+        SELECT *
+        FROM gold.v_mejor_epoca
+        ORDER BY destino, mes
+        """
+    )
+
+    if datos is not None and not datos.empty:
+        return datos, True
+
+    return crear_demo_mejor_epoca(), False
+
+
+def obtener_historico(destino):
+    datos = leer(
+        """
+        SELECT
+            t.anio,
+            t.mes,
+            t.nombre_mes,
+            AVG(f.temperatura_media) AS temperatura_media,
+            SUM(f.precipitacion_mm) AS precipitaciones
+        FROM gold.fact_clima_diario f
+        INNER JOIN gold.dim_ciudad c
+            ON f.ciudad_id = c.ciudad_id
+        INNER JOIN gold.dim_tiempo t
+            ON f.fecha = t.fecha
+        WHERE c.destino = :ciudad
+        GROUP BY t.anio, t.mes, t.nombre_mes
+        ORDER BY t.anio, t.mes
+        """,
+        {"ciudad": destino}
+    )
+
+    if datos is not None and not datos.empty:
+        return datos, True
+
+    return crear_demo_historico(destino), False
 
 
 # RESULTADO DEL SEMÁFORO
 
 st.subheader("Resultado del Semáforo")
 
+datos_epoca, datos_reales = obtener_mejor_epoca()
+
+if not datos_reales:
+    st.warning(
+        "Modo demostración: los resultados que aparecen a continuación "
+        "son ficticios y se reemplazarán automáticamente cuando Gold tenga datos."
+    )
+
 if "consulta_realizada" in st.session_state:
 
     consulta = st.session_state["consulta_realizada"]
-    clave = (consulta["region"], consulta["temporada"])
+    mes_numero = numero_mes[consulta["mes"]]
 
-    estado, color, descripcion, recomendacion = resultados_demo[clave]
+    resultado = datos_epoca[
+        (datos_epoca["destino"] == consulta["ciudad"]) &
+        (datos_epoca["mes"] == mes_numero)
+    ]
 
-    st.info(f"💡 Recomendación: {recomendacion}")
+    if not resultado.empty:
 
-    st.caption(
-        f"Destino: {consulta['ciudad']} | "
-        f"Temporada: {consulta['temporada']} | "
-        f"Año: {consulta['anio']}"
-    )
+        datos = resultado.iloc[0]
+        porcentaje = float(datos["pct_dias_agradables"])
 
-    st.markdown(f"""
-    <div style="
-        background-color: #F2EFE7;
-        border: 1px solid #D2CCBD;
-        border-left: 8px solid {color};
-        padding: 24px;
-        border-radius: 14px;
-        box-shadow: 0 2px 8px rgba(53, 81, 61, 0.08);
-    ">
-        <h2 style="color: {color}; margin: 0;">
-            ● {estado}
-        </h2>
-        <p style="color: #343C32 !important;">
-            {descripcion}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        if porcentaje >= 60:
+            estado = "FAVORABLE"
+            color = "#477A50"
+            descripcion = (
+                "Este período presenta una proporción alta de días agradables."
+            )
+            recomendacion = "Es una buena época para planificar tu viaje."
 
-    st.caption(
-        "DEMO: clasificación ficticia, no basada en datos meteorológicos."
-    )
+        elif porcentaje >= 30:
+            estado = "PRECAUCIÓN"
+            color = "#B28A36"
+            descripcion = (
+                "Las condiciones pueden ser variables durante este período."
+            )
+            recomendacion = (
+                "Revisá las condiciones climáticas antes de viajar."
+            )
+
+        else:
+            estado = "DESFAVORABLE"
+            color = "#B6534B"
+            descripcion = (
+                "Este período presenta una proporción baja de días agradables."
+            )
+            recomendacion = (
+                "Considerá elegir otro mes para viajar."
+            )
+
+        st.info(f"💡 Recomendación: {recomendacion}")
+
+        st.caption(
+            f"Destino: {consulta['ciudad']} | "
+            f"Temporada: {consulta['temporada']} | "
+            f"Mes: {consulta['mes']}"
+        )
+
+        st.markdown(f"""
+        <div style="
+            background-color: #FFFFFF;
+            border: 1px solid #E1E6DE;
+            border-left: 8px solid {color};
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(53, 81, 61, 0.08);
+        ">
+            <h2 style="color: {color}; margin: 0;">
+                ● {estado}
+            </h2>
+            <p style="color: #343C32 !important;">
+                {descripcion}
+            </p>
+            <h3 style="color: #343C32;">
+                {porcentaje:.1f}% de días agradables
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.caption(
+            f"Período histórico analizado: {int(datos['dias_observados'])} días observados."
+        )
+
+    else:
+        st.warning(
+            "No se encontraron datos para este destino y mes."
+        )
 
 else:
     st.info("Seleccioná los filtros y presioná «Consultar destino».")
@@ -219,20 +379,87 @@ st.subheader("Indicadores Climáticos")
 if "consulta_realizada" in st.session_state:
 
     consulta = st.session_state["consulta_realizada"]
-    clave = (consulta["region"], consulta["temporada"])
+    mes_numero = numero_mes[consulta["mes"]]
 
-    temp_media, temp_max, precipitaciones, horas_luz = indicadores_demo[clave]
+    indicadores = leer(
+        """
+        SELECT
+            AVG(f.temperatura_media) AS temp_media,
+            AVG(f.temperatura_maxima) AS temp_max,
+            SUM(f.precipitacion_mm) AS precipitaciones,
+            AVG(f.horas_luz) AS horas_luz
+        FROM gold.fact_clima_diario f
+        INNER JOIN gold.dim_ciudad c
+            ON f.ciudad_id = c.ciudad_id
+        INNER JOIN gold.dim_tiempo t
+            ON f.fecha = t.fecha
+        WHERE c.destino = :ciudad
+          AND t.anio = :anio
+          AND t.mes = :mes
+        """,
+        {
+            "ciudad": consulta["ciudad"],
+            "anio": consulta["anio"],
+            "mes": mes_numero
+        }
+    )
+
+    if (
+        indicadores is not None
+        and not indicadores.empty
+        and pd.notna(indicadores.iloc[0]["temp_media"])
+    ):
+        datos_indicadores = indicadores.iloc[0]
+        indicadores_reales = True
+
+    else:
+        datos_demo = datos_epoca[
+            (datos_epoca["destino"] == consulta["ciudad"]) &
+            (datos_epoca["mes"] == mes_numero)
+        ]
+
+        datos_indicadores = datos_demo.iloc[0]
+        indicadores_reales = False
 
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("Temperatura media", f"{temp_media} °C")
-    col2.metric("Temperatura máxima", f"{temp_max} °C")
-    col3.metric("Precipitaciones", f"{precipitaciones} mm")
-    col4.metric("Horas de luz", f"{horas_luz} h")
-
-    st.caption(
-        "DEMO: valores ficticios, no representan datos meteorológicos reales."
+    col1.metric(
+        "Temperatura media",
+        f"{datos_indicadores['temp_media'] if indicadores_reales else datos_indicadores['temp_media']:.1f} °C"
     )
+
+    temperatura_maxima = (
+        datos_indicadores["temp_max"]
+        if indicadores_reales
+        else datos_indicadores["temp_max_promedio"]
+    )
+
+    col2.metric(
+        "Temperatura máxima",
+        f"{temperatura_maxima:.1f} °C"
+    )
+
+    if indicadores_reales:
+        col3.metric(
+            "Precipitaciones",
+            f"{datos_indicadores['precipitaciones']:.1f} mm"
+        )
+        col4.metric(
+            "Horas de luz",
+            f"{datos_indicadores['horas_luz']:.1f} h"
+        )
+    else:
+        col3.metric(
+            "Precipitaciones",
+            f"{datos_indicadores['lluvia_mm_por_mes']:.1f} mm"
+        )
+        col4.metric(
+            "Horas de luz",
+            f"{datos_indicadores['horas_luz_promedio']:.1f} h"
+        )
+
+    if not indicadores_reales:
+        st.caption("Indicadores de demostración: valores ficticios.")
 
 else:
     st.info("Los indicadores aparecerán después de consultar un destino.")
@@ -246,64 +473,128 @@ if "consulta_realizada" in st.session_state:
 
     consulta = st.session_state["consulta_realizada"]
 
-    meses = [
-        "Enero", "Febrero", "Marzo", "Abril",
-        "Mayo", "Junio", "Julio", "Agosto",
-        "Septiembre", "Octubre", "Noviembre", "Diciembre"
-    ]
+    historico, historico_real = obtener_historico(consulta["ciudad"])
 
-    datos = pd.DataFrame({
-        "Mes": meses,
-        "Precipitaciones (mm)": precipitaciones_demo[consulta["region"]]
-    })
+    if not historico_real:
+        st.caption(
+            "Gráficos de demostración: datos ficticios para probar la visualización."
+        )
 
-    fig = px.bar(
-        datos,
-        x="Mes",
-        y="Precipitaciones (mm)",
-        title=f"Precipitaciones mensuales — {consulta['ciudad']} ({consulta['anio']})"
-    )
+    if not historico.empty:
 
-    fig.update_layout(
-        paper_bgcolor="#EAE5D9",
-        plot_bgcolor="#F2EFE7",
-        font=dict(
-            family="Arial",
-            size=13,
-            color="#343C32"
-        ),
-        title_font=dict(
-            family="Arial",
-            size=20,
-            color="#35513D"
-        ),
-        xaxis=dict(
-            title_font=dict(color="#35513D"),
-            tickfont=dict(color="#343C32", size=12),
-            showgrid=False,
-            linecolor="#BEB8A9"
-        ),
-        yaxis=dict(
-            title_font=dict(color="#35513D"),
-            tickfont=dict(color="#343C32", size=12),
-            gridcolor="#D2CCBD",
-            linecolor="#BEB8A9"
-        ),
-        margin=dict(b=80, t=65)
-    )
+        st.markdown("**Temperatura media por mes**")
 
-    fig.update_traces(
-        marker_color="#75866A",
-        marker_line_color="#526B50",
-        marker_line_width=1
-    )
+        fig_temperatura = px.line(
+            historico,
+            x="nombre_mes",
+            y="temperatura_media",
+            color="anio",
+            markers=True,
+            title=f"Temperatura media — {consulta['ciudad']}",
+            labels={
+                "nombre_mes": "Mes",
+                "temperatura_media": "Temperatura media (°C)",
+                "anio": "Año"
+            },
+            category_orders={"nombre_mes": meses}
+        )
 
-    st.plotly_chart(fig, use_container_width=True)
+        fig_temperatura.update_traces(
+            line=dict(width=2),
+            marker=dict(size=7)
+        )
 
-    st.caption(
-        "DEMO: datos ficticios con fines de visualización."
-    )
+        fig_temperatura = configurar_grafico(fig_temperatura)
+
+        st.plotly_chart(
+            fig_temperatura,
+            use_container_width=True,
+            theme=None
+        )
+
+        st.markdown("**Precipitaciones por mes**")
+
+        fig_lluvia = px.bar(
+            historico,
+            x="nombre_mes",
+            y="precipitaciones",
+            color="anio",
+            barmode="group",
+            title=f"Precipitaciones mensuales — {consulta['ciudad']}",
+            labels={
+                "nombre_mes": "Mes",
+                "precipitaciones": "Precipitaciones (mm)",
+                "anio": "Año"
+            },
+            category_orders={"nombre_mes": meses}
+        )
+
+        fig_lluvia = configurar_grafico(fig_lluvia)
+
+        st.plotly_chart(
+            fig_lluvia,
+            use_container_width=True,
+            theme=None
+        )
+
+    else:
+        st.warning("No hay datos históricos disponibles.")
 
 else:
-    st.info("El gráfico aparecerá después de consultar un destino.")
+    st.info("Los gráficos aparecerán después de consultar un destino.")
+
+
+# COMPARACIÓN DE DESTINOS
+
+st.divider()
+st.subheader("¿Cuál es la mejor época para viajar?")
+
+comparacion = (
+    datos_epoca
+    .sort_values("pct_dias_agradables", ascending=False)
+    .groupby("destino", as_index=False)
+    .first()
+    .sort_values("pct_dias_agradables", ascending=False)
+)
+
+if not comparacion.empty:
+
+    mejor = comparacion.iloc[0]
+
+    st.success(
+        f"🏆 Según los datos disponibles, {mejor['destino']} "
+        f"en {mejor['nombre_mes']} presenta el mayor porcentaje "
+        f"de días agradables ({mejor['pct_dias_agradables']:.1f}%)."
+    )
+
+    fig_comparacion = px.bar(
+        comparacion,
+        x="destino",
+        y="pct_dias_agradables",
+        color="destino",
+        text="pct_dias_agradables",
+        title="Mejor mes de cada destino según días agradables",
+        labels={
+            "destino": "Destino",
+            "pct_dias_agradables": "Días agradables (%)"
+        }
+    )
+
+    fig_comparacion.update_traces(
+        texttemplate="%{text:.1f}%",
+        textposition="outside",
+        textfont=dict(color="#343A35", size=13)
+    )
+
+    fig_comparacion.update_yaxes(range=[0, 110])
+
+    fig_comparacion = configurar_grafico(fig_comparacion)
+
+    st.plotly_chart(
+        fig_comparacion,
+        use_container_width=True,
+        theme=None
+    )
+
+
 
