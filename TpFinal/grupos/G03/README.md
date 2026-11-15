@@ -13,7 +13,7 @@
 | Matías Agustín Alvarez | `MatiasAlvarez05` |
 | Tomás Wolman | `Tomas-Wolman` |
 | Karen Gonzales | `KarenGonzalesCh` |
-| Ignacio Tomás Gauto | Pendiente |
+| Ignacio Tomás Gauto | `Ignacio006` |
 | Luna Gomez | Pendiente |
 
 
