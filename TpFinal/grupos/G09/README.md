@@ -1,20 +1,18 @@
 # TP Final - Grupo 09
 
 ## Integrantes
-* [Lisandro Farina] - [@lisandrofarina06]
-* [Lucas Feller] - [lucasfeller]
-* Juan Pablo Varini - [JuanPablo0620]
-* Matias Bardelli - [@stx-06]
+- Lisandro Farina (@lisandrofarina06)
+- Lucas Feller (@lucasfeller)
+- Juan Pablo Varini (@JuanPablo0620)
+- Matias Bardelli (@stx-06)
 
 ## API Elegida
-**Open-Meteo (Clima)**: https://open-meteo.com/
-
-## Idea para Gold
-Construir un modelo en estrella con:
-* `fact_clima_diario`: temperaturas, lluvia y viento por ciudad y día.
-* `dim_ciudad`: nombre de la ciudad, latitud y longitud.
-* `dim_tiempo`: fecha, mes y estación del año.
-**Dashboard:** Un mapa o gráfico comparativo de temperaturas entre ciudades y alertas de temperaturas extremas.
+- **Nombre**: Open-Meteo (Historical Weather API)
+- **URL**: https://open-meteo.com/en/docs/historical-weather-api
+- **Descripción**: datos meteorológicos diarios históricos (temperatura, lluvia, viento, etc.) por coordenadas, con el modelo de reanálisis ERA5.
+- **Auth**: sin auth
+- **API key**: no necesita
+- **Refresh**: la API se actualiza cada hora; Bronze usa la API histórica (ERA5, ~5 días de retraso) y corre una vez al levantar el stack.
 
 ## Objetivo
 
@@ -67,7 +65,7 @@ Una fila por localidad e ingesta, con la respuesta original de la API en JSONB (
 
 ### Silver — `silver.clima_diario_clean`
 
-**Grano:** una fila por ciudad y día (12.984 filas: 3 ciudades × 4.328 días desde el 01/01/2015).
+**Grano:** una fila por ciudad y día (≈ 4.330 días por ciudad; varía según la fecha de ejecución).
 
 Se construye en SQL a partir de Bronze: toma la ingesta más reciente de cada ciudad (`DISTINCT ON`), recorre los arrays diarios del JSON con `generate_series` y descarta los días sin dato de temperatura.
 
@@ -84,6 +82,8 @@ Se construye en SQL a partir de Bronze: toma la ingesta más reciente de cada ci
 
 ### Gold — modelo estrella
 
+**Pregunta que responde el dashboard:** ¿cómo varían la temperatura, la lluvia y el viento entre la costa (Mar del Plata), el interior (Tandil) y el sur (Bahía Blanca), y con qué frecuencia hay días de calor extremo y heladas?
+
 ```text
                  dim_tiempo
                  (tiempo_id)
@@ -92,7 +92,7 @@ dim_ciudad ──── fact_clima_diario
 (ciudad_id)
 ```
 
-**`gold.fact_clima_diario`** — tabla de hechos. **Grano:** una fila por ciudad y día (12.984 filas).
+**`gold.fact_clima_diario`** — tabla de hechos. **Grano:** una fila por ciudad y día (≈ 4.330 días por ciudad; varía según la fecha de ejecución).
 
 | Columna | Descripción |
 |---|---|
@@ -104,7 +104,7 @@ dim_ciudad ──── fact_clima_diario
 
 **`gold.dim_ciudad`** — una fila por ciudad (3 filas): `ciudad_id`, `ciudad`, `region`.
 
-**`gold.dim_tiempo`** — una fila por día (4.328 filas): `tiempo_id` (la fecha), `anio`, `mes`, `dia`, `nombre_mes`.
+**`gold.dim_tiempo`** — una fila por día (≈ 4.330 filas): `tiempo_id` (la fecha), `anio`, `mes`, `dia`, `nombre_mes`.
 ## Estructura
 
 ```text
