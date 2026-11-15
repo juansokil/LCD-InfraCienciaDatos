@@ -1,0 +1,9 @@
+Apellido: feller
+Nombre: lucas
+Rama: estudiante/feller-lucas
+Caso: gimnasio
+Hecho: visita de un cliente a una sede, es decir un ingreso por un molinete
+Dimensiones: cliente (nombre, fecha_alta, plan);sede (barrio, direccion);tiempo (fecha, mes, anio, dia_semana)
+Metricas: duracion_visita; gasto_barra; cant_visitas (se haríamcon COUNT)
+Codigo: D1D988569E92
+Fecha: 2026-11-15

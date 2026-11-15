@@ -1,0 +1,27 @@
+Apellido: feller
+Nombre: lucas
+Rama: estudiante/feller-lucas
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d [OK]
+Pregunta (a) - El acc_test mas alto:
+  Es el decision_tree_1d. Dado que se entrenó y testeó con muy pocas fechas (se entrenó con 12 vs. 240 en el resto, y se testeó en solo 3 vs. 60 del resto), no me alcanza para decir que es bueno generalizando.
+Pregunta (b) - El acc_train mas alto:
+  Es el random_forest_3d_deep. Viendo la grande diferencia con el acc_test (0,54) estoy seguro de que hay overfitting, es decir que el modelo memorizó los datos de entrenamiento.
+Pregunta (c) - El acc_test mas bajo:
+  Es el svm_3d. Viendo los resultados tan bajos comparados a los demás en test y train, y la baja brecha entre ambos, para mi subajusta, así que quizá le falta complejidad o simplemente no es el modelo más adecuado para este caso.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d
+  porque considero que tiene la mejor combinación de acc_test y acc_train, al combinar la segunda mejor acc_test con una diferencia muy leve en el acc_train, pienso que puede ser el mejor generalizando. No elegí random_forest_7d_v2 solamente porque tiene una brecha levemente mayor, pero también la considero una eleccion válida.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  si a medida que pasa el tiempo bajan considerablemente los resultados si comparo las predicciones contra lo que realmente fue ocurriendo, o incluso los datos nuevos cambian respecto a los que usó el modelo para entrenarse en un inicio.
+Codigo: CA6EEBE4B342
+Fecha: 2026-11-15
