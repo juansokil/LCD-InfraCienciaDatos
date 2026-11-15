@@ -5,6 +5,7 @@
 - Nombre Apellido (@usuario-github)
 - Juan Krizaj (@juankrizaj)
 - Matias Rousso (@Matirou1)
+- Juan Allievi (@JuanAllievi)
 - ...
 
 ## API elegida
