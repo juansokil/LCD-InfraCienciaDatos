@@ -1,11 +1,15 @@
 -- Vista que responde la pregunta principal: ¿en que mes conviene viajar a cada destino?
-CREATE OR REPLACE VIEW gold.v_mejor_epoca AS
+-- Se recrea (DROP) porque cambia el conjunto de columnas respecto de versiones anteriores.
+-- Los porcentajes se calculan solo sobre los dias con dato: AVG ignora los NULL.
+DROP VIEW IF EXISTS gold.v_mejor_epoca;
+CREATE VIEW gold.v_mejor_epoca AS
 WITH mensual AS (
     SELECT c.destino,
            c.categoria_destino,
            t.mes,
            t.nombre_mes,
-           COUNT(*)                                          AS dias_observados,
+           COUNT(f.es_dia_agradable)                         AS dias_observados,  -- dias con dato suficiente
+           COUNT(*) - COUNT(f.es_dia_agradable)              AS dias_sin_dato,    -- no cuentan en los %
            ROUND(100.0 * AVG(f.es_dia_agradable::int), 1)    AS pct_dias_agradables,
            ROUND(100.0 * AVG(f.es_dia_lluvioso::int), 1)     AS pct_dias_lluviosos,
            ROUND(AVG(f.temperatura_media), 1)                AS temp_media,
@@ -22,7 +26,7 @@ WITH mensual AS (
 )
 SELECT m.*,
        RANK() OVER (PARTITION BY destino
-                    ORDER BY pct_dias_agradables DESC, pct_dias_lluviosos ASC) AS ranking_en_destino
+                    ORDER BY pct_dias_agradables DESC NULLS LAST, pct_dias_lluviosos ASC NULLS LAST) AS ranking_en_destino
 FROM mensual m;
 
 -- Alertas de temperatura extrema (para el dashboard): una fila por dia extremo.

@@ -128,9 +128,11 @@ erDiagram
 | `es_dia_lluvioso` | precipitación ≥ 1 mm |
 | `es_dia_agradable` | máxima entre 18 y 30 °C, mínima ≥ 5 °C, sin lluvia (< 1 mm) y ráfagas < 40 km/h |
 
+**Datos faltantes:** si a un día le falta un dato y eso impide decidir una bandera, la bandera queda en `NULL` (desconocido) y ese día **no cuenta** en los porcentajes mensuales. Si un dato conocido ya alcanza para decidir (por ejemplo, una máxima de 40 °C), la bandera se calcula igual. Las vistas informan `dias_observados` y `dias_sin_dato` por mes.
+
 **Vistas para el dashboard:**
 
-- `gold.v_mejor_epoca`: por destino y mes, % de días agradables, % de días lluviosos, temperaturas, lluvia mensual promedio y ranking de meses. **Responde la pregunta principal.**
+- `gold.v_mejor_epoca`: por destino y mes, % de días agradables, % de días lluviosos (sobre los días con dato), temperaturas, lluvia mensual promedio y ranking de meses. **Responde la pregunta principal.**
 - `gold.v_alertas_temperatura`: un registro por cada día de temperatura extrema.
 - `gold.v_lluvia_mensual`: historial de lluvia por destino, año y mes.
 
