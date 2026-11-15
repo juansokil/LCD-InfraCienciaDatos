@@ -631,3 +631,16 @@ situaciones desfavorables y facilitar la toma
 de decisiones en empresas de logística y reparto.
 
 
+### Capturas del dashboard
+
+#### Mapa operativo
+
+![Mapa operativo](docs/mapa_operativo.png)
+
+#### Pronóstico por ciudad
+
+![Pronóstico por ciudad](docs/pronostico_ciudad.png)
+
+#### Alertas e incentivos
+
+![Alertas e incentivos](docs/alertas_incentivos.png)
