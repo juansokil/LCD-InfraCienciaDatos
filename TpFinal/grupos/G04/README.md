@@ -4,7 +4,7 @@
 
 - Juan Krizaj (@juankrizaj)
 - Matías Rousso (@Matirou1)
-- [Completar integrantes restantes y usuarios de GitHub]
+- Tomas Kalinscky (@tomasKalinscky)
 
 ## API elegida
 
