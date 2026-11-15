@@ -205,6 +205,30 @@ services:
         condition: service_started
     restart: "no"
 
+  # Dashboard de LogiWeather
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+
+    environment:
+      WAREHOUSE_HOST: warehouse
+      WAREHOUSE_DB: ${POSTGRES_DB}
+      WAREHOUSE_USER: ${POSTGRES_USER}
+      WAREHOUSE_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+
+    volumes:
+      - ./dashboard:/app
+
+    depends_on:
+      warehouse:
+        condition: service_healthy
+
+    restart: unless-stopped
+
 volumes:
   warehouse_data:
   airflow_db_data:
