@@ -18,7 +18,7 @@ services:
     volumes:
       - warehouse_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"                        # Formato HOST:CONTENEDOR
+      - "5433:5432"                        # Formato HOST:CONTENEDOR
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}"]
       interval: 10s
@@ -64,7 +64,7 @@ services:
         target: /opt/airflow/data
       - airflow_logs:/opt/airflow/logs
     ports:
-      - "8080:8080"
+      - "8081:8080"
     depends_on:
       airflow_db:
         condition: service_healthy
@@ -82,7 +82,7 @@ services:
     volumes:
       - ./dashboard/pages:/app/pages       
     ports:
-      - "8501:8501"
+      - "8502:8501"
     depends_on:
       warehouse:
         condition: service_healthy
