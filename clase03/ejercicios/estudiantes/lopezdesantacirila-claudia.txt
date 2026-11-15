@@ -1,0 +1,19 @@
+Apellido: Lopez de Santa Cirila
+Nombre: Claudia
+Rama: estudiante/lopezdesantacirila-claudia
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 64777
+Doble ingesta: SI
+Ultima carga: 2026-11-15 11:42:58.854856
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla, ya que se construye leyendo los datos crudos (df_raw) pero si eliminase el archivo de la zona raw se borraría una data inmutable que se almacena tal cual llega.
+Pregunta (b) - replace y append:
+  En el caso del Paso 3 se reemplaza, por lo que quedaría sólo la última carga; y en el Paso 4 se añade, por lo que se acumulan los registros nuevos a los anteriores. EL DAG productivo usa append porque es necesario guardar el registro anterior, si no quedaría sólo la carga de esos últimos 15 minutos.
+Pregunta (c) - Dos cargas identicas:
+  Si los ejecutas seguidos los datos no se actualizaron todavía. En este paso los datos se guardan directamente sin eliminar duplicados, transformar o limpiar.
+Codigo: 4549823457BD
+Fecha: 2026-11-15
