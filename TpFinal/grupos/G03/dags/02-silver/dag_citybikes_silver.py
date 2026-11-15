@@ -1226,13 +1226,32 @@ def citybikes_silver():
             # Zona
             # -----------------------------------------
             #
-            # Una falla de enriquecimiento geográfico
-            # NO convierte automáticamente el snapshot
-            # en dato técnicamente inválido.
+            # Gold exige que toda estación tenga barrio
+            # (valida "estaciones sin zona" y, si hay
+            # alguna, falla la cadena completa).
             #
-            # Se conserva con barrio/comuna NULL y
-            # zone_assignment_method='unmatched'.
+            # Por eso una estación sin barrio (coordenadas
+            # en 0,0, fuera de CABA o sin coordenadas
+            # válidas) va a cuarentena y NO llega a la
+            # tabla Silver que consume Gold.
             # -----------------------------------------
+
+            if (
+                row["latitude"] == 0
+                and row["longitude"] == 0
+            ):
+
+                reasons.append(
+                    "zero_coordinates"
+                )
+
+            if pd.isna(
+                row["barrio"]
+            ):
+
+                reasons.append(
+                    "outside_caba"
+                )
 
             return "|".join(
                 reasons
