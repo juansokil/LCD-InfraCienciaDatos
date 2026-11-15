@@ -1,0 +1,6 @@
+Apellido: LopezdeSantaCirila
+Nombre: Claudia
+Usuario GitHub: claudiadesanta
+Rama: estudiante/lopezdesantacirila-claudia
+Codigo: 546C483083A5
+Fecha: 2026-11-13

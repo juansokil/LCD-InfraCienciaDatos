@@ -1,0 +1,9 @@
+Apellido: Lopez de Santa Cirila
+Nombre: Claudia
+Rama: estudiante/lopezdesantacirila-claudia
+Caso: gimnasio
+Hecho: Cada fila de la tabla de hechos es una visita de un socio a una sede.
+Dimensiones: Se corta por tiempo indicando mes y franja horaria (sabiendo la hora exacta de entrada y salida).Por la sede a la que se accede (según los datos de entrada) y por el plan del socio (por la información de socio).
+Metricas: En cada fila se mide la duración de la visita y el gasto en la barra.Sumando el total de facturación y número de visitas, pudiendo así calcular el promedio de gasto según el plan del socio.
+Codigo: D1D360FA10C7
+Fecha: 2026-11-15

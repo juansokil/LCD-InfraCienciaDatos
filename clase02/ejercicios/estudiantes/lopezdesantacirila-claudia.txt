@@ -1,0 +1,16 @@
+Apellido: Lopez de Santa Cirila
+Nombre: Claudia
+Rama: estudiante/lopezdesantacirila-claudia
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda la gestión interna del Airflow y data_warehouse guarda los datos del proyecto en distintas capas. Están separados evitando que un error o modificación no arriegue o sature el Airflow.
+Pregunta (b) - Datos despues del down:
+  data_warehpuse extrae y guarda los datos en una carpeta en un volumen, por lo que docker compose down sólo eliminaría lo que no estuviese guardado.
+Pregunta (c) - DAGs en el contenedor:
+  A través de un bind mount que vincula a tiempo real la carpeta local (./dags) con airflow/dags
+Pregunta (d) - Puerto 8080 ocupado:
+  Comentaría esa línea y descomentaría: - "8081:8080" usando así la opción B.
+Pregunta (e) - Credenciales del warehouse:
+  Entiendo que al ser (${SOURCE_DB_PASS}) en el apartado environment, la lee directamente pero no sé cómo.
+Codigo: 7ACDEB3E7E1E
+Fecha: 2026-11-14
