@@ -14,7 +14,7 @@
 | Tomás Wolman | `Tomas-Wolman` |
 | Karen Gonzales | `KarenGonzalesCh` |
 | Ignacio Tomás Gauto | `Ignacio006` |
-| Luna Gomez | Pendiente |
+| Luna Gomez | `lunagomez005` |
 
 
 ---
