@@ -1,0 +1,9 @@
+Apellido: Martin
+Nombre: Tomas
+Rama: estudiante/martin-tomas
+Caso: gimnasio
+Hecho: visita: cada vez que un socio entra a una sede y después sale. Una fila = una visita de un socio a una sede, con su entrada y su salida.
+Dimensiones: Sede donde ocurrio la visita,Socio, Fecha, Franja horaria y Plan (full, local o flex).
+Metricas: Minutos entrenados, Consumo en la barra en pesos y Cantidad de visitas.
+Codigo: 8BD42DA0E464
+Fecha: 2026-11-04

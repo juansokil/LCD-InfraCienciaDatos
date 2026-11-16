@@ -1,0 +1,16 @@
+Apellido: Martin
+Nombre: Tomas
+Rama: estudiante/martin-tomas
+Nivel alcanzado: 3 / 3
+Pregunta (a) - Los dos Postgres:
+  airflow_db guarda los metadatos de airflow y el data wearehouse guarda las capaz bronze, silver y gold del negocio
+Pregunta (b) - Datos despues del down:
+  porque el warehouse usa su propio volumen, si se apaga el contendedor y se vuelve a levantar el contenedor monta el mismo volumen
+Pregunta (c) - DAGs en el contenedor:
+  Con un bind mount, lo que hace es conectar la carpeta ./dags al contenedor para que airlfow lo vea
+Pregunta (d) - Puerto 8080 ocupado:
+  Cambiaria solo el puerto de la izquierda porque es el de mi maquina
+Pregunta (e) - Credenciales del warehouse:
+  la contraseña esta en un archivo .env, el compose lee ese archivo y toma la contraseña de ahi, esto es para que no quede en el compose que se sube a git y la vea todo el mundo
+Codigo: C5B1B4A23A0A
+Fecha: 2026-10-08
