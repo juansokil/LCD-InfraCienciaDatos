@@ -12,6 +12,10 @@ name: Validar PR (origen y nombre de rama)
 # donde las busca y el reporte de entregas (que lee `git ls-tree origin/<rama>`) no las cuenta.
 # El mensaje lo manda a aceptar la invitación y a resubir la rama acá, y menciona al docente
 # para que le llegue la notificación (el estudiante puede estar trabado esperando la invitación).
+# Si la invitación venció, el mensaje explica cómo pedir otra por el onboarding (visto el
+# 2026-11-03, PR #233): el link va, pero el código de clase NO, porque el repo es público; se
+# lo manda a la diapositiva de la clase 01 que lo tiene. Si cambia la URL del onboarding, hay
+# que actualizarla acá y en clase01/README.md.
 #
 # Los dos chequeos van en el MISMO job y en orden: si el PR viene de un fork, el step del
 # origen cierra y sale con exit 1, así que el del nombre de rama no corre y el estudiante
@@ -87,7 +91,16 @@ jobs:
 
           **Cómo arreglarlo** (el trabajo ya está hecho, es solo mudarlo de lugar):
 
-          **1.** Aceptá la invitación al repo: https://github.com/$REPO/invitations — si ya venció, avisá en este mismo PR y te la mando de nuevo.
+          **1.** Aceptá la invitación al repo: https://github.com/$REPO/invitations
+
+          Si ese link te dice que la invitación venció o no existe, pedí una nueva:
+
+          - Entrá a https://github-api-unsam-631093702231.southamerica-east1.run.app/unirse
+          - Completá tu nombre, tu email y tu usuario de GitHub (\`$AUTHOR\`).
+          - En **Código de clase** poné el código que está en la diapositiva *Registrarse en GITHUB* de la presentación de la clase 01, en el campus (no lo pongo acá porque el repo es público y no quiero dejar expuesta la contraseña).
+          - Te llega un mail de GitHub con la invitación: aceptala.
+
+          Si después de eso no te llega, avisá en este mismo PR.
 
           **2.** En tu clon, apuntá \`origin\` a este repo y subí tu rama:
 

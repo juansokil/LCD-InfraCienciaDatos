@@ -1,0 +1,27 @@
+contract_version: "1.0.0"
+dataset: "open_meteo_clima"
+source: "https://api.open-meteo.com/v1/forecast"
+format:
+  type: "json"
+  encoding: "utf-8"
+  required_sections: ["current", "daily", "daily_units", "current_units"]
+schema:
+  daily:
+    required_fields: ["time", "temperature_2m_max", "temperature_2m_min", "precipitation_sum"]
+    optional_fields: ["apparent_temperature_max", "wind_speed_10m_max"]
+  current:
+    required_fields: ["time", "temperature_2m", "relative_humidity_2m"]
+    optional_fields: ["apparent_temperature", "wind_speed_10m"]
+quality_rules:
+  temperature_min_c: -100
+  temperature_max_c: 70
+  humidity_min_pct: 0
+  humidity_max_pct: 100
+  precipitation_min_mm: 0
+  precipitation_max_mm: 1000
+  wind_min_kmh: 0
+  wind_max_kmh: 500
+  require_min_not_above_max: true
+evolution_policy:
+  allow_new_fields: true
+  allow_missing_required_fields: false
