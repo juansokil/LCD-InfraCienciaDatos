@@ -1,0 +1,27 @@
+Apellido: Martin
+Nombre: Tomas
+Rama: estudiante/martin-tomas
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  El mejor acc_test es el de decision_tree_1d (0.83), pero ese número no es confiable porque se entreno con 12 fechas y se evaluo con solo 3. Con un test tan chico, acertar o fallar una fecha mueve el resultado así que la diferencia puede ser pura suerte. Por eso no se puede comparar contra los modelos evaluados con 60 fechas, que dan una medicion bastante más estable.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep tiene el acc_train más alto (0.98), pero en test cae a 0.54. eso es overfitting, el modelo memorizo los datos de entrenamiento en vez de aprender patrones que sirvan para fechas que nunca vio. Por eso el acc_train solo no sirve para elegir
+Pregunta (c) - El acc_test mas bajo:
+  svm_3d tiene el acc_test más bajo (0.51). No sobreajusta porque train y test dan casi igual, pero el problema es que no aprendio nada útil. hay modelos bastante mejores que este
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  se evaluo con suficientes fechas, y dentro de los que cumplen esta condicion es el que mejor acc_test tiene (0.69), tampoco tiene mucha diferencia entre train y test
+Pregunta (e) - Como te darias cuenta de que empeora:
+  si empieza a haber una caida de forma sostenida en la accuracy por debajo de la de test, eso me haria pensar que el modelo esta andando peor y habria que revisarlo o reentrenar
+Codigo: 34EABDED8703
+Fecha: 2026-11-16
