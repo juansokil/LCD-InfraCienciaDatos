@@ -1,11 +1,30 @@
---  Validacion de los datos (Silver)
--- Las reglas se aplicaran sobre los datos recibidos desde Bronze.
+-- Validaciones de los datos para la capa Silver.
+-- Se controlan los registros obtenidos luego de la limpieza.
 
--- PENDIENTE:
--- Validar que destino y fecha tengan valores validos.
--- Comprobar que temperatura_minima <= temperatura_media <= temperatura_maxima.
--- Verificar que la precipitacion no sea negativa.
--- Verificar que las rafagas de viento no sean negativas.
--- Controlar que la duracion de luz este entre 0 y 86400 segundos. 
-
--- validaciones definitivas se implementaran cuando tengamos los datos reales de Bronze.
+WITH resumen AS (
+    SELECT
+        COUNT(*) AS total_registros,
+        COUNT(*) FILTER (WHERE destino IS NULL) AS destinos_nulos,
+        COUNT(*) FILTER (WHERE fecha IS NULL) AS fechas_nulas,
+        COUNT(*) FILTER (
+            WHERE temperatura_minima IS NULL
+               OR temperatura_media IS NULL
+               OR temperatura_maxima IS NULL
+        ) AS temperaturas_nulas,
+        COUNT(*) FILTER (WHERE precipitacion_mm IS NULL) AS precipitaciones_nulas,
+        COUNT(*) FILTER (WHERE duracion_luz_segundos IS NULL) AS duracion_luz_nula,
+        COUNT(*) FILTER (WHERE rafagas_viento_max_kmh IS NULL) AS rafagas_nulas
+    FROM silver.clima_limpio
+),
+duplicados AS (
+    SELECT COUNT(*) AS grupos_duplicados
+    FROM (
+        SELECT destino, fecha
+        FROM silver.clima_limpio
+        GROUP BY destino, fecha
+        HAVING COUNT(*) > 1
+    ) d
+)
+SELECT *
+FROM resumen
+CROSS JOIN duplicados;

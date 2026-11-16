@@ -44,6 +44,8 @@ SELECT c.ciudad_id,
        s.precipitacion_mm,
        ROUND(s.duracion_luz_segundos / 3600.0, 2),
        s.rafagas_viento_max_kmh,
+       -- Banderas: si falta un dato y no alcanza para decidir, queda NULL (desconocido).
+       -- Si un dato conocido ya alcanza (ej. tmax = 40), la bandera es false aunque falte otro.
        s.temperatura_maxima >= u.calor,
        s.temperatura_minima <= u.frio,
        (s.temperatura_maxima >= u.calor OR s.temperatura_minima <= u.frio),

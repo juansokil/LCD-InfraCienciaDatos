@@ -1,22 +1,28 @@
-**Contrato de datos silver - Propuesta inicial**
+Contrato de datos silver 
 
-Propuesta para definir como vamos a organizar los datos en la capa Silver.
+Propuesta para definir cómo vamos a organizar los datos
 
 La idea se basa en consultas realizadas a la API histórica de Open-Meteo para tres destinos de Argentina.
 
 Describimos las variables seleccionadas, sus nombres originales, los nombres nuevos en español, tipos de datos, unidades y algunos chequeos de calidad.
 
-Queda pendiente chequear esta propuesta con el JSON de ejemplo del grupo y validarla todos juntos.
-
-**Destinos y periodo de tiempo usado**
+**Destinos y período de tiempo usado**
 
 - Purmamarca, Jujuy.
 - San Carlos de Bariloche, Río Negro.
 - Puerto Iguazú, Misiones.
 
-Período consultado: desde el 12/11/2021 hasta el 07/11/2026.
+Los datos se obtienen mediante consultas a la API histórica de Open-Meteo.
 
-Se obtuvieron 1822 registros diarios para cada destino. En total 5466 registros.
+La cantidad de registros puede variar según el período consultado y los datos disponibles en Bronze. En la ejecución verificada el 15/11/2026 se procesaron 6.423 registros en Silver.
+
+**Clave de identificación**
+
+Cada registro representa la información meteorológica correspondiente a un destino en una fecha determinada.
+
+La clave lógica está compuesta por:
+- `destino`
+- `fecha`
 
 **Variables**
 
@@ -43,45 +49,36 @@ Se obtuvieron 1822 registros diarios para cada destino. En total 5466 registros.
 | `rafagas_viento_max_kmh` | DECIMAL |
 
 
-**Clave de identificacion para cada registro**
-
-Decidimos que la clave de identificacion se componga del "destino" y la "fecha". Estas variables permiten identificar un unico registro diario para cada destino.
-
 **Zona horaria**
 
 Hicimos las consultas con `timezone=auto`, para que Open-Meteo use la zona horaria de cada destino.
 
-Pensamos dejar las fechas como las devuelve la API.
+Las fechas se conservan según los valores devueltos por la API y se convierten al tipo DATE durante la transformación a Silver.
 
-**Controles de calidad**
+**Reglas de transformación y limpieza**
 
-Hicimos algunos chequeos sobre los datos obtenidos:
+- Se pasa la fecha al formato DATE y las variables meteorológicas a DECIMAL.
 
-- Datos faltantes: no se encontraron.
-- Fechas duplicadas: no se encontraron.
-- Temperaturas inconsistentes: no se encontraron. 
-- Miramos los valores minimos y maximos de las variables para ver si habia valores raros
+- Se controlan los valores de las variables para identificar datos inválidos.
 
-Estos controles son iniciales y pueden ampliarse al implementar Silver.
+- Los valores negativos de precipitación y ráfagas se reemplazan por NULL. Lo mismo ocurre con la duración de luz cuando está fuera del rango de 0 a 86.400 segundos.
 
-**Decisiones importantes**
-- Si falta el destino o la fecha, descartamos el registro porque son valores necesarios para identificarlo.
-- Si encontramos datos faltantes en las variables, vamos a contabilizarlos para ver cuántos registros estan afectados. Si son pocos los registros con datos faltantes vamos a descartarlos. Si son muchos, completaremos los valores con algun criterio estadistico (media o mediana).
-- Si hay valores inconsistentes, el registro se excluye de silver hasta revisarlo.
-- Si encontramos registros duplicados (mismo destino y fecha) nos quedamos con uno solo, descartamos el duplicado. Si los dos registros tienen valores diferentes, lo marcamos para revisar.
-- Los registros que descartamos, los datos faltantes, las inconsistencias y los valores NULL los vamos a contabilizar para tener un registro y poder medir la calidad de los datos.
+- Se verifica que la temperatura mínima no sea mayor que la media y que la media no sea mayor que la máxima. Si no se cumple esta condición, las tres temperaturas quedan en NULL.
 
-**Segun las variables**
+- Cuando hay más de un registro para el mismo destino y fecha, nos quedamos con el que tiene más variables con datos. Si hay un empate, se prioriza el de carga más reciente.
+
+
+**Reglas por variables**
 
 **precipitacion_mm:**
 
-- No puede tener valores negativos, si no, se considera invalido y queda como NULL.
+- No puede tener valores negativos, si no, se considera inválido y queda como NULL.
 - Puede valer 0 (no hubo precipitaciones).
 
 **duracion_luz_segundos:**
 
 - No puede tener valores negativos.
-- No puede superar los 86400 segundos (es decir, las 24 h del día)
+- No puede superar los 86.400 segundos (es decir, las 24 h del día)
 
 **rafagas_viento_max_kmh:**
 - No puede tener valores negativos.
@@ -90,9 +87,26 @@ Estos controles son iniciales y pueden ampliarse al implementar Silver.
 **Variables de temperatura (temperatura_minima, temperatura_media, temperatura_maxima):**
 - Se debe cumplir que la temperatura mínima sea menor o igual a la media, y la media menor o igual a la máxima.
 
-**Pasos a seguir**
+**Controles de Calidad**
+Se realizan controles sobre:
+- Cantidad total de registros.
+- Valores nulos en las variables meteorológicas.
+- Duplicados por destino y fecha.
+- Orden lógico de las temperaturas.
+- Valores negativos o fuera de los rangos definidos para las variables correspondientes.
 
-- Comparar la propuesta con el JSON de ejemplo para tener un contrato DEFINITIVO.
-- Confirmar los campos y tipos de datos
-- Revisar y validar el contrato
-- Ajustar la propuesta si es necesario antes de utilizarla en Gold
+**Resultados de nuetra ejecución**
+En la ejecución comprobada del 15/11/2026 se obtuvieron los siguientes resultados:
+
+| Control | Resultado |
+|---|---:|
+| Registros en silver.clima_limpio| 6423 |
+| Registros en silver.clima_diario| 6423 |
+| Registros con temperatura mínima nula | 0 |
+| Registros con temperatura máxima nula | 0 |
+| Registros con precipitación nula | 0 |
+| Registros con ráfagas de viento nulas | 0 |
+| Registros con al menos un valor nulo entre esas variables | 0 |
+| Posibles duplicados por destino y fecha | 0 |
+| Temperaturas inconsistentes | 0 |
+| Registros con valores fuera de los rangos controlados | 0 |

@@ -48,10 +48,20 @@ CREATE TABLE IF NOT EXISTS gold.fact_clima_diario (
     precipitacion_mm       NUMERIC(7,2),
     horas_luz              NUMERIC(5,2),
     rafagas_viento_max_kmh NUMERIC(6,2),
-    es_calor_extremo       BOOLEAN NOT NULL,
-    es_frio_extremo        BOOLEAN NOT NULL,
-    es_temp_extrema        BOOLEAN NOT NULL,   -- alimenta las alertas del dashboard
-    es_dia_lluvioso        BOOLEAN NOT NULL,
-    es_dia_agradable       BOOLEAN NOT NULL,
+    -- Banderas: true / false / NULL. NULL = no se pudo determinar por falta de datos;
+    -- esos dias NO cuentan en los porcentajes de las vistas.
+    es_calor_extremo       BOOLEAN,
+    es_frio_extremo        BOOLEAN,
+    es_temp_extrema        BOOLEAN,            -- alimenta las alertas del dashboard
+    es_dia_lluvioso        BOOLEAN,
+    es_dia_agradable       BOOLEAN,
     PRIMARY KEY (ciudad_id, fecha)
 );
+
+-- Si la tabla ya existia con las banderas NOT NULL (versiones anteriores), se las saca.
+-- Es inofensivo si ya eran nullable.
+ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_calor_extremo DROP NOT NULL;
+ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_frio_extremo  DROP NOT NULL;
+ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_temp_extrema  DROP NOT NULL;
+ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_dia_lluvioso  DROP NOT NULL;
+ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_dia_agradable DROP NOT NULL;
