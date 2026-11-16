@@ -1,0 +1,6 @@
+Apellido: Sposato
+Nombre: MartinaLucia
+Usuario GitHub: martusposato
+Rama: estudiante/sposato-martinalucia
+Codigo: E27BE74A6FA8
+Fecha: 2026-11-16
