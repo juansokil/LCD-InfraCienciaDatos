@@ -30,7 +30,7 @@ Pipeline de datos end-to-end con arquitectura **Medallion** (Bronze → Silver �
   - Purmamarca, Jujuy (puna / quebrada)
   - San Carlos de Bariloche, Río Negro (montaña y lagos)
   - Puerto Iguazú, Misiones (selva)
-- **Período:** del 12/11/2021 al 07/11/2026 (5 años). Son 1822 registros diarios por destino y 5466 en total.
+- **Período:** desde el 1/1/2021 hasta hoy menos ~5 días (demora de la API). El primer arranque carga todo el histórico y después se suman solo los días nuevos.
 - **Granularidad diaria:** permite comparar el mismo mes entre distintos años y calcular qué porcentaje de días fueron agradables, lluviosos o extremos.
 - **Zona horaria:** consultamos con `timezone=auto`, así las fechas quedan en la hora local de cada destino.
 - **Variables seleccionadas:**
@@ -60,6 +60,7 @@ El stack arranca solo: **Bronze corre al levantar los contenedores y, cuando ter
 
 Guarda en el schema `bronze` la respuesta de la API **tal cual**, en formato `JSONB`, con metadatos de auditoría: destino, `ingested_at` y `source`. No se transforma nada, así se puede reprocesar Silver sin volver a llamar a la API.
 
+Tabla `bronze.openmeteo`: una fila por destino y corrida, con `destino`, `latitud`, `longitud`, `fecha_desde`, `fecha_hasta`, `respuesta_json`, `source` e `ingested_at`. Carga incremental: consulta la última `fecha_hasta` de cada destino y pide solo los días que faltan.
 ### Silver: datos limpios y validados
 
 Convierte el JSON a una tabla `silver.clima_diario` con una fila por destino y día, según el contrato de datos (ver [`Contrato-silver-propuesta.md`](Contrato-silver-propuesta.md)):
@@ -165,9 +166,9 @@ No hay que activar DAGs ni crear schemas a mano: Bronze arranca solo y dispara S
 
 | Servicio | URL | Usuario / contraseña |
 |---|---|---|
-| Airflow UI | http://localhost:8080 | `admin` / `admin` |
-| Dashboard (Gold) | http://localhost:8501 | no requiere |
-| Postgres (warehouse) | `localhost:5432` | ver `.env` (`admin` / `admin`, base `openmeteo`) |
+| Airflow UI | http://localhost:8081 | `admin` / `admin` |
+| Dashboard (Gold) | http://localhost:8502 | no requiere |
+| Postgres (warehouse) | `localhost:5433` | ver `.env` (`admin` / `admin`, base `openmeteo`) |
 
 > El `.env` se versiona a propósito (solo credenciales de juguete). Open-Meteo no necesita API key.
 
