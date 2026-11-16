@@ -89,6 +89,8 @@ def procesar_gold_usgs():
         m.id_magnitud,
         s.magnitud,
         s.profundidad_km     AS profundidad,
+        s.latitud,
+        s.longitud,
         s.significancia,
         1                    AS cantidad_terremoto
     FROM silver.earthquakes s
