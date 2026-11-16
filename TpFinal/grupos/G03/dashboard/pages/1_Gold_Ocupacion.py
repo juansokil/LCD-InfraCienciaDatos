@@ -995,6 +995,18 @@ else:
         "para construir una visualización comparativa."
     )
 
+st.caption(
+    "Nota: El gráfico agrupa las observaciones en intervalos "
+    "de horas para facilitar la visualización de la ocupación "
+    "por comuna. Los valores representan el promedio del "
+    "porcentaje de bicicletas disponibles respecto de la "
+    "capacidad total de las estaciones. Un promedio del 0 por ciento indica "
+    "que las estaciones registraron, en promedio, cero "
+    "bicicletas disponibles para retirar durante ese intervalo "
+    "horario y comuna. En ese caso, el gráfico mostrará el "
+    "color correspondiente al valor mínimo de la escala, "
+    "mientras se mantenga esa situación."
+)
 
 st.divider()
 
