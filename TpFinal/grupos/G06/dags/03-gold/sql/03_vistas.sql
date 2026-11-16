@@ -9,7 +9,7 @@ WITH mensual AS (
            t.mes,
            t.nombre_mes,
            COUNT(f.es_dia_agradable)                         AS dias_observados,  -- dias con dato suficiente
-           COUNT(*) - COUNT(f.es_dia_agradable)              AS dias_sin_dato,    -- no cuentan en los %
+           COUNT(*) - COUNT(f.es_dia_agradable)              AS dias_sin_dato,    -- no cuentan en los porcentajes
            ROUND(100.0 * AVG(f.es_dia_agradable::int), 1)    AS pct_dias_agradables,
            ROUND(100.0 * AVG(f.es_dia_lluvioso::int), 1)     AS pct_dias_lluviosos,
            ROUND(AVG(f.temperatura_media), 1)                AS temp_media,

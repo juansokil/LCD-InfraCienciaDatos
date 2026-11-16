@@ -5,53 +5,16 @@ leen SOLO de Gold.
 """
 import streamlit as st
 
-from db import leer
-
 st.set_page_config(page_title="G06 - Clima para viajar", page_icon="🌦️", layout="wide")
+
+from db import leer
+from tema import aplicar_tema
+
+
 st.title("🌦️ ¿Conviene viajar esta semana?")
 st.caption("TP Final G06 · Infraestructura para Ciencia de Datos · datos de Open-Meteo")
 
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #EAE5D9;
-        color: #343C32;
-    }
-
-    h1, h2, h3 {
-        color: #35513D !important;
-    }
-
-    p, label, [data-testid="stCaptionContainer"] {
-        color: #454B42 !important;
-    }
-
-    [data-testid="stMetric"] {
-        background-color: #F2EFE7;
-        border: 1px solid #D2CCBD;
-        padding: 18px;
-        border-radius: 12px;
-    }
-
-    [data-testid="stMetricLabel"],
-    [data-testid="stMetricValue"],
-    [data-testid="stMetricDelta"] {
-        color: #35513D !important;
-    }
-
-    [data-testid="stAlert"] {
-        background-color: #F2EFE7;
-        color: #343C32;
-        border-radius: 10px;
-    }
-
-    hr {
-        border-color: #D2CCBD;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-
+aplicar_tema()
 
 st.subheader("Estado del pipeline")
 cols = st.columns(3)
