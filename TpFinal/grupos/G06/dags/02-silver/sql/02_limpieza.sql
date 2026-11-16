@@ -50,6 +50,7 @@ datos_limpios AS (
         bronze_id,
         ingested_at,
         destino,
+        fecha,
         CASE
             WHEN temperatura_minima <= temperatura_media
              AND temperatura_media <= temperatura_maxima
