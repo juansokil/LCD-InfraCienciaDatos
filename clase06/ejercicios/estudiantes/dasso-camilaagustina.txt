@@ -1,0 +1,27 @@
+Apellido: Dasso
+Nombre: Camila Agustina
+Rama: estudiante/dasso-camilaagustina
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: Pondria en produccion el random_forest_7d [CANDIDATO_INEXISTENTE]
+Pregunta (a) - El acc_test mas alto:
+  el modelo decision_tree1d es el modelo con el acc_test mas alto pero sin embargo solo fue evaluado con 3 fechas de prueba por lo que puede ser que el resultado no sea muy acertado y representativo. Es necesario probarlo con mas datos.
+Pregunta (b) - El acc_train mas alto:
+  El random_forest_3d_deep tiene el acc_train más alto pero su acc_test es muy bajo en comparacion. Esto puede deberse a que el modelo aprendio demasiado de los datos de entrenamiento y no tiene tanto poder de generalizacion frente a datos nuevos.
+Pregunta (c) - El acc_test mas bajo:
+  el svm_3d tiene el acc_test más bajo. Esto da pauta de que sudesempeño frente a datos de prueba probablemente sea el peor. (lo verificamos con los valores de la tabla. Este modelo tienen el peor acc_test)
+Pregunta (d) - Cual pondrias en produccion:
+  Pondria en produccion el random_forest_7d
+  porque es el que tiene mayor acc_test y una buena cantidad de datos de entrenamiento y de prueba. Ademas la metrica en test es bastante similar a la de entrenamientol, lo que indica un buen poder de generalizacion.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Utilizaria estas metricas como punto de partida. Haria controles diarios de las metricas y verificaria si las metricas nuevas se mantienen como lasa iniciales o si las misman disminuyen.
+Codigo: F52219476242
+Fecha: 2026-11-17

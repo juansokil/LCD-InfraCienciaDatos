@@ -1,0 +1,19 @@
+Apellido: Dasso
+Nombre: Camila Agustina
+Rama: estudiante/dasso-camilaagustina
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 74548
+Doble ingesta: SI
+Ultima carga: 2026-11-10 12:17:12.533292
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla Bronze porque prefiero conservar el archivo con los datos originales tal como llegaron desde la API. A partir de esos archivos puedo volver a cargar los datos en una tabla y organizarlos como necesite.
+Pregunta (b) - replace y append:
+  Con replace se reemplazan los datos anteriores de la tabla por datos nuevos. Con append se agregan los datos nuevos sin eliminar los que ya estaban. El DAG lo usa append para guardar el historial de las cargas
+Pregunta (c) - Dos cargas identicas:
+  porque las consultas a la API se hicieron una muy detras de la otra y los datos pueden no haber cambiado.
+Codigo: 77DB27B25FD1
+Fecha: 2026-11-10

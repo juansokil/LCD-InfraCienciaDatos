@@ -1,0 +1,9 @@
+Apellido: Dasso
+Nombre: Camila Agustina
+Rama: estudiante/dasso-camilaagustina
+Caso: gimnasio
+Hecho: Cada fila representa la visita de cada usuario a una sede del gym
+Dimensiones: Las dimensiones son la sede (sucursal y barrio), tiempo (fecha de inscripcion y hora de entrada y salida) y usuario (el plan que tiene y su identidad)
+Metricas: Son los valores que se pueden y se buscan calcular: los minutos que entrenan, la facturacion en barra, la cantidad de visitas y el gasto promedio de las visitas
+Codigo: 369AD32ED66E
+Fecha: 2026-11-11
