@@ -1,20 +1,18 @@
 # TP Final - Grupo 09
 
 ## Integrantes
-* [Lisandro Farina] - [@lisandrofarina06]
-* [Lucas Feller] - [lucasfeller]
-* Juan Pablo Varini - [JuanPablo0620]
-* Matias Bardelli - [@stx-06]
+- Lisandro Farina (@lisandrofarina06)
+- Lucas Feller (@lucasfeller)
+- Juan Pablo Varini (@JuanPablo0620)
+- Matias Bardelli (@stx-06)
 
 ## API Elegida
-**Open-Meteo (Clima)**: https://open-meteo.com/
-
-## Idea para Gold
-Construir un modelo en estrella con:
-* `fact_clima_diario`: temperaturas, lluvia y viento por ciudad y día.
-* `dim_ciudad`: nombre de la ciudad, latitud y longitud.
-* `dim_tiempo`: fecha, mes y estación del año.
-**Dashboard:** Un mapa o gráfico comparativo de temperaturas entre ciudades y alertas de temperaturas extremas.
+- **Nombre**: Open-Meteo (Historical Weather API)
+- **URL**: https://open-meteo.com/en/docs/historical-weather-api
+- **Descripción**: datos meteorológicos diarios históricos (temperatura, lluvia, viento, etc.) por coordenadas, con el modelo de reanálisis ERA5.
+- **Auth**: sin auth
+- **API key**: no necesita
+- **Refresh**: la API se actualiza cada hora; Bronze usa la API histórica (ERA5, ~5 días de retraso) y corre una vez al levantar el stack.
 
 ## Objetivo
 
@@ -46,7 +44,13 @@ Open-Meteo (API histórica, ERA5)
 g09_bronze_open_meteo  ── corre solo al levantar el stack (@once)
    │  emite el asset g09_bronze_open_meteo_raw
    ▼
-Silver  ──►  Gold  ──►  Dashboard
+g09_silver_open_meteo  ── crea silver.clima_diario_clean (SQL)
+   │  emite el asset g09_silver_open_meteo_clean
+   ▼
+g09_gold_open_meteo  ── crea el modelo estrella en gold (SQL)
+   │  emite el asset g09_gold_open_meteo_star
+   ▼
+Dashboard (Streamlit, lee solo Gold)
 ```
 
 - Los schemas se crean solos al iniciar la base (`init/01_schemas.sql`).
@@ -55,10 +59,52 @@ Silver  ──►  Gold  ──►  Dashboard
 
 ## Modelo de datos
 
-**Bronze** — `bronze.open_meteo_raw`: una fila por localidad e ingesta, con la respuesta original de la API en JSONB (`response_payload`) y los parámetros del pedido. Detalle en `docs/ARQUITECTURA_BRONZE.md`.
+### Bronze — `bronze.open_meteo_raw`
 
-**Silver y Gold** — en desarrollo (ver *Idea para Gold* arriba).
+Una fila por localidad e ingesta, con la respuesta original de la API en JSONB (`response_payload`) y los parámetros del pedido. No se transforma nada: es la copia fiel de la fuente. Detalle en `docs/ARQUITECTURA_BRONZE.md`.
 
+### Silver — `silver.clima_diario_clean`
+
+**Grano:** una fila por ciudad y día (≈ 4.330 días por ciudad; varía según la fecha de ejecución).
+
+Se construye en SQL a partir de Bronze: toma la ingesta más reciente de cada ciudad (`DISTINCT ON`), recorre los arrays diarios del JSON con `generate_series` y descarta los días sin dato de temperatura.
+
+| Columna | Tipo | Descripción |
+|---|---|---|
+| `ciudad` | texto | Mar del Plata, Tandil o Bahía Blanca |
+| `region` | texto | Costa, Interior o Sur |
+| `fecha` | date | Día de la medición |
+| `temp_media_c` | numeric | Temperatura media diaria (°C) |
+| `temp_max_c` | numeric | Temperatura máxima diaria (°C) |
+| `temp_min_c` | numeric | Temperatura mínima diaria (°C) |
+| `lluvia_mm` | numeric | Precipitación acumulada del día (mm) |
+| `viento_kmh` | numeric | Velocidad media del viento (km/h) |
+
+### Gold — modelo estrella
+
+**Pregunta que responde el dashboard:** ¿cómo varían la temperatura, la lluvia y el viento entre la costa (Mar del Plata), el interior (Tandil) y el sur (Bahía Blanca), y con qué frecuencia hay días de calor extremo y heladas?
+
+```text
+                 dim_tiempo
+                 (tiempo_id)
+                      │
+dim_ciudad ──── fact_clima_diario
+(ciudad_id)
+```
+
+**`gold.fact_clima_diario`** — tabla de hechos. **Grano:** una fila por ciudad y día (≈ 4.330 días por ciudad; varía según la fecha de ejecución).
+
+| Columna | Descripción |
+|---|---|
+| `tiempo_id` | Fecha; une con `dim_tiempo` |
+| `ciudad_id` | Une con `dim_ciudad` |
+| `temp_media_c`, `temp_max_c`, `temp_min_c` | Temperaturas del día (°C) |
+| `lluvia_mm` | Precipitación del día (mm) |
+| `viento_kmh` | Viento medio del día (km/h) |
+
+**`gold.dim_ciudad`** — una fila por ciudad (3 filas): `ciudad_id`, `ciudad`, `region`.
+
+**`gold.dim_tiempo`** — una fila por día (≈ 4.330 filas): `tiempo_id` (la fecha), `anio`, `mes`, `dia`, `nombre_mes`.
 ## Estructura
 
 ```text
@@ -75,7 +121,8 @@ G09/
 ├── dags/
 │   ├── bronze/
 │   │   └── dag_g09_bronze_open_meteo.py
-│   └── dag_silver.py
+│   ├── dag_silver.py
+│   └── dag_gold.py
 ├── dashboard/
 │   ├── Dockerfile
 │   ├── requirements.txt
@@ -88,12 +135,11 @@ G09/
 ## Estado del proyecto
 
 - [x] Infraestructura propia del grupo (Airflow 3.1.5, schemas automáticos, login admin/admin).
-- [x] Ingesta Bronze de las tres localidades, automática al levantar el stack.
+- [x] Bronze: ingesta de las tres localidades, automática al levantar el stack.
+- [x] Silver: limpieza en SQL, disparada automáticamente por el asset de Bronze.
+- [x] Gold: modelo estrella en SQL, disparado automáticamente por el asset de Silver.
 - [x] Contenedor del dashboard.
-- [ ] Silver (transformación en SQL).
-- [ ] Gold (modelo estrella).
-- [ ] Dashboard con gráficos.
-
+- [x] Dashboard con gráficos sobre Gold.
 ## Cómo levantarlo
 
 **Requisitos:** Docker Desktop abierto, y los puertos `5432`, `8080` y `8501` libres. Si está corriendo el stack de la materia, apagarlo antes (`docker compose down` en la carpeta `stack/`).
