@@ -1,7 +1,9 @@
-"""Dashboard G09 - Clima en la provincia de Buenos Aires.
+"""
+Dashboard G09 - Clima en la provincia de Buenos Aires.
 
-Lee únicamente la capa Gold (modelo estrella):
-    gold.fact_clima_diario  ⟶  gold.dim_ciudad, gold.dim_tiempo
+Lee únicamente la capa Gold:
+    gold.v_clima_diario
+    (vista sobre fact_clima_horario y dimensiones del modelo estrella).
 """
 
 import os
@@ -62,23 +64,40 @@ def fecha(valor) -> str:
 @st.cache_data(ttl=300)
 def cargar_gold() -> pd.DataFrame:
     consulta = text("""
-        SELECT f.tiempo_id     AS fecha,
-               t.anio, t.mes,
-               c.ciudad, c.region,
-               f.temp_media_c, f.temp_max_c, f.temp_min_c,
-               f.lluvia_mm, f.viento_kmh
-        FROM gold.fact_clima_diario f
-        JOIN gold.dim_ciudad c ON c.ciudad_id = f.ciudad_id
-        JOIN gold.dim_tiempo t ON t.tiempo_id = f.tiempo_id
-        ORDER BY f.tiempo_id, c.ciudad
+        SELECT
+            fecha,
+            EXTRACT(YEAR FROM fecha)::int AS anio,
+            EXTRACT(MONTH FROM fecha)::int AS mes,
+            ciudad,
+            region,
+            temp_media_c,
+            temp_max_c,
+            temp_min_c,
+            lluvia_mm,
+            viento_medio_kmh AS viento_kmh,
+            horas_medidas,
+            horas_pronostico,
+            tipo_dia
+        FROM gold.v_clima_diario
+        ORDER BY fecha, ciudad
     """)
+
     with engine.connect() as conn:
         df = pd.read_sql(consulta, conn)
+
     df["fecha"] = pd.to_datetime(df["fecha"])
+
     for col in ["anio", "mes"]:
         df[col] = df[col].astype(int)
-    for col in ["temp_media_c", "temp_max_c", "temp_min_c", "lluvia_mm", "viento_kmh"]:
+
+    columnas_numericas = [
+        "temp_media_c", "temp_max_c", "temp_min_c",
+        "lluvia_mm", "viento_kmh"
+    ]
+
+    for col in columnas_numericas:
         df[col] = df[col].astype(float)
+
     return df
 
 
@@ -153,8 +172,9 @@ fecha_max = datos["fecha"].max().date()
 
 st.title("Clima en la provincia de Buenos Aires")
 st.caption(
-    f"Costa, interior y sur bonaerense · datos diarios de Open-Meteo (ERA5) del "
-    f"{fecha(fecha_min)} al {fecha(fecha_max)} · fuente: capa Gold del data warehouse"
+    f"Costa, interior y sur bonaerense · datos meteorológicos de Open-Meteo "
+    f"del {fecha(fecha_min)} al {fecha(fecha_max)} · "
+    "históricos y pronósticos según disponibilidad."
 )
 
 f1, f2, f3, f4 = st.columns([3, 3, 1.3, 1.3], vertical_alignment="bottom")
@@ -354,6 +374,7 @@ with tab_lluvia:
     fig.update_xaxes(categoryorder="array", categoryarray=MESES)
     mostrar(fig)
 
+
 # ---------------------------------------------------------------------------
 # Alertas de temperaturas extremas
 # ---------------------------------------------------------------------------
@@ -364,84 +385,135 @@ with tab_alertas:
         "Los umbrales se cambian en los filtros de arriba."
     )
 
-    # Alertas de los últimos 7 días con datos
-    ultimo_dia = df["fecha"].max()
-    recientes = df[df["fecha"] > ultimo_dia - pd.Timedelta(days=7)]
-    alertas_recientes = recientes[recientes["calor_extremo"] | recientes["helada"]]
+    # Últimos 7 días históricos disponibles
+    historicos = df[df["horas_medidas"] > 0]
+
+    if not historicos.empty:
+        ultimo_dia_historico = historicos["fecha"].max()
+
+        recientes = historicos[
+            historicos["fecha"] > ultimo_dia_historico - pd.Timedelta(days=7)
+        ]
+
+        alertas_recientes = recientes[
+            recientes["calor_extremo"] | recientes["helada"]
+        ]
+    else:
+        alertas_recientes = pd.DataFrame()
+
     if alertas_recientes.empty:
         st.success(
-            f"Sin alertas en los últimos 7 días con datos (hasta el {fecha(ultimo_dia)}).",
+            "Sin alertas en los últimos 7 días históricos disponibles.",
             icon=":material/check_circle:",
         )
     else:
-        for _, r in alertas_recientes.sort_values("fecha", ascending=False).iterrows():
+        for _, r in alertas_recientes.sort_values(
+            "fecha", ascending=False
+        ).iterrows():
             if r["calor_extremo"]:
                 st.error(
-                    f"**Calor extremo** en {r['ciudad']} el {fecha(r['fecha'])}: "
-                    f"máxima de {num(r['temp_max_c'])} °C.",
+                    f"**Calor extremo** en {r['ciudad']} el "
+                    f"{fecha(r['fecha'])}: máxima de "
+                    f"{num(r['temp_max_c'])} °C.",
                     icon=":material/local_fire_department:",
                 )
+
             if r["helada"]:
                 st.info(
-                    f"**Helada** en {r['ciudad']} el {fecha(r['fecha'])}: "
-                    f"mínima de {num(r['temp_min_c'])} °C.",
+                    f"**Helada** en {r['ciudad']} el "
+                    f"{fecha(r['fecha'])}: mínima de "
+                    f"{num(r['temp_min_c'])} °C.",
                     icon=":material/ac_unit:",
                 )
 
+    # Resumen por ciudad
     resumen = st.columns(len(ciudades))
+
     for col, ciudad in zip(resumen, ciudades):
         d = df[df["ciudad"] == ciudad]
+
         with col.container(border=True):
             st.markdown(f"**{ciudad}**")
+
             a, b = st.columns(2)
             a.metric("Días de calor extremo", num(d["calor_extremo"].sum(), 0))
             b.metric("Días de helada", num(d["helada"].sum(), 0))
 
+    # Evolución anual
     por_anio = (
-        df.groupby(["anio", "ciudad"])[["calor_extremo", "helada"]].sum().reset_index()
+        df.groupby(["anio", "ciudad"])[
+            ["calor_extremo", "helada"]
+        ].sum().reset_index()
     )
+
     izq, der = st.columns(2, gap="large")
+
     for contenedor, columna, titulo in [
         (izq, "calor_extremo", "Días de calor extremo por año"),
         (der, "helada", "Días de helada por año"),
     ]:
         with contenedor:
             st.subheader(titulo)
+
             fig = px.bar(
-                por_anio, x="anio", y=columna, color="ciudad", barmode="group",
-                color_discrete_map=COLOR_CIUDAD, category_orders={"ciudad": ciudades},
+                por_anio,
+                x="anio",
+                y=columna,
+                color="ciudad",
+                barmode="group",
+                color_discrete_map=COLOR_CIUDAD,
+                category_orders={"ciudad": ciudades},
             )
+
             fig.update_traces(
-                marker_line_color="white", marker_line_width=1,
-                hovertemplate="%{fullData.name} · %{x}: %{y} días<extra></extra>",
+                marker_line_color="white",
+                marker_line_width=1,
+                hovertemplate=(
+                    "%{fullData.name} · %{x}: %{y} días<extra></extra>"
+                ),
             )
+
             fig = estilo(fig, "Cantidad de días")
             fig.update_xaxes(dtick=1, type="category")
             mostrar(fig)
 
+    # Días más extremos del período
     st.subheader("Días más extremos del período")
+
     calor = df.nlargest(10, "temp_max_c").assign(
-        tipo="Calor extremo", valor=lambda x: x["temp_max_c"]
+        tipo="Calor extremo",
+        valor=lambda x: x["temp_max_c"],
     )
+
     frio = df.nsmallest(10, "temp_min_c").assign(
-        tipo="Frío extremo", valor=lambda x: x["temp_min_c"]
+        tipo="Frío extremo",
+        valor=lambda x: x["temp_min_c"],
     )
+
     c1, c2 = st.columns(2, gap="large")
+
     for contenedor, tabla, etiqueta in [
         (c1, calor, "Las 10 máximas más altas"),
         (c2, frio, "Las 10 mínimas más bajas"),
     ]:
         with contenedor:
             st.markdown(f"**{etiqueta}**")
+
             st.dataframe(
                 tabla[["fecha", "ciudad", "valor", "temp_media_c"]],
                 hide_index=True,
                 use_container_width=True,
                 column_config={
-                    "fecha": st.column_config.DateColumn("Fecha", format="DD/MM/YYYY"),
+                    "fecha": st.column_config.DateColumn(
+                        "Fecha", format="DD/MM/YYYY"
+                    ),
                     "ciudad": "Ciudad",
-                    "valor": st.column_config.NumberColumn("Temperatura (°C)", format="%.1f"),
-                    "temp_media_c": st.column_config.NumberColumn("Media del día (°C)", format="%.1f"),
+                    "valor": st.column_config.NumberColumn(
+                        "Temperatura (°C)", format="%.1f"
+                    ),
+                    "temp_media_c": st.column_config.NumberColumn(
+                        "Media del día (°C)", format="%.1f"
+                    ),
                 },
             )
 
@@ -450,12 +522,13 @@ with tab_alertas:
 # ---------------------------------------------------------------------------
 with tab_datos:
     st.caption(
-        f"{num(len(df), 0)} filas de gold.fact_clima_diario con los filtros aplicados "
+        f"{num(len(df), 0)} filas de gold.v_clima_diario con los filtros aplicados "
         "(una fila por ciudad y día)."
     )
     tabla = df[[
-        "fecha", "ciudad", "region", "temp_media_c", "temp_max_c", "temp_min_c",
-        "lluvia_mm", "viento_kmh",
+    "fecha", "ciudad", "region", "tipo_dia",
+    "temp_media_c", "temp_max_c", "temp_min_c",
+    "lluvia_mm", "viento_kmh",
     ]].sort_values(["fecha", "ciudad"], ascending=[False, True])
     st.dataframe(
         tabla,
