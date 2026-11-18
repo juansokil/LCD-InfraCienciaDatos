@@ -5,6 +5,8 @@
 - Juan Krizaj (@juankrizaj)
 - Matías Rousso (@Matirou1)
 - Tomas Kalinscky (@tomasKalinscky)
+- Juan Allievi (@JuanAllievi)
+- Maximo Rivarola (@maximorivarola2016-cpu)
 
 ## API elegida
 
