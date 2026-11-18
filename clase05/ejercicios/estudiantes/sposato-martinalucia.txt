@@ -1,0 +1,9 @@
+Apellido: Sposato
+Nombre: MartinaLucia
+Rama: estudiante/sposato-martinalucia
+Caso: gimnasio
+Hecho: Una fila = una visita: un socio que pasa el molinete al entrar a una sede y vuelve a pasarlo al salir. Es el grano mas fino que tiene el caso y de el salen las cuatro preguntas del tablero.
+Dimensiones: Fecha (del molinete de entrada, de donde sale el mes); franja horaria (derivada de la hora de entrada); sede (del molinete; cantidad de maquinas, barrio y horario son atributos descriptivos de la sede, no metricas); socio (del sistema de socios: nombre, fecha de alta, sede de alta); plan (full/local/flex, el que el socio tenia vigente el dia de la visita).
+Metricas: Por fila se guardan dos medidas aditivas: minutos_entrenados (salida - entrada) y consumo_barra ($ pagados con la credencial durante la visita). La cantidad de visitas es contar filas. El gasto promedio por visita NO se guarda: se calcula al consultar como SUM(consumo_barra) / COUNT(visitas), asi sirve para cualquier corte (por plan, por sede o toda la cadena).
+Codigo: CE6ACE0609AB
+Fecha: 2026-11-18
