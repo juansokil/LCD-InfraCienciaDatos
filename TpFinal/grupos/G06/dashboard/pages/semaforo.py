@@ -1,8 +1,8 @@
 
+
 # G06 - Semáforo del Viajero
 # Visualización de condiciones climáticas históricas.
-# Versión de demostración con datos ficticios.
-# La versión final consultará la capa Gold del warehouse.
+# Datos reales consultados exclusivamente desde la capa Gold.
 
 import streamlit as st
 import pandas as pd
@@ -133,7 +133,10 @@ mes = st.selectbox(
     meses_por_temporada[temporada]
 )
 
-anio = st.selectbox("Año", [2021, 2022, 2023, 2024, 2025])
+anio = st.selectbox(
+    "Año para consultar indicadores",
+    list(range(2021, 2027))
+)
 
 consultar = st.button(
     "🔎 Consultar destino",
@@ -153,104 +156,23 @@ if consultar:
 st.divider()
 
 
-# DATOS DE DEMOSTRACIÓN
-
-def crear_demo_mejor_epoca():
-    valores = {
-        "Purmamarca": {
-            "Noroeste": [65, 68, 72, 78, 82, 88, 90, 88, 85, 80, 72, 66]
-        },
-        "Bariloche": {
-            "Patagonia": [90, 88, 78, 65, 52, 38, 30, 35, 48, 62, 75, 85]
-        },
-        "Puerto Iguazú": {
-            "Noreste": [48, 55, 65, 78, 85, 90, 92, 90, 82, 70, 58, 48]
-        }
-    }
-
-    filas = []
-
-    for destino, regiones in valores.items():
-        region_destino = list(regiones.keys())[0]
-
-        for mes_numero, porcentaje in enumerate(regiones[region_destino], start=1):
-            filas.append({
-                "destino": destino,
-                "nombre_mes": meses[mes_numero - 1],
-                "mes": mes_numero,
-                "dias_observados": 150,
-                "pct_dias_agradables": porcentaje,
-                "pct_dias_lluviosos": max(5, 100 - porcentaje),
-                "temp_media": 12 + mes_numero,
-                "temp_max_promedio": 18 + mes_numero,
-                "temp_min_promedio": 7 + mes_numero,
-                "lluvia_mm_por_mes": 30 + (mes_numero * 8),
-                "rafaga_promedio_kmh": 20 + mes_numero,
-                "horas_luz_promedio": 7 + (mes_numero % 4),
-                "dias_temp_extrema": max(0, 12 - mes_numero),
-                "ranking_en_destino": 1
-            })
-
-    return pd.DataFrame(filas)
-
-
-def crear_demo_historico(destino):
-    datos = {
-        "Purmamarca": {
-            "temperaturas": [24, 23, 21, 18, 15, 12, 11, 13, 16, 19, 21, 23],
-            "lluvias": [120, 110, 95, 60, 30, 15, 10, 15, 25, 45, 80, 105]
-        },
-        "Bariloche": {
-            "temperaturas": [18, 17, 14, 10, 7, 4, 3, 5, 8, 11, 14, 17],
-            "lluvias": [60, 55, 50, 45, 40, 35, 30, 35, 40, 50, 55, 65]
-        },
-        "Puerto Iguazú": {
-            "temperaturas": [27, 27, 25, 22, 19, 17, 17, 19, 21, 23, 25, 27],
-            "lluvias": [180, 170, 150, 120, 90, 70, 60, 75, 100, 130, 160, 190]
-        }
-    }
-
-    filas = []
-
-    for anio_demo in range(2021, 2026):
-        for mes_numero in range(1, 13):
-            variacion = (anio_demo - 2023) * 0.3
-
-            filas.append({
-                "anio": anio_demo,
-                "mes": mes_numero,
-                "nombre_mes": meses[mes_numero - 1],
-                "temperatura_media": (
-                    datos[destino]["temperaturas"][mes_numero - 1]
-                    + variacion
-                ),
-                "precipitaciones": (
-                    datos[destino]["lluvias"][mes_numero - 1]
-                    + (anio_demo - 2023) * 3
-                )
-            })
-
-    return pd.DataFrame(filas)
-
+# CONSULTAS A GOLD
 
 def obtener_mejor_epoca():
-    datos = leer(
-        """
+    datos = leer("""
         SELECT *
         FROM gold.v_mejor_epoca
         ORDER BY destino, mes
-        """
-    )
+    """)
 
-    if datos is not None and not datos.empty:
-        return datos, True
+    if datos is None:
+        return pd.DataFrame()
 
-    return crear_demo_mejor_epoca(), False
+    return datos
 
 
 def obtener_historico(destino):
-    datos = leer(
-        """
+    datos = leer("""
         SELECT
             t.anio,
             t.mes,
@@ -265,29 +187,60 @@ def obtener_historico(destino):
         WHERE c.destino = :ciudad
         GROUP BY t.anio, t.mes, t.nombre_mes
         ORDER BY t.anio, t.mes
-        """,
-        {"ciudad": destino}
-    )
+    """, {"ciudad": destino})
 
-    if datos is not None and not datos.empty:
-        return datos, True
+    if datos is None:
+        return pd.DataFrame()
 
-    return crear_demo_historico(destino), False
+    return datos
+
+
+def clasificar_mes(favorables, precaucion, desfavorables):
+
+    porcentajes = {
+        "FAVORABLE": favorables,
+        "PRECAUCIÓN": precaucion,
+        "DESFAVORABLE": desfavorables
+    }
+
+    estado = max(porcentajes, key=porcentajes.get)
+
+    if estado == "FAVORABLE":
+        color = "#477A50"
+        descripcion = (
+            "Predominan los días con condiciones favorables "
+            "para viajar durante este mes."
+        )
+
+    elif estado == "PRECAUCIÓN":
+        color = "#B28A36"
+        descripcion = (
+            "Predominan los días con condiciones variables. "
+            "Se recomienda planificar el viaje con precaución."
+        )
+
+    else:
+        color = "#B6534B"
+        descripcion = (
+            "Predominan los días con condiciones desfavorables. "
+            "Se recomienda considerar otro período para viajar."
+        )
+
+    return estado, color, descripcion
 
 
 # RESULTADO DEL SEMÁFORO
 
 st.subheader("Resultado del Semáforo")
 
-datos_epoca, datos_reales = obtener_mejor_epoca()
+datos_epoca = obtener_mejor_epoca()
 
-if not datos_reales:
+if datos_epoca.empty:
     st.warning(
-        "Modo demostración: los resultados que aparecen a continuación "
-        "son ficticios y se reemplazarán automáticamente cuando Gold tenga datos."
+        "No hay datos disponibles en gold.v_mejor_epoca. Revisá la carga Gold."
     )
 
-if "consulta_realizada" in st.session_state:
+if "consulta_realizada" in st.session_state and not datos_epoca.empty:
 
     consulta = st.session_state["consulta_realizada"]
     mes_numero = numero_mes[consulta["mes"]]
@@ -297,40 +250,21 @@ if "consulta_realizada" in st.session_state:
         (datos_epoca["mes"] == mes_numero)
     ]
 
-    if not resultado.empty:
+    if not resultado.empty and pd.notna(
+        resultado.iloc[0]["pct_dias_favorables"]
+    ):
 
         datos = resultado.iloc[0]
-        porcentaje = float(datos["pct_dias_agradables"])
 
-        if porcentaje >= 60:
-            estado = "FAVORABLE"
-            color = "#477A50"
-            descripcion = (
-                "Este período presenta una proporción alta de días agradables."
-            )
-            recomendacion = "Es una buena época para planificar tu viaje."
+        favorables = float(datos["pct_dias_favorables"])
+        precaucion = float(datos["pct_dias_precaucion"])
+        desfavorables = float(datos["pct_dias_desfavorables"])
 
-        elif porcentaje >= 30:
-            estado = "PRECAUCIÓN"
-            color = "#B28A36"
-            descripcion = (
-                "Las condiciones pueden ser variables durante este período."
-            )
-            recomendacion = (
-                "Revisá las condiciones climáticas antes de viajar."
-            )
-
-        else:
-            estado = "DESFAVORABLE"
-            color = "#B6534B"
-            descripcion = (
-                "Este período presenta una proporción baja de días agradables."
-            )
-            recomendacion = (
-                "Considerá elegir otro mes para viajar."
-            )
-
-        st.info(f"💡 Recomendación: {recomendacion}")
+        estado, color, descripcion = clasificar_mes(
+            favorables,
+            precaucion,
+            desfavorables
+        )
 
         st.caption(
             f"Destino: {consulta['ciudad']} | "
@@ -353,23 +287,49 @@ if "consulta_realizada" in st.session_state:
             <p style="color: #343C32 !important;">
                 {descripcion}
             </p>
-            <h3 style="color: #343C32;">
-                {porcentaje:.1f}% de días agradables
-            </h3>
         </div>
         """, unsafe_allow_html=True)
 
+        col_verde, col_amarillo, col_rojo = st.columns(3)
+
+        col_verde.metric(
+            "🟢 Favorables",
+            f"{favorables:.1f}%"
+        )
+
+        col_amarillo.metric(
+            "🟡 Precaución",
+            f"{precaucion:.1f}%"
+        )
+
+        col_rojo.metric(
+            "🔴 Desfavorables",
+            f"{desfavorables:.1f}%"
+        )
+
+        st.info(
+            "💡 Estos porcentajes corresponden a días históricos del mes "
+            "seleccionado. Son criterios turísticos orientativos, "
+            "no alertas meteorológicas oficiales."
+        )
+
         st.caption(
-            f"Período histórico analizado: {int(datos['dias_observados'])} días observados."
+            f"Período histórico analizado: "
+            f"{int(datos['dias_observados'])} días clasificados; "
+            f"{int(datos['dias_sin_dato'])} sin clasificación. "
+            "La recomendación mensual combina la proporción "
+            "de días favorables y desfavorables."
         )
 
     else:
         st.warning(
-            "No se encontraron datos para este destino y mes."
+            "No se encontraron datos clasificados para este destino y mes."
         )
 
-else:
-    st.info("Seleccioná los filtros y presioná «Consultar destino».")
+elif "consulta_realizada" not in st.session_state:
+    st.info(
+        "Seleccioná los filtros y presioná «Consultar destino»."
+    )
 
 
 # INDICADORES CLIMÁTICOS
@@ -405,64 +365,46 @@ if "consulta_realizada" in st.session_state:
     )
 
     if (
-        indicadores is not None
-        and not indicadores.empty
-        and pd.notna(indicadores.iloc[0]["temp_media"])
+        indicadores is None
+        or indicadores.empty
+        or pd.isna(indicadores.iloc[0]["temp_media"])
     ):
-        datos_indicadores = indicadores.iloc[0]
-        indicadores_reales = True
+        st.warning(
+            "No hay indicadores para el destino, mes y año seleccionados."
+        )
+        datos_indicadores = None
 
     else:
-        datos_demo = datos_epoca[
-            (datos_epoca["destino"] == consulta["ciudad"]) &
-            (datos_epoca["mes"] == mes_numero)
-        ]
+        datos_indicadores = indicadores.iloc[0]
 
-        datos_indicadores = datos_demo.iloc[0]
-        indicadores_reales = False
+    if datos_indicadores is not None:
 
-    col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric(
-        "Temperatura media",
-        f"{datos_indicadores['temp_media'] if indicadores_reales else datos_indicadores['temp_media']:.1f} °C"
-    )
+        col1.metric(
+            "Temperatura media",
+            f"{datos_indicadores['temp_media']:.1f} °C"
+        )
 
-    temperatura_maxima = (
-        datos_indicadores["temp_max"]
-        if indicadores_reales
-        else datos_indicadores["temp_max_promedio"]
-    )
+        col2.metric(
+            "Temperatura máxima",
+            f"{datos_indicadores['temp_max']:.1f} °C"
+        )
 
-    col2.metric(
-        "Temperatura máxima",
-        f"{temperatura_maxima:.1f} °C"
-    )
-
-    if indicadores_reales:
         col3.metric(
             "Precipitaciones",
             f"{datos_indicadores['precipitaciones']:.1f} mm"
         )
+
         col4.metric(
             "Horas de luz",
             f"{datos_indicadores['horas_luz']:.1f} h"
         )
-    else:
-        col3.metric(
-            "Precipitaciones",
-            f"{datos_indicadores['lluvia_mm_por_mes']:.1f} mm"
-        )
-        col4.metric(
-            "Horas de luz",
-            f"{datos_indicadores['horas_luz_promedio']:.1f} h"
-        )
-
-    if not indicadores_reales:
-        st.caption("Indicadores de demostración: valores ficticios.")
 
 else:
-    st.info("Los indicadores aparecerán después de consultar un destino.")
+    st.info(
+        "Los indicadores aparecerán después de consultar un destino."
+    )
 
 
 # HISTÓRICO CLIMÁTICO
@@ -473,12 +415,7 @@ if "consulta_realizada" in st.session_state:
 
     consulta = st.session_state["consulta_realizada"]
 
-    historico, historico_real = obtener_historico(consulta["ciudad"])
-
-    if not historico_real:
-        st.caption(
-            "Gráficos de demostración: datos ficticios para probar la visualización."
-        )
+    historico = obtener_historico(consulta["ciudad"])
 
     if not historico.empty:
 
@@ -504,7 +441,9 @@ if "consulta_realizada" in st.session_state:
             marker=dict(size=7)
         )
 
-        fig_temperatura = configurar_grafico(fig_temperatura)
+        fig_temperatura = configurar_grafico(
+            fig_temperatura
+        )
 
         st.plotly_chart(
             fig_temperatura,
@@ -529,7 +468,9 @@ if "consulta_realizada" in st.session_state:
             category_orders={"nombre_mes": meses}
         )
 
-        fig_lluvia = configurar_grafico(fig_lluvia)
+        fig_lluvia = configurar_grafico(
+            fig_lluvia
+        )
 
         st.plotly_chart(
             fig_lluvia,
@@ -538,10 +479,14 @@ if "consulta_realizada" in st.session_state:
         )
 
     else:
-        st.warning("No hay datos históricos disponibles.")
+        st.warning(
+            "No hay datos históricos disponibles."
+        )
 
 else:
-    st.info("Los gráficos aparecerán después de consultar un destino.")
+    st.info(
+        "Los gráficos aparecerán después de consultar un destino."
+    )
 
 
 # COMPARACIÓN DE DESTINOS
@@ -549,52 +494,145 @@ else:
 st.divider()
 st.subheader("¿Cuál es la mejor época para viajar?")
 
-comparacion = (
-    datos_epoca
-    .sort_values("pct_dias_agradables", ascending=False)
-    .groupby("destino", as_index=False)
-    .first()
-    .sort_values("pct_dias_agradables", ascending=False)
-)
+if not datos_epoca.empty:
 
-if not comparacion.empty:
-
-    mejor = comparacion.iloc[0]
-
-    st.success(
-        f"🏆 Según los datos disponibles, {mejor['destino']} "
-        f"en {mejor['nombre_mes']} presenta el mayor porcentaje "
-        f"de días agradables ({mejor['pct_dias_agradables']:.1f}%)."
+    comparacion = (
+        datos_epoca
+        .sort_values(["destino", "ranking_en_destino", "mes"])
+        .groupby("destino", as_index=False)
+        .first()
+        .sort_values("pct_dias_favorables", ascending=False)
     )
 
-    fig_comparacion = px.bar(
-        comparacion,
-        x="destino",
-        y="pct_dias_agradables",
-        color="destino",
-        text="pct_dias_agradables",
-        title="Mejor mes de cada destino según días agradables",
+    if not comparacion.empty:
+
+        mejor = comparacion.iloc[0]
+
+        st.success(
+            f"🏆 Entre los mejores meses de cada destino, "
+            f"{mejor['destino']} en {mejor['nombre_mes']} "
+            f"presenta el mayor porcentaje de días favorables "
+            f"({mejor['pct_dias_favorables']:.1f}%)."
+        )
+
+        fig_comparacion = px.bar(
+            comparacion,
+            x="destino",
+            y="pct_dias_favorables",
+            color="destino",
+            text="pct_dias_favorables",
+            title="Mejor mes de cada destino según días favorables",
+            labels={
+                "destino": "Destino",
+                "pct_dias_favorables": "Días favorables (%)"
+            }
+        )
+
+        fig_comparacion.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside",
+            textfont=dict(color="#343A35", size=13)
+        )
+
+        fig_comparacion.update_yaxes(
+            range=[0, 110]
+        )
+
+        fig_comparacion = configurar_grafico(
+            fig_comparacion
+        )
+
+        st.plotly_chart(
+            fig_comparacion,
+            use_container_width=True,
+            theme=None
+        )
+
+        st.caption(
+            "El gráfico compara el mes mejor posicionado de cada destino, "
+            "según el ranking calculado en Gold."
+        )
+
+
+# CONDICIONES CLIMÁTICAS RECIENTES
+
+st.divider()
+st.subheader("🌤️ Condiciones climáticas recientes")
+
+st.caption(
+    "Últimos datos horarios disponibles de Open-Meteo, "
+    "procesados por Bronze, Silver y Gold."
+)
+
+datos_horarios = leer("""
+    SELECT
+        destino,
+        fecha_hora,
+        temperatura_2m,
+        precipitacion_mm,
+        rafagas_viento_kmh
+    FROM gold.v_clima_horario
+    ORDER BY fecha_hora DESC
+""")
+
+if datos_horarios is not None and not datos_horarios.empty:
+
+    ciudad_horaria = st.selectbox(
+        "Destino para consultar datos recientes",
+        sorted(datos_horarios["destino"].unique()),
+        key="ciudad_horaria"
+    )
+
+    datos_ciudad = datos_horarios[
+        datos_horarios["destino"] == ciudad_horaria
+    ].sort_values("fecha_hora", ascending=False)
+
+    ultimo = datos_ciudad.iloc[0]
+
+    st.caption(
+        f"Último registro disponible (UTC): "
+        f"{ultimo['fecha_hora']}"
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Temperatura",
+        f"{ultimo['temperatura_2m']:.1f} °C"
+    )
+
+    col2.metric(
+        "Precipitaciones",
+        f"{ultimo['precipitacion_mm']:.1f} mm"
+    )
+
+    col3.metric(
+        "Ráfagas de viento",
+        f"{ultimo['rafagas_viento_kmh']:.1f} km/h"
+    )
+
+    st.markdown(
+        "**Evolución de la temperatura horaria**"
+    )
+
+    fig_horaria = px.line(
+        datos_ciudad.sort_values("fecha_hora"),
+        x="fecha_hora",
+        y="temperatura_2m",
+        markers=True,
+        title=f"Temperatura horaria — {ciudad_horaria}",
         labels={
-            "destino": "Destino",
-            "pct_dias_agradables": "Días agradables (%)"
+            "fecha_hora": "Fecha y hora (UTC)",
+            "temperatura_2m": "Temperatura (°C)"
         }
     )
 
-    fig_comparacion.update_traces(
-        texttemplate="%{text:.1f}%",
-        textposition="outside",
-        textfont=dict(color="#343A35", size=13)
-    )
-
-    fig_comparacion.update_yaxes(range=[0, 110])
-
-    fig_comparacion = configurar_grafico(fig_comparacion)
-
     st.plotly_chart(
-        fig_comparacion,
-        use_container_width=True,
-        theme=None
+        configurar_grafico(fig_horaria),
+        use_container_width=True
     )
 
-
-
+else:
+    st.warning(
+        "No hay datos horarios disponibles en Gold."
+    )

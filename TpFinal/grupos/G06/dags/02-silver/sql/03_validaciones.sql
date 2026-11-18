@@ -24,7 +24,38 @@ duplicados AS (
         GROUP BY destino, fecha
         HAVING COUNT(*) > 1
     ) d
+),
+resumen_horario AS (
+    SELECT
+        COUNT(*) AS total_registros_horarios,
+        COUNT(*) FILTER (
+            WHERE destino IS NULL
+        ) AS destinos_nulos_horarios,
+        COUNT(*) FILTER (
+            WHERE fecha_hora IS NULL
+        ) AS fechas_nulas_horarias,
+        COUNT(*) FILTER (
+            WHERE temperatura_2m IS NULL
+        ) AS temperaturas_nulas_horarias,
+        COUNT(*) FILTER (
+            WHERE precipitacion_mm IS NULL
+        ) AS precipitaciones_nulas_horarias,
+        COUNT(*) FILTER (
+            WHERE rafagas_viento_kmh IS NULL
+        ) AS rafagas_nulas_horarias
+    FROM silver.clima_horario_limpio
+),
+duplicados_horarios AS (
+    SELECT COUNT(*) AS grupos_duplicados_horarios
+    FROM (
+        SELECT destino, fecha_hora
+        FROM silver.clima_horario_limpio
+        GROUP BY destino, fecha_hora
+        HAVING COUNT(*) > 1
+    ) d
 )
 SELECT *
 FROM resumen
-CROSS JOIN duplicados;
+CROSS JOIN duplicados
+CROSS JOIN resumen_horario
+CROSS JOIN duplicados_horarios;

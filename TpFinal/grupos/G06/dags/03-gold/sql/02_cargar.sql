@@ -6,7 +6,7 @@ INSERT INTO gold.dim_ciudad
 VALUES
     (1, 'Purmamarca', 'Purmamarca (Cerro de los Siete Colores)', 'Jujuy',     'Noroeste', 'Montaña', -23.7500, -65.5000),
     (2, 'Bariloche',  'San Carlos de Bariloche',                 'Río Negro', 'Patagonia', 'Montaña y lagos', -41.1335, -71.3103),
-    (3, 'Puerto Iguazú', 'Puerto Iguazú (Cataratas)',            'Misiones',  'Noreste',   'Selva',           -25.5991, -54.5736)
+    (3,U&'Puerto Iguaz\00FA', U&'Puerto Iguaz\00FA (Cataratas)',            'Misiones',  'Noreste',   'Selva',           -25.5991, -54.5736)
 ON CONFLICT (ciudad_id) DO UPDATE SET
     destino = EXCLUDED.destino, nombre_completo = EXCLUDED.nombre_completo,
     provincia = EXCLUDED.provincia, region = EXCLUDED.region,
@@ -35,7 +35,22 @@ ON CONFLICT (fecha) DO NOTHING;
 -- fact: se recarga completa (son ~5.5 mil filas) para que sea idempotente.
 TRUNCATE gold.fact_clima_diario;
 
-INSERT INTO gold.fact_clima_diario
+INSERT INTO gold.fact_clima_diario(
+    ciudad_id,
+    fecha,
+    temperatura_minima,
+    temperatura_media,
+    temperatura_maxima,
+    precipitacion_mm,
+    horas_luz,
+    rafagas_viento_max_kmh,
+    es_calor_extremo,
+    es_frio_extremo,
+    es_temp_extrema,
+    es_dia_lluvioso,
+    es_dia_agradable,
+    estado_climatico
+)
 SELECT c.ciudad_id,
        s.fecha,
        s.temperatura_minima,
@@ -53,7 +68,36 @@ SELECT c.ciudad_id,
        (s.temperatura_maxima BETWEEN u.ag_tmax_min AND u.ag_tmax_max
         AND s.temperatura_minima >= u.ag_tmin_min
         AND s.precipitacion_mm   <  u.lluvia
-        AND s.rafagas_viento_max_kmh < u.ag_rafaga)
+        AND s.rafagas_viento_max_kmh < u.ag_rafaga),
+
+
+    CASE
+        WHEN s.temperatura_maxima >= u.calor OR s.temperatura_minima <=u.frio
+            OR s.precipitacion_mm >= 10 OR s.rafagas_viento_max_kmh >= 70
+        THEN 'DESFAVORABLE'
+
+        WHEN s.temperatura_maxima IS NULL OR s.temperatura_minima IS NULL
+          OR s.precipitacion_mm IS NULL OR s.rafagas_viento_max_kmh IS NULL
+          OR u.calor IS NULL OR u.frio IS NULL
+        THEN NULL
+
+        WHEN (
+            (c.destino = 'Bariloche'
+                AND s.temperatura_maxima BETWEEN 10 AND 27
+            )
+            OR (c.destino = 'Purmamarca'
+                AND s.temperatura_maxima BETWEEN 14 AND 30
+            )
+            OR (c.destino =  U&'Puerto Iguaz\00FA'
+                AND s.temperatura_maxima BETWEEN 20 AND 34
+            )
+        )
+        AND s.precipitacion_mm < 3
+        AND s.rafagas_viento_max_kmh < 50
+        THEN 'FAVORABLE'
+
+        ELSE 'PRECAUCION'
+    END
 FROM silver.clima_diario s
 JOIN gold.dim_ciudad c ON c.destino = s.destino
 CROSS JOIN (
@@ -67,3 +111,31 @@ CROSS JOIN (
         max(valor) FILTER (WHERE nombre = 'agradable_rafaga_max') AS ag_rafaga
     FROM gold.umbrales
 ) u;
+
+
+-- Carga de datos meteorologicos horarios en Gold.
+-- Fuente: silver.clima_horario.
+-- Grano: una ciudad por hora.
+
+INSERT INTO gold.fact_clima_horario (
+    ciudad_id,
+    fecha_hora,
+    temperatura_2m,
+    precipitacion_mm,
+    rafagas_viento_kmh
+)
+SELECT
+    c.ciudad_id,
+    s.fecha_hora,
+    s.temperatura_2m,
+    s.precipitacion_mm,
+    s.rafagas_viento_kmh
+FROM silver.clima_horario s
+JOIN gold.dim_ciudad c
+    ON c.destino = s.destino
+
+ON CONFLICT (ciudad_id, fecha_hora)
+DO UPDATE SET
+    temperatura_2m = EXCLUDED.temperatura_2m,
+    precipitacion_mm = EXCLUDED.precipitacion_mm,
+    rafagas_viento_kmh = EXCLUDED.rafagas_viento_kmh;

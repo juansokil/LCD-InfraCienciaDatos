@@ -12,7 +12,7 @@ Al terminar emite BRONZE_OPENMETEO, que dispara g06_silver.
 """
 import json
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 from airflow.sdk import dag, task
@@ -22,9 +22,11 @@ sys.path.append("/opt/airflow/dags")
 from common.assets import BRONZE_OPENMETEO  # noqa: E402
 from common.db import get_engine  # noqa: E402
 
-URL = "https://archive-api.open-meteo.com/v1/archive"
+URL_HISTORICO = "https://archive-api.open-meteo.com/v1/archive"
+URL_FORECAST = "https://api.open-meteo.com/v1/forecast"
 FECHA_INICIO = date(2021, 1, 1)   # años completos 2021-2025 para comparar meses
 DEMORA_DIAS = 5                   # la API histórica tiene ~5 días de demora
+DIAS_ANTERIORES_PRONOSTICO = 7    # la API de pronóstico devuelve 7 días anteriores a la fecha de hoy
 
 # Los nombres tienen que coincidir con gold.dim_ciudad y el dashboard.
 DESTINOS = {
@@ -81,6 +83,20 @@ def g06_bronze():
                     ingested_at    TIMESTAMPTZ NOT NULL DEFAULT now()
                 )
             """))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS bronze.clima_horario (
+                    id BIGSERIAL PRIMARY KEY,
+                    destino TEXT NOT NULL,
+                    fecha_hora TIMESTAMPTZ NOT NULL,
+                    temperatura_2m NUMERIC,
+                    precipitacion NUMERIC,
+                    rafaga_viento_10m NUMERIC,
+                    source TEXT NOT NULL,
+                    ingested_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                    UNIQUE (destino, fecha_hora)
+                )
+        """))
+        
 
     @task
     def calcular_rangos():
@@ -88,8 +104,9 @@ def g06_bronze():
             filas = conn.execute(text("""
                 SELECT destino, MAX(fecha_hasta) AS ultima
                 FROM bronze.openmeteo
+                WHERE source = :origen
                 GROUP BY destino
-            """)).fetchall()
+            """), {"origen": URL_HISTORICO}).fetchall()
         ultimas = {fila.destino: fila.ultima for fila in filas}
 
         rangos = {}
@@ -101,11 +118,12 @@ def g06_bronze():
         return rangos
 
     # Pide y guarda en la misma tarea: el JSON de 5 años no debe viajar por XCom.
-    @task(outlets=[BRONZE_OPENMETEO])
+    #Extracción historica: solo consulta los días nuevos
+    @task
     def extraer_y_cargar(rangos):
         for destino, (inicio, fin) in rangos.items():
             lat, lon = DESTINOS[destino]
-            respuesta = requests.get(URL, timeout=120, params={
+            respuesta = requests.get(URL_HISTORICO, timeout=120, params={
                 "latitude": lat,
                 "longitude": lon,
                 "start_date": inicio,
@@ -125,14 +143,150 @@ def g06_bronze():
                     "destino": destino, "lat": lat, "lon": lon,
                     "inicio": inicio, "fin": fin,
                     "respuesta": json.dumps(respuesta.json()),
-                    "source": URL,
+                    "source": URL_HISTORICO,
                 })
-            print(f"{destino}: cargado {inicio} a {fin}")
+            print(f"{destino}: historico cargado {inicio} a {fin}")
+
+        # 2. Extracción de Forecast: consulta los últimos días en cada corrida.
+        for destino, (lat, lon) in DESTINOS.items():
+
+            respuesta = requests.get(URL_FORECAST, timeout=120, params={
+                "latitude": lat,
+                "longitude": lon,
+                "past_days": DIAS_ANTERIORES_PRONOSTICO,
+                "forecast_days": 0,
+                "daily": ",".join(VARIABLES),
+                "timezone": "auto",
+            })
+            respuesta.raise_for_status()
+
+            datos = respuesta.json()
+            fechas = datos["daily"]["time"]
+
+            if not fechas:
+                print(f"{destino}: Forecast no devolvió fechas")
+                continue
+
+            with get_engine().begin() as conn:
+                conn.execute(text("""
+                    INSERT INTO bronze.openmeteo
+                        (destino, latitud, longitud, fecha_desde, fecha_hasta, respuesta_json, source)
+                    VALUES
+                        (:destino, :lat, :lon, :inicio, :fin, CAST(:respuesta AS JSONB), :origen)
+                """), {
+                    "destino": destino,
+                    "lat": lat,
+                    "lon": lon,
+                    "inicio": fechas[0],
+                    "fin": fechas[-1],
+                    "respuesta": json.dumps(datos),
+                    "origen": URL_FORECAST,
+                })
+
+            print(f"{destino}: Forecast cargado {fechas[0]} a {fechas[-1]}")
+
+
+    
+    @task
+    def cargar_forecast_horario():
+        from datetime import timezone
+
+        # Última hora completada en UTC.
+        hora_actual_utc = datetime.now(timezone.utc).replace(
+            minute=0, second=0, microsecond=0
+        )
+        ultima_hora_completa = hora_actual_utc - timedelta(hours=1)
+
+        # Procesar cada destino por separado.
+        for destino, (lat, lon) in DESTINOS.items():
+
+            respuesta = requests.get(
+                URL_FORECAST,
+                timeout=120,
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "past_days": 7,
+                    "forecast_days": 1,
+                    "hourly": (
+                        "temperature_2m,"
+                        "precipitation,"
+                        "wind_gusts_10m"
+                    ),
+                    "timezone": "GMT",
+                },
+            )
+            respuesta.raise_for_status()
+
+            datos = respuesta.json()["hourly"]
+            horas = datos["time"]
+            registros = []
+
+            for i, hora_texto in enumerate(horas):
+                fecha_hora = datetime.strptime(
+                    hora_texto, "%Y-%m-%dT%H:%M"
+                ).replace(tzinfo=timezone.utc)
+
+                # No guardar horas futuras ni la hora en curso.
+                if fecha_hora > ultima_hora_completa:
+                    continue
+
+                # Recuperar los últimos 7 días para cubrir
+                # el retraso de la API histórica.
+                if fecha_hora < hora_actual_utc - timedelta(days=7):
+                    continue
+
+                registros.append({
+                    "destino": destino,
+                    "fecha_hora": fecha_hora,
+                    "temperatura": datos["temperature_2m"][i],
+                    "precipitacion": datos["precipitation"][i],
+                    "rafaga": datos["wind_gusts_10m"][i],
+                    "source": URL_FORECAST,
+                })
+
+            # Guardar los registros de ESTE destino.
+            if registros:
+                with get_engine().begin() as conn:
+                    conn.execute(text("""
+                        INSERT INTO bronze.clima_horario (
+                            destino,
+                            fecha_hora,
+                            temperatura_2m,
+                            precipitacion,
+                            rafaga_viento_10m,
+                            source
+                        )
+                        VALUES (
+                            :destino,
+                            :fecha_hora,
+                            :temperatura,
+                            :precipitacion,
+                            :rafaga,
+                            :source
+                        )
+                        ON CONFLICT (destino, fecha_hora)
+                        DO NOTHING
+                    """), registros)
+
+            print(
+                f"{destino}: {len(registros)} horas revisadas "
+                "(sin insertar duplicados)"
+            )
+
+
+    @task(outlets=[BRONZE_OPENMETEO])
+    def finalizar_bronze():
+        print("Bronze finalizado. Silver puede comenzar.")
 
     tabla = crear_tabla()
     rangos = calcular_rangos()
     tabla >> rangos
-    extraer_y_cargar(rangos)
+    extraccion = extraer_y_cargar(rangos)
+    carga_horaria = cargar_forecast_horario()
+    tabla >> carga_horaria
+    fin = finalizar_bronze()
+    [extraccion, carga_horaria] >> fin
 
 
 g06_bronze()

@@ -11,6 +11,7 @@ WITH datos_extraidos AS (
     SELECT
     b.id AS bronze_id,
     b.ingested_at,
+    b.source AS origen,
     b.destino,
         (t.fecha)::DATE AS fecha,
         (t.temperatura_minima)::DECIMAL AS temperatura_minima,
@@ -49,6 +50,7 @@ datos_limpios AS (
     SELECT
         bronze_id,
         ingested_at,
+        origen,
         destino,
         fecha,
         CASE
@@ -82,6 +84,13 @@ datos_priorizados AS (
         ROW_NUMBER() OVER (
             PARTITION BY destino, fecha
             ORDER BY
+                CASE
+                    WHEN origen = 'https://archive-api.open-meteo.com/v1/archive'
+                        THEN 1
+                    WHEN origen = 'https://api.open-meteo.com/v1/forecast'
+                        THEN 2
+                    ELSE 3
+                END ASC,
                 (
                     (temperatura_minima IS NOT NULL)::int +
                     (temperatura_media IS NOT NULL)::int +
@@ -104,5 +113,57 @@ SELECT
     precipitacion_mm,
     duracion_luz_segundos,
     rafagas_viento_max_kmh
+FROM datos_priorizados
+WHERE numero_fila = 1;
+
+-- Limpieza de datos meteorologicos horarios.
+-- Se validan los registros de Bronze y se eliminan duplicados
+-- por destino y fecha_hora.
+
+DROP TABLE IF EXISTS silver.clima_horario_limpio;
+
+CREATE TABLE silver.clima_horario_limpio AS
+
+WITH datos_validados AS (
+    SELECT
+        destino,
+        fecha_hora,
+        CASE
+            WHEN temperatura_2m BETWEEN -90 AND 60
+            THEN temperatura_2m
+            ELSE NULL
+        END AS temperatura_2m,
+
+        CASE
+            WHEN precipitacion >= 0
+            THEN precipitacion
+            ELSE NULL
+        END AS precipitacion_mm,
+
+        CASE
+            WHEN rafaga_viento_10m >= 0
+            THEN rafaga_viento_10m
+            ELSE NULL
+        END AS rafagas_viento_kmh,
+
+        ingested_at,
+        id
+    FROM bronze.clima_horario
+),
+datos_priorizados AS (
+    SELECT *,
+        ROW_NUMBER() OVER (
+            PARTITION BY destino, fecha_hora
+            ORDER BY ingested_at DESC, id DESC
+        ) AS numero_fila
+    FROM datos_validados
+)
+
+SELECT
+    destino,
+    fecha_hora,
+    temperatura_2m,
+    precipitacion_mm,
+    rafagas_viento_kmh
 FROM datos_priorizados
 WHERE numero_fila = 1;

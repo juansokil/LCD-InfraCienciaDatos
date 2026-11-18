@@ -15,3 +15,14 @@ CREATE TABLE IF NOT EXISTS silver.clima_diario (
 
     PRIMARY KEY (destino, fecha)
 );
+
+-- Tabla Silver para los datos meteorologicos horarios
+CREATE TABLE IF NOT EXISTS silver.clima_horario (
+    destino VARCHAR(100) NOT NULL,
+    fecha_hora TIMESTAMPTZ NOT NULL,
+    temperatura_2m DECIMAL,
+    precipitacion_mm DECIMAL,
+    rafagas_viento_kmh DECIMAL,
+
+    PRIMARY KEY (destino, fecha_hora)
+);

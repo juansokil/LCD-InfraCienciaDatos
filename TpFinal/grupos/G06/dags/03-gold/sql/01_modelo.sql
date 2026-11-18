@@ -55,8 +55,35 @@ CREATE TABLE IF NOT EXISTS gold.fact_clima_diario (
     es_temp_extrema        BOOLEAN,            -- alimenta las alertas del dashboard
     es_dia_lluvioso        BOOLEAN,
     es_dia_agradable       BOOLEAN,
+    estado_climatico       TEXT,
     PRIMARY KEY (ciudad_id, fecha)
 );
+
+-- Agregar clasificacion climatica a bases de datos existentes.
+ALTER TABLE gold.fact_clima_diario
+ADD COLUMN IF NOT EXISTS estado_climatico TEXT;
+
+-- Permitir solamente los tres estados del semaforo.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'chk_estado_climatico'
+          AND conrelid = 'gold.fact_clima_diario'::regclass
+    ) THEN
+        ALTER TABLE gold.fact_clima_diario
+        ADD CONSTRAINT chk_estado_climatico
+        CHECK (
+            estado_climatico IN (
+                'FAVORABLE',
+                'PRECAUCION',
+                'DESFAVORABLE'
+            )
+        );
+    END IF;
+END $$;
+
 
 -- Si la tabla ya existia con las banderas NOT NULL (versiones anteriores), se las saca.
 -- Es inofensivo si ya eran nullable.
@@ -65,3 +92,20 @@ ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_frio_extremo  DROP NOT NULL;
 ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_temp_extrema  DROP NOT NULL;
 ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_dia_lluvioso  DROP NOT NULL;
 ALTER TABLE gold.fact_clima_diario ALTER COLUMN es_dia_agradable DROP NOT NULL;
+
+
+-- Tabla de hechos horarios para los datos de Forecast.
+-- Grano: una ciudad en una hora determinada.
+
+CREATE TABLE IF NOT EXISTS gold.fact_clima_horario (
+    ciudad_id SMALLINT NOT NULL
+        REFERENCES gold.dim_ciudad (ciudad_id),
+
+    fecha_hora TIMESTAMPTZ NOT NULL,
+
+    temperatura_2m NUMERIC(5,2),
+    precipitacion_mm NUMERIC(7,2),
+    rafagas_viento_kmh NUMERIC(6,2),
+
+    PRIMARY KEY (ciudad_id, fecha_hora)
+);

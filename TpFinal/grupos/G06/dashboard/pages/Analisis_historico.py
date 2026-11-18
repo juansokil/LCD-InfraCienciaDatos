@@ -200,16 +200,17 @@ def obtener_datos():
     if datos is not None and not datos.empty:
         return datos, True
 
-    return crear_demo_historico(), False
+    return pd.DataFrame(), False
 
 
 datos, datos_reales = obtener_datos()
 
 if not datos_reales:
-    st.warning(
-        "Modo demostración: los gráficos utilizan datos ficticios. "
-        "Se reemplazarán automáticamente cuando se carguen los datos en Gold."
+    st.error(
+        "No se pudieron obtener datos históricos desde Gold. "
+        "Verificá la conexión y la ejecución del pipeline."
     )
+    st.stop()
 
 
 # PREPARACIÓN DE LOS DATOS
