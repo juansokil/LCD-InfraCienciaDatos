@@ -4,8 +4,13 @@ Corre cuando Silver emite SILVER_OPENMETEO. Lee silver.clima_diario (ver
 Contrato-silver-propuesta.md) y arma:
 
     gold.dim_ciudad, gold.dim_tiempo, gold.fact_clima_diario   (grano: ciudad x dia)
+    gold.fact_clima_horario (grano: ciudad x hora)
     gold.v_mejor_epoca, gold.v_alertas_temperatura, gold.v_lluvia_mensual
+    gold.v_clima_horario
     gold.umbrales   (umbrales de negocio editables: temp. extrema, dia agradable)
+
+El histórico diario se usa para analizar las mejores épocas para viajar,
+mientras que los datos horarios de Forecast muestran el clima reciente.
 
 El SQL vive en dags/03-gold/sql/ (01 modelo, 02 carga, 03 vistas, 04 chequeos).
 Todo es idempotente: se puede re-correr sin duplicar filas.
