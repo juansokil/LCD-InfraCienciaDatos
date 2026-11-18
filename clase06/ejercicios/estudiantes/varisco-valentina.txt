@@ -1,0 +1,27 @@
+Apellido: Varisco
+Nombre: Valentina
+Rama: estudiante/varisco-valentina
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Modelo decision_tree_1d. Aparenta tener el mejor rendimiento, pero el resultado no es estadísticamente confiable porque se testeo y se entreno con pocos datos.
+Pregunta (b) - El acc_train mas alto:
+  Modelo random_forest_3d_deep. Tiene muy buena accuracy en train pero a la hora de probarlo con datos nuvos no da buen accuracy, lo que puede indicar sobreajuste.
+Pregunta (c) - El acc_test mas bajo:
+  Modelo svm_3d. Las medidas de rendimiento son confiables porque se uso una considerable cantidad de datos para entrenar como para probar, pero da bajo rendimiento en gral.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Ya que se entrena y se testea con una buena cantidad de datos, y da un acurracy similar tanto para el entrenamiento como para los datos de testeo indicando que no hay sobreajuste y que es un modelo equilibardo, aparte de que da el mejor acc_test dentro de los modelos evaluados con una muestra confiable.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Me daría cuenta si al recibir los datos reales el accuracy de test tiende en bajar en la mayoría de las evalauciones, chequeando siempre que se mantenga la misma distribución de las predictoras de entrada (es decir, en sí chequearía que no haya data drif, predict drift,etc para ver si es el modelo el que anda mal)
+Codigo: 9CCC0F10502D
+Fecha: 2026-11-18
