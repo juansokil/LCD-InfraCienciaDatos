@@ -11,10 +11,10 @@ INSERT INTO gold.umbrales (nombre, valor, descripcion) VALUES
     ('temp_calor_extremo',   35, 'tmax >= este valor (°C) => calor extremo'),
     ('temp_frio_extremo',    -5, 'tmin <= este valor (°C) => frio extremo'),
     ('lluvia_dia_mm',         1, 'precipitacion >= este valor (mm) => dia lluvioso'),
-    ('agradable_tmax_min',   18, 'dia agradable: tmax >= este valor (°C)'),
-    ('agradable_tmax_max',   30, 'dia agradable: tmax <= este valor (°C)'),
-    ('agradable_tmin_min',    5, 'dia agradable: tmin >= este valor (°C)'),
-    ('agradable_rafaga_max', 40, 'dia agradable: rafaga maxima < este valor (km/h)')
+    ('agradable_tmax_min',   12, 'dia agradable: tmax >= este valor (°C)'),
+    ('agradable_tmax_max',   34, 'dia agradable: tmax <= este valor (°C)'),
+    ('agradable_tmin_min',    2, 'dia agradable: tmin >= este valor (°C)'),
+    ('agradable_rafaga_max', 75, 'dia agradable: rafaga maxima < este valor (km/h)')
 ON CONFLICT (nombre) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS gold.dim_ciudad (

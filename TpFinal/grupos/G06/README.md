@@ -27,7 +27,7 @@ Pipeline de datos end-to-end con arquitectura **Medallion** (Bronze → Silver �
 ## Decisiones de análisis
 
 - **Destinos (3):**
-  - Purmamarca, Jujuy (puna / quebrada)
+  - Purmamarca, Jujuy (montaña)
   - San Carlos de Bariloche, Río Negro (montaña y lagos)
   - Puerto Iguazú, Misiones (selva)
 - **Período:** desde el 1/1/2021 hasta hoy menos ~5 días (demora de la API). El primer arranque carga todo el histórico y después se suman solo los días nuevos.
@@ -61,6 +61,7 @@ El stack arranca solo: **Bronze corre al levantar los contenedores y, cuando ter
 Guarda en el schema `bronze` la respuesta de la API **tal cual**, en formato `JSONB`, con metadatos de auditoría: destino, `ingested_at` y `source`. No se transforma nada, así se puede reprocesar Silver sin volver a llamar a la API.
 
 Tabla `bronze.openmeteo`: una fila por destino y corrida, con `destino`, `latitud`, `longitud`, `fecha_desde`, `fecha_hasta`, `respuesta_json`, `source` e `ingested_at`. Carga incremental: consulta la última `fecha_hasta` de cada destino y pide solo los días que faltan.
+
 ### Silver: datos limpios y validados
 
 Convierte el JSON a una tabla `silver.clima_diario` con una fila por destino y día, según el contrato de datos (ver [`Contrato-silver-propuesta.md`](Contrato-silver-propuesta.md)):
@@ -68,7 +69,7 @@ Convierte el JSON a una tabla `silver.clima_diario` con una fila por destino y d
 - **Clave:** `destino` + `fecha`.
 - **Tipos:** `fecha` DATE, el resto DECIMAL, `destino` VARCHAR.
 - **Renombrado** de variables a nombres en español con unidad explícita.
-- **Chequeos de calidad:** sin datos faltantes, sin duplicados de `destino` + `fecha`, y consistencia `mínima ≤ media ≤ máxima`.
+- **Limpieza y chequeos de calidad:** se descartan los registros sin destino o fecha; los valores imposibles (precipitación o ráfagas negativas, luz fuera de 0 a 86400 segundos, o temperaturas con `mínima ≤ media ≤ máxima` incumplido) quedan en `NULL`; y si hay varias ingestas del mismo `destino` + `fecha`, se conserva una sola (la más completa y reciente).
 - Es **idempotente**: se puede volver a correr sin duplicar filas.
 
 ### Gold: modelo estrella
@@ -127,7 +128,7 @@ erDiagram
 | `es_frio_extremo` | temperatura mínima ≤ -5 °C |
 | `es_temp_extrema` | calor extremo **o** frío extremo (alimenta las alertas) |
 | `es_dia_lluvioso` | precipitación ≥ 1 mm |
-| `es_dia_agradable` | máxima entre 18 y 30 °C, mínima ≥ 5 °C, sin lluvia (< 1 mm) y ráfagas < 40 km/h |
+| `es_dia_agradable` | máxima entre 12 y 34 °C, mínima ≥ 2 °C, sin lluvia (< 1 mm) y ráfagas < 75 km/h |
 
 **Datos faltantes:** si a un día le falta un dato y eso impide decidir una bandera, la bandera queda en `NULL` (desconocido) y ese día **no cuenta** en los porcentajes mensuales. Si un dato conocido ya alcanza para decidir (por ejemplo, una máxima de 40 °C), la bandera se calcula igual. Las vistas informan `dias_observados` y `dias_sin_dato` por mes.
 
