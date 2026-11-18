@@ -1,0 +1,9 @@
+Apellido: Kammerer
+Nombre: RamiroFacundo
+Rama: estudiante/kammerer-ramirofacundo
+Caso: gimnasio
+Hecho: Una fila representa una visita completada de un socio a una sede (registrada por el molinete).
+Dimensiones: Socio (plan, fecha de alta, sede asociada), Sede (barrio, máquinas, horarios) y Tiempo (mes, franja horaria).
+Metricas: Se guardan (aditivas): minutos de entrenamiento y consumo en barra. Se calculan en BI (no aditiva): gasto promedio por visita.
+Codigo: CF83340382B5
+Fecha: 2026-11-06
