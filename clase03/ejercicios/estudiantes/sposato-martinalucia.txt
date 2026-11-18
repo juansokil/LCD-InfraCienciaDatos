@@ -1,0 +1,19 @@
+Apellido: Sposato
+Nombre: MartinaLucia
+Rama: estudiante/sposato-martinalucia
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 64697
+Doble ingesta: SI
+Ultima carga: 2026-11-17 21:32:01.763573
+Pregunta (a) - La zona raw y la tabla:
+  Borraria la tabla bronze.crypto_markets_demo y me quedaria con el archivo crudo de stack/data/raw. La tabla se puede reconstruir en cualquier momento leyendo los JSON (que tienen la respuesta completa, byte por byte, como la mando la API), sin volver a llamar a la API. Si borro el crudo, pierdo la fuente original: ya no puedo reprocesar si cambian las reglas, ni recuperar campos que la tabla no guardo (como hace el DAG productivo que deja afuera image y roi), y esa foto del mercado no se puede volver a pedir porque la API solo da el precio actual. Lo que dejaria de poder hacer al borrar la tabla es consultar con SQL directamente, hasta reconstruirla.
+Pregunta (b) - replace y append:
+  Con replace, pandas borra la tabla y la crea de nuevo: queda solo la ultima carga (50 filas). Con append, agrega las filas nuevas debajo de las que ya estaban: queda el historial de todas las cargas (100 filas, cada cripto dos veces con distinto ingested_at). El DAG productivo que corre cada 15 minutos usa append, porque Bronze tiene que acumular cada snapshot sin perder los anteriores; quedarse con la version mas reciente de cada cripto es trabajo de Silver.
+Pregunta (c) - Dos cargas identicas:
+  Porque la API no cambia en unos pocos segundos: CoinGecko actualiza y cachea los precios cada cierto intervalo, asi que dos pedidos seguidos devuelven el mismo contenido (en mi caso bitcoin dio 64697.0 en las dos cargas). El pipeline los guarda igual porque cada archivo registra un evento distinto: que a esa hora se consulto la fuente y eso respondio. Bronze es la fuente de verdad inmutable y no interpreta ni limpia nada: deduplicar ya es una decision de negocio y le toca a Silver. Ademas, cada archivo lleva la hora con microsegundos en el nombre, asi que nunca se pisan.
+Codigo: C5F0A0714D9A
+Fecha: 2026-11-17
