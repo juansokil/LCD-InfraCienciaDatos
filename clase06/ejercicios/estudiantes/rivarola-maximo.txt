@@ -1,0 +1,27 @@
+Apellido: Rivarola
+Nombre: Maximo
+Rama: estudiante/rivarola-maximo
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  Tiene el acc_test mas alto (0.83), pero con n_train=12 y n_test=3 y ventana de 1 dia: una muestra tan chica es poco representativa y puede dar un numero alto por azar.
+Pregunta (b) - El acc_train mas alto:
+  Tiene el acc_train mas alto (0.98) pero baja a 0.54 en test con 240/60 fechas; es un claro overfitting porque se ajusta demasiado a los datos de entrenamiento
+Pregunta (c) - El acc_test mas bajo:
+  Tiene el acc_test mas bajo (0.51, con 0.52 en train sobre 240/60 fechas): rinde muy cerca del azar y no logra capturar bien el patron del problema.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Porque logra el mejor acc_test (0.69) entre los modelos con muestra amplia (240 train / 60 test), mantiene un gap razonable con train (0.74) y usa una ventana de 7 dias mas estable.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Haciendo seguimiento de la accuracy en ventanas recientes cuando haya etiquetas reales, y monitoreando data drift (cambios en las features de entrada), concept drift y calidad/nulos de datos.
+Codigo: EB3E4372BD34
+Fecha: 2026-11-19
