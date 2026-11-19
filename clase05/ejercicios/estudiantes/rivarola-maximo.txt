@@ -1,0 +1,9 @@
+Apellido: Rivarola
+Nombre: Maximo
+Rama: estudiante/rivarola-maximo
+Caso: gimnasio
+Hecho: Cada visita completa de un socio a una sede, registrada desde el ingreso hasta el egreso por molinete (con su duración y consumo en barra).
+Dimensiones: Tiempo y franja (mes y franja horaria, del registro del molinete); sede (de la visita/catálogo de sedes); socio y plan (full, local o flex, del sistema de socios).
+Metricas: En cada visita se miden: minutos de la visita, monto facturado en barra y cantidad de visitas (1 por fila). Después se calcula el gasto promedio por visita (total facturado / cantidad de visitas).
+Codigo: 5D9BC25F3DCC
+Fecha: 2026-11-19
