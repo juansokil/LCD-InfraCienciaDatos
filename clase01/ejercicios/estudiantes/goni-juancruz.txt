@@ -1,0 +1,6 @@
+Apellido: Goñi
+Nombre: Juan Cruz
+Usuario GitHub: JuanCruzGoni
+Rama: estudiante/goni-juancruz
+Codigo: 725A05F3BFF0
+Fecha: 2026-10-14

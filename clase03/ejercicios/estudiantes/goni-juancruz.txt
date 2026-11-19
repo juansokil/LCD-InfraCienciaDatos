@@ -1,0 +1,19 @@
+Apellido: Goñi
+Nombre: Juan Cruz
+Rama: estudiante/goni-juancruz
+Motor: postgres
+Archivos crudos: 2
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 80753
+Doble ingesta: SI
+Ultima carga: 2026-10-29 16:07:53.461833
+Pregunta (a) - La zona raw y la tabla:
+  Borraría la tabla y dejaría el archivo crudo. El archivo es lo que la API contestó, tal cual llegó, y no se puede volver a pedir: la API solo da el estado actual, no el de ese momento. Con el crudo puedo reconstruir la tabla cuando quiera, o rearmarla con otro criterio, sin volver a llamar a la API. Si borrara el archivo, perdería para siempre esa foto original, y la tabla sola no permite recuperar lo que no mapeó.
+Pregunta (b) - replace y append:
+  Con replace la tabla se borra y se vuelve a crear en cada carga, así que queda solo la última carga (50 filas, una por cripto). Con append cada carga agrega filas a las que ya había: la tabla acumula snapshots, y cada cripto aparece varias veces con distinto ingested_at. El DAG productivo usa append: corre cada 15 minutos (cron 0,15,30,45 * * * *) y agrega 50 filas por corrida, para conservar el historial
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque la API no cambia su dato entre dos pedidos seguidos: si pido de nuevo a los pocos segundos, me devuelve la misma respuesta, y los bytes del archivo quedan iguales. El pipeline los guarda igual porque Bronze es la fuente de verdad: registra que hubo una carga a esa hora, sin decidir qué es duplicado. Deduplicar es limpieza, y eso es trabajo de Silver (clase 4). Guardar todo mantiene el crudo inmutable y permite reprocesar o auditar después
+Codigo: C4568B5A7CF2
+Fecha: 2026-10-29

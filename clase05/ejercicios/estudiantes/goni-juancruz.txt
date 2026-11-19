@@ -1,0 +1,9 @@
+Apellido: Goñi
+Nombre: Juan Cruz
+Rama: estudiante/goni-juancruz
+Caso: gimnasio
+Hecho: Una visita de un socio a una sede: una fila por cada entrada y salida por el molinete, con la duracion y el consumo en la barra de esa visita
+Dimensiones: Socio (nombre, fecha de alta, sede donde se asocio, plan: full, local o flex), sede donde se hizo la visita (barrio, cantidad de maquinas, horario de apertura), fecha (para cortar por mes) y franja horaria (sale de la hora de entrada)
+Metricas: Se guardan en cada fila de visita: minutos de la visita (duracion) y consumo en la barra (monto). Se calculan despues: visitas = contar filas, y gasto promedio por visita = suma del consumo / cantidad de visitas (no se guarda ya promediado)
+Codigo: 2A4496862916
+Fecha: 2026-10-30
