@@ -1,0 +1,9 @@
+Apellido: herbas
+Nombre: enzo
+Rama: estudiante/herbas-enzo
+Caso: gimnasio
+Hecho: cada vez que un socio va al gimnasio cuenta como una visita
+Dimensiones: veo en qué sede fue, cuándo fue y qué plan tenía el socio
+Metricas: cuánto tiempo entreno y cuánto gastó en la barra. Tambien puedo contar las visitas y calcular cuanto gasto en promedio cada visita según el plan
+Codigo: 1DB424E3FE21
+Fecha: 2026-11-19
