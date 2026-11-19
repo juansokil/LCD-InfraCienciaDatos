@@ -1,0 +1,27 @@
+Apellido: Goñi
+Nombre: Juan Cruz
+Rama: estudiante/goni-juancruz
+Tracking: local (file:./mlruns_veredicto)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  decision_tree_1d tiene el acc_test mas alto (0.83), pero se entreno con 12 fechas y se midio con solo 3: con tan pocos datos el numero no es confiable y puede ser suerte.
+Pregunta (b) - El acc_train mas alto:
+  random_forest_3d_deep tiene el acc_train mas alto (0.98) pero su acc_test es 0.54: memorizo el train (overfitting) y no generaliza.
+Pregunta (c) - El acc_test mas bajo:
+  svm_3d tiene el acc_test mas bajo (0.51): como el target esta balanceado (~50%), no le gana a la clase mayoritaria ni al azar, no aprendio nada util.
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Tiene el mejor acc_test (0.69) entre los candidatos medidos con 60 fechas de test, y la brecha con el train es chica (0.74 vs 0.69), asi que generaliza. Descarto decision_tree_1d por tener solo 3 fechas de test y random_forest_3d_deep por overfitting. Contra random_forest_7d la diferencia es de 0.01, que es ruido, pero la v2 es la mas reciente y rinde igual o mejor.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  Compararia en el tiempo las predicciones guardadas (gold.predicciones) con la volatilidad que realmente ocurrio, calculando el accuracy por semana. Si cae hacia el 0.50 de la clase mayoritaria, queda por debajo de la persistencia o claramente por debajo del 0.69 que tuvo en test, el modelo empeoro y hay que reentrenar. Es lo que muestra la pagina 6_Gold_ML del tablero.
+Codigo: EBD194C90230
+Fecha: 2026-11-19
