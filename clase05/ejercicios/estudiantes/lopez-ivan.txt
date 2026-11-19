@@ -1,0 +1,9 @@
+Apellido: Lopez
+Nombre: Ivan
+Rama: estudiante/lopez-ivan
+Caso: gimnasio
+Hecho: Como hecho tomaria la visita del cliente desde que entra asta que sale.
+Dimensiones: Dimensiones: nombre, fecha de alta, sede, plan.
+Metricas: En cada fila del hecho mido: id_credencial, hora de ingreso, hora de egreso, consumicion en barra. Luego se calcula: minutos entrenados por mes y sede, facturacion en barra por sede y franja, visitas por plan, gasto promedio de vista por plan
+Codigo: E6F966A930B8
+Fecha: 2026-11-09

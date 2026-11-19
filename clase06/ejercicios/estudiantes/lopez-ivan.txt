@@ -1,0 +1,27 @@
+Apellido: Lopez
+Nombre: Ivan
+Rama: estudiante/lopez-ivan
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: random_forest_7d_v2 [OK]
+Pregunta (a) - El acc_test mas alto:
+  La cantidad de datos con el que se entreno probablemente no es insuficiente para hacer un modelo que generalice bien. Por lo que en cierta manera esta haciendo overfitting
+Pregunta (b) - El acc_train mas alto:
+  El modelo esta claramente haciendo overfitting en entrenamiento.
+Pregunta (c) - El acc_test mas bajo:
+  Que tal vez no es el mejor modelo para obtener buenas predicciones con estos datos
+Pregunta (d) - Cual pondrias en produccion:
+  random_forest_7d_v2
+  Porque tiene una cantidad de datos razonable sobre los que esta entrenado y porque aunque haya una pequeña diferencia entre el acc_train = 0.74 y acc_test = 0.69, a simple vista ese modelo podria ser el que mejor generaliza ante nuevos datos, comparado con el resto.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  si comnienza a aumentar la diferencia de performance entre acc_train y acc_test, esto podria indicar un posible data drift
+Codigo: 0E9A3ED4C0F9
+Fecha: 2026-11-19
