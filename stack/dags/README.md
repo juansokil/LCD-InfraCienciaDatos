@@ -20,7 +20,7 @@ DAGs de aprendizaje y demos. Los estudiantes generan los suyos en la **Clase 02*
 > - `01-bronze/` (Clase 03 — Ingesta)
 > - `02-silver/` (Clase 04 — Refinería)
 > - `03-gold/` (Clase 05 — Serving / Star Schema · Clase 06 — la ABT)
-> - `04-ml/` (Clase 06 — un modelo adentro de un DAG)
+> - `04-ml/` (Clase 06 — `dag_crypto_ml.py`, el modelo servido por un DAG)
 
 ---
 
