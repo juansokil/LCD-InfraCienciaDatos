@@ -1,0 +1,3 @@
+# Postgres ejecuta lo que esta en /docker-entrypoint-initdb.d/ la PRIMERA vez que inicializa un volumen vacio.
+FROM postgres:17-alpine
+COPY init.sql /docker-entrypoint-initdb.d/init.sql

@@ -1,0 +1,8 @@
+# Dependencias de Airflow (van ADENTRO del contenedor, no en tu PC).
+# apache-airflow queda fijado para que pip no lo actualice al instalar el resto.
+apache-airflow==3.1.5
+apache-airflow-providers-postgres==6.5.0
+pandas==2.1.4
+SQLAlchemy==1.4.54
+psycopg2-binary==2.9.11
+requests==2.32.5
