@@ -1,0 +1,7 @@
+streamlit==1.45.1
+psycopg2-binary==2.9.11
+pandas==2.2.3
+SQLAlchemy==1.4.54
+plotly==6.1.2
+numpy==2.0                       # calculos de la pagina de Analisis
+PyYAML==6.0.2          # leer el contrato de datos (pagina Silver)
