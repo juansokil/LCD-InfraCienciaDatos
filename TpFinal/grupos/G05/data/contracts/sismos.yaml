@@ -1,0 +1,94 @@
+dataset: sismos
+version: 1.0
+owner: G05
+source: usgs_fdsn_event_service
+
+format:
+  type: api
+  encoding: "utf-8"
+
+delivery:
+  source_endpoint: "https://earthquake.usgs.gov/fdsnws/event/1/query"
+  initial_backfill_days: 30
+  schedule: hourly
+  event_type: earthquake
+  minimum_magnitude: null
+  maximum_events_per_request: 20000
+
+# Bronze conserva una fila por version observada: (id, updated_epoch).
+# Los campos de auditoria de Bronze (ingested_at, source, run_id) se agregan
+# durante la ingesta y no forman parte del payload de USGS.
+schema:
+  - name: id
+    type: string
+    nullable: false
+
+  - name: mag
+    type: numeric
+    nullable: true
+
+  - name: place
+    type: string
+    nullable: true
+
+  - name: time_epoch
+    type: integer
+    nullable: true
+
+  - name: updated_epoch
+    type: integer
+    nullable: false
+
+  - name: type
+    type: string
+    nullable: true
+
+  - name: status
+    type: string
+    nullable: true
+
+  - name: tsunami
+    type: integer
+    nullable: true
+    description: USGS flag (0=no, 1=yes, null=not reported)
+
+  - name: sig
+    type: integer
+    nullable: true
+
+  - name: mag_type
+    type: string
+    nullable: true
+
+  - name: longitude
+    type: numeric
+    nullable: true
+    rules:
+      ge: -180
+      le: 180
+
+  - name: latitude
+    type: numeric
+    nullable: true
+    rules:
+      ge: -90
+      le: 90
+
+  - name: depth
+    type: numeric
+    nullable: true
+
+evolution_policy:
+  allow_new_columns: true
+  allow_missing_columns: false
+
+silver:
+  grain: one_row_per_event_id
+  version_selection: greatest_updated_epoch
+  include_event_type: earthquake
+  quarantine:
+    - missing_magnitude
+    - missing_event_time
+    - missing_or_invalid_coordinates
+  preserve_tsunami_null: true
+  region_derivation: approximate_zone_from_place
