@@ -1,0 +1,43 @@
+
+{
+  "version": "demo_v1",
+  "descripcion": "Reglas simuladas de alertas meteorologicas e incentivos para repartidores de LogiWeather",
+  "unidad_incentivo": "porcentaje_adicional",
+  "lluvia": {
+    "sin_alerta": {
+      "incentivo_pct": 0
+    },
+    "baja": {
+      "probabilidad_min": 50,
+      "precipitacion_mm_min": 10,
+      "incentivo_pct": 25
+    },
+    "media": {
+      "probabilidad_min": 50,
+      "precipitacion_mm_min": 20,
+      "incentivo_pct": 50
+    },
+    "alta": {
+      "probabilidad_min": 75,
+      "precipitacion_mm_min": 25,
+      "incentivo_pct": 75
+    }
+  },
+  "calor": {
+    "sin_alerta": {
+      "incentivo_pct": 0
+    },
+    "baja": {
+      "temperatura_max_min": 30,
+      "incentivo_pct": 25
+    },
+    "media": {
+      "temperatura_max_min": 35,
+      "incentivo_pct": 50
+    },
+    "alta": {
+      "temperatura_max_min": 40,
+      "incentivo_pct": 75
+    }
+  }
+}
