@@ -1,0 +1,7 @@
+# Warehouse: Postgres 17 con init.sql horneado en la imagen.
+# Postgres ejecuta todo lo que haya en /docker-entrypoint-initdb.d/ la PRIMERA
+# vez que arranca con un volumen vacio. Copiarlo (en vez de bind-mount) evita
+# los problemas de rutas de Windows.
+FROM postgres:17-alpine
+
+COPY init.sql /docker-entrypoint-initdb.d/init.sql

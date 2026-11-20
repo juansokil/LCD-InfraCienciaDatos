@@ -1,0 +1,104 @@
+# =============================================================================
+# TP Final G11 - Pipeline de sismos (USGS) - Arquitectura Medallion
+# =============================================================================
+# Un solo comando levanta todo y el pipeline arranca solo:
+#
+#     docker compose up -d --build
+#
+# 4 servicios:
+#   data_warehouse  Postgres con los schemas bronze/silver/gold (init.sql)
+#   airflow_db      Postgres de metadatos de Airflow (interno, sin puerto)
+#   airflow         Airflow 3.1.5 standalone: scheduler + dag-processor +
+#                   triggerer + api-server en un mismo contenedor
+#   dashboard       Streamlit, lee SOLO las vistas gold.v_*
+#
+# No usamos `container_name`: asi los nombres los arma Compose con el nombre
+# del proyecto (g11-airflow-1, ...) y no chocan con el stack del curso si
+# alguien lo tiene creado. Dentro de la red, los servicios se encuentran por
+# el nombre del servicio (data_warehouse, airflow_db).
+# =============================================================================
+
+services:
+  data_warehouse:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    environment:
+      - POSTGRES_USER=${SOURCE_DB_USER}
+      - POSTGRES_PASSWORD=${SOURCE_DB_PASS}
+      - POSTGRES_DB=${SOURCE_DB_NAME}
+    volumes:
+      - warehouse_data:/var/lib/postgresql/data
+    ports:
+      # Si ya tenes algo en el 5432 (otro Postgres, el stack del curso),
+      # cambia el puerto del HOST en el .env: WAREHOUSE_PORT=5433
+      - "${WAREHOUSE_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SOURCE_DB_USER} -d ${SOURCE_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    networks: [g11_net]
+
+  airflow_db:
+    image: postgres:17-alpine
+    environment:
+      - POSTGRES_USER=${AF_DB_USER}
+      - POSTGRES_PASSWORD=${AF_DB_PASS}
+      - POSTGRES_DB=${AF_DB_NAME}
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AF_DB_USER} -d ${AF_DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    networks: [g11_net]
+
+  airflow:
+    build: .
+    env_file: .env
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AF_DB_USER}:${AF_DB_PASS}@airflow_db:5432/${AF_DB_NAME}
+      - SOURCE_DB_HOST=data_warehouse
+    volumes:
+      - type: bind
+        source: ./dags
+        target: /opt/airflow/dags
+      - type: bind
+        source: ./data
+        target: /opt/airflow/data
+      - airflow_logs:/opt/airflow/logs
+    ports:
+      - "${AIRFLOW_PORT:-8080}:8080"
+    depends_on:
+      airflow_db:
+        condition: service_healthy
+      data_warehouse:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [g11_net]
+
+  dashboard:
+    build: ./dashboard
+    env_file: .env
+    environment:
+      - SOURCE_DB_HOST=data_warehouse
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    depends_on:
+      data_warehouse:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [g11_net]
+
+volumes:
+  warehouse_data:
+  airflow_db_data:
+  airflow_logs:
+
+networks:
+  g11_net:
+    driver: bridge

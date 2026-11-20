@@ -1,0 +1,10 @@
+# El .gitignore de la raiz del repo ignora todos los .env. El nuestro SI va
+# al repo (credenciales de juguete, la API no usa key), asi que lo reabrimos.
+!.env
+
+# Lo que genera el pipeline al correr: no es codigo fuente
+data/raw/*
+!data/raw/.gitkeep
+logs/
+__pycache__/
+*.pyc
