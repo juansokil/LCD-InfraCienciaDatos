@@ -1,0 +1,27 @@
+Apellido: Garcia
+Nombre: ErikDaniel
+Rama: estudiante/garcia-erikdaniel
+Tracking: server (http://localhost:5000)
+Experimento: clase06_veredicto
+Candidatos (leidos de MLflow, no autoreportados):
+  decision_tree_1d         n_train=12   n_test=3   acc_train=0.88 acc_test=0.83
+  gradient_boosting_7d     n_train=240  n_test=60  acc_train=0.64 acc_test=0.61
+  logistic_3d              n_train=240  n_test=60  acc_train=0.67 acc_test=0.66
+  random_forest_3d_deep    n_train=240  n_test=60  acc_train=0.98 acc_test=0.54
+  random_forest_7d         n_train=240  n_test=60  acc_train=0.71 acc_test=0.68
+  random_forest_7d_v2      n_train=240  n_test=60  acc_train=0.74 acc_test=0.69
+  svm_3d                   n_train=240  n_test=60  acc_train=0.52 acc_test=0.51
+Elegido: logistic_3d [OK]
+Pregunta (a) - El acc_test mas alto:
+  No me parece un modelo candidato para ponerlo en producción ya que fue entrenado con muy pocas observaciones y testeado con muy pocas. Su resultado de acc alto puede ser debido a la particion de test que le toco por puro azar.
+Pregunta (b) - El acc_train mas alto:
+  El modelo con acc_train mas alto es random_forest_3d_deep, el cual tiene un puntaje de 0.98. Considero que el modelo sufre de sobreajuste ya que tiene un puntaje muy alto de acc en train pero a la hora de testearlo sobre datos nuevos, su rendimiento cae demasiado.
+Pregunta (c) - El acc_test mas bajo:
+  El modelo con acc_test mas bajo es svm_3d. Tiene rendimiento similar en train como test. Sin embargo, no es buen candidato para desplegar el modelo. Existen modelos menos complejos como la regresion logistica y que obtienen mejor resultado que este svm.
+Pregunta (d) - Cual pondrias en produccion:
+  logistic_3d
+  Tiene un buen rendimiento tanto en train como test y pareciera no haber sobreajuste ni subajuste. Se que hay modelos que aumentan el rendimiento hasta 3 puntos porcentuales como los random_forest. Sin embargo, esta mejora es muy pobre para el numero de registros que tenemos. Además estariamos aumentando la complejidad del modelo y seguramente conlleva a mas costos.
+Pregunta (e) - Como te darias cuenta de que empeora:
+  La clave esta en mirar las metricas que se eligio para evaluar el performance del modelo. Por ejemplo, al entrenar y evaluar el modelo en datos nuevos observamos un acc_test de 0.66. Si al momento de ponerlo en produccion, el acc baja notoriamente, ejemplo 0.30, esto es una señal.
+Codigo: C05D25F2EF9E
+Fecha: 2026-11-09

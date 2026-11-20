@@ -1,0 +1,19 @@
+Apellido: Garcia
+Nombre: ErikDaniel
+Rama: estudiante/garcia-erikdaniel
+Motor: postgres
+Archivos crudos: 6
+Filas demo: 100
+Criptos distintas: 50
+Cripto mas cara: bitcoin
+Precio mas alto: 81394
+Doble ingesta: SI
+Ultima carga: 2026-10-17 21:42:25.084766
+Pregunta (a) - La zona raw y la tabla:
+  Si tuviera que borrar uno borraria la tabla bronce por que se puede generar desde el archivo raw
+Pregunta (b) - replace y append:
+  Replace sobrescribe toda la tabla con el lote actual y append acumula los nuevos registros sumándolos a los anteriores. El DAG productivo usa append para guardar el histórico.
+Pregunta (c) - Dos cargas identicas:
+  Pasa porque la API devuelve la misma foto actual en ejecuciones consecutivas. El pipeline los guarda igual para conservar una copia cruda e inmutable de cada ejecución sin alterar ni filtrar en la entrada.
+Codigo: 49F293B3DE5D
+Fecha: 2026-10-17

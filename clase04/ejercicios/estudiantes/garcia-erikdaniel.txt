@@ -1,0 +1,30 @@
+Apellido: Garcia
+Nombre: ErikDaniel
+Rama: estudiante/garcia-erikdaniel
+Motor: postgres
+Northwind: 8/8 tablas
+Customers: 91 filas
+Orders: 196 filas
+Ejercicios (extraido de las queries, no autoreporte):
+  E1: OK (24x3) h=F9977B80
+  E2: COLUMNAS INCORRECTAS (esperadas: total_productos, precio_min, precio_max, precio_promedio) (1x4) h=-
+  E3: OK (24x1) h=993DC2D7
+  E4: OK (91x4) h=3E0FDB30
+  E5: OK (77x4) h=36CCB595
+  E6: OK (20x3) h=41F90B3A
+  E7: OK (3x4) h=4B545305
+  E8: FORMA INCORRECTA (obtuviste 91x4, esperado 91x3) (91x4) h=-
+  E9: ORDEN INCORRECTO (la consigna pide mes asc) (8x3) h=-
+  E10: OK (27x3) h=3FB47831
+Ejercicios con resultado: 7 / 10
+Productos (E2): -
+Precio min (E2): -
+Precio max (E2): -
+Precio promedio (E2): -
+Huerfanos encontrados (E7): 3
+Clientes deduplicados (E8): - de 96
+Unidades totales (E9): -
+Pedidos distintos (E9): -
+Combinaciones sobre 200 unidades (E10): 27
+Codigo: 79FC8173FFA3
+Fecha: 2026-10-26
